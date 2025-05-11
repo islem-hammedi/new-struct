@@ -1,31 +1,25 @@
 class DemandeFormation {
     constructor({
-      id,
+      id_demande,
+      id_participant,
       theme,
-      //nom_complet,
-      contactMail,
       formateur,
-      contactTel,
       niveau,
+      mode,
       domaine,
       nombreParticipants,
-      quiDemande,
-      matricule,
       description,
       genre,
       createdAt
     }) {
-      this.id = id;
-     // this.nom_complet = nom_complet;
+      this.id_demande = id_demande;
+      this.id_participant = id_participant;
       this.formateur = formateur;
-      this.	contactMail = 	contactMail;
-      this.contactTel = contactTel;
       this.niveau = niveau;
       this.domaine = domaine;
       this.theme = theme;
+      this.mode = mode;
       this.nombreParticipants = nombreParticipants;
-      this.quiDemande = quiDemande;
-      this.matricule = matricule;
       this.description = description;
       this.	genre = 	genre;
       this.	createdAt = 	createdAt;

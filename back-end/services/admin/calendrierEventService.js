@@ -1,4 +1,4 @@
-const eventRepository = require('../../repositories/admin/calendrierEventRepository');
+const eventRepository = require('../../repositories/admin/EventRepository');
 const Event = require('../../models/admin/evenement');
 
 class EventService {

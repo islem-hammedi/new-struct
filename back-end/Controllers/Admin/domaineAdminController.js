@@ -1,6 +1,6 @@
 const db = require('../../connect');  
 
-const getDomains = (req, res) => {
+{/*const getDomains = (req, res) => {
     const sql = 'SELECT DISTINCT domaine FROM formation;'
 
     db.query(sql, (err, results) => {
@@ -16,42 +16,54 @@ const getDomains = (req, res) => {
             res.type('text/plain').send('Aucune donnée disponible !');  
         }
     });
-};
+};*/}
 
+const domaineAdminService = require('../../services/admin/domaineAdminService');
 
-const getThemesByDomaine = (req, res) => {
-    const domaine = req.query.domaine;
-  
-    if (!domaine) {
-      return res.status(400).send('Paramètre "domaine" manquant');
+const domaineAdminController = {
+  getDomains: async (req, res) => {
+    try {
+        const domaines = await domaineAdminService.getAllDomaines();
+        
+        if (domaines.length > 0) {
+            const data = domaines.join('\n');
+            res.type('text/plain').send(data);
+        } else {
+            res.type('text/plain').send('Aucune donnée disponible !');
+        }
+    } catch (error) {
+        console.error('Erreur de récupération des données:', error);
+        res.status(500).send('Erreur de récupération des données');
     }
-  
-    const query = 'SELECT theme FROM session WHERE id_formation = ?';
-  
-    pool.execute(query, [domaine], (err, results) => {
-      if (err) {
-        console.error('Erreur de connexion à la base de données :', err);
-        return res.status(500).send('Erreur de connexion à la base de données');
+},
+
+getThemesByDomaine: async (req, res) => {
+  try {
+      const id_domaine = req.query.id_domaine;
+      
+      if (!id_domaine) {
+          return res.status(400).json({ 
+              success: false,
+              message: 'Le paramètre id_domaine est requis'
+          });
       }
-  
-      if (results.length > 0) {
-        const themeNames = results.map(row => row.theme);
-        res.send(themeNames.join(', '));
-      } else {
-        res.send('Aucun thème trouvé pour ce domaine.');
-      }
-    });
-  };
-  
-  module.exports = {
-    getThemesByDomaine
-  };
-  
 
-
-module.exports = {
-    getDomains,
-
-
+      const themes = await domaineAdminService.getThemesByDomaine(id_domaine);
+      
+      res.json({
+          success: true,
+          themes: themes // Assurez-vous que c'est bien un tableau
+      });
+      
+  } catch (error) {
+      console.error('Erreur:', error);
+      res.status(500).json({ 
+          success: false,
+          error: error.message || 'Erreur serveur'
+      });
+  }
+}
 };
 
+
+module.exports = domaineAdminController;

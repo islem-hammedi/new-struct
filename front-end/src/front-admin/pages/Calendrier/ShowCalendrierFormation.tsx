@@ -1,1210 +1,378 @@
-{/*}
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import CreateCalendrierFormation from './CreateCalendrierFormation';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { format, startOfYear, addMonths, differenceInDays } from "date-fns";
+
+interface Domaine {
+  id_domaine: number;
+  domaine: string;
+  themes: Theme[];
+}
+
+interface Theme {
+  id_theme: number;
+  theme: string;
+  sessions: Session[];
+}
 
 interface Session {
   id_session: number;
+  createdAt: string;
+}
+
+interface CalendarSession {
+  id_session: number;
+  id_theme: number;
+  id_domaine: number;
   theme: string;
-  code: string;
-  formateur_nom: string;
   domaine: string;
-  fiche_programme: string;
-  type_formation: string;
-  date_debut: string;
-  date_fin: string;
-  duree: number;
+  createdAt: string;
+  date_debut?: Date;
+  date_fin?: Date;
+  duree?: number;
 }
 
-interface Formation {
-  domaine: string;
-  sessions: Session[];
+interface MonthData {
+  selectors: {
+    selectedDomaine: number | null;
+  }[];
+  sessions: CalendarSession[];
 }
 
-interface FormationItem {
-  domaine: {
-    domaine: string;
-    sessions: Session[];
-  } | null;
-  session: Session | null;
-  nbj: number;
-  date_debut: string;
-  date_fin: string;
-}
-
-interface Month {
-  mois: string;
-  annee: string;
-  formationsList: FormationItem[];
-}
-
-interface CalendrierItem {
-  mois: string;
-  annee: string;
-  sessions: Session[];
-}
-
-const moisOrdre = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-];
-
-const extractDay = (dateString: string): string => {
-  try {
-    const date = new Date(dateString);
-    return isNaN(date.getTime()) ? '--' : date.getDate().toString();
-  } catch {
-    return '--';
-  }
-};
-
-const calculateDuration = (date_debut: string, date_fin: string): number => {
-  try {
-    const start = new Date(date_debut);
-    const end = new Date(date_fin);
-    return Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  } catch {
-    return 0;
-  }
-};
-
-const processCalendarData = (data: any[]): CalendrierItem[] => {
-  const groupedData: Record<string, CalendrierItem> = {};
-
-  (data || []).forEach((item) => {
-    try {
-      const dateDebut = new Date(item.date_debut);
-      const moisKey = `${item.mois}-${dateDebut.getFullYear()}`;
-
-      if (!groupedData[moisKey]) {
-        groupedData[moisKey] = {
-          mois: item.mois || '--',
-          annee: dateDebut.getFullYear().toString(),
-          sessions: []
-        };
-      }
-
-      if (item.theme) {
-        groupedData[moisKey].sessions.push({
-          id_session: item.id_session || 0,
-          theme: item.theme || '--',
-          code: item.code || '--',
-          formateur_nom: item.formateur_nom || '--',
-          domaine: item.domaine || '--',
-          fiche_programme: item.fiche_programme || '',
-          type_formation: item.type_formation || '--',
-          date_debut: item.date_debut || '',
-          date_fin: item.date_fin || '',
-          duree: item.duree || calculateDuration(item.date_debut, item.date_fin)
-        });
-      }
-    } catch (e) {
-      console.error('Error processing item:', item, e);
-    }
-  });
-
-  return Object.values(groupedData).sort((a, b) => {
-    const moisCompare = moisOrdre.indexOf(a.mois) - moisOrdre.indexOf(b.mois);
-    return moisCompare !== 0 ? moisCompare : parseInt(a.annee) - parseInt(b.annee);
-  });
-};
-
-const ShowCalendrierformation = () => {
-  const [calendrier, setCalendrier] = useState<CalendrierItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+const TrainingCalendar: React.FC = () => {
+  const [domainesData, setDomainesData] = useState<Domaine[]>([]);
+  const [calendarData, setCalendarData] = useState<Record<number, MonthData>>({});
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showAddForm, setShowAddForm] = useState<{visible: boolean, mois?: string, annee?: string}>({visible: false});
-  const [months, setMonths] = useState<Month[]>([]);
-  const [formations, setFormations] = useState<Formation[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const id_cal = 1743965951097  ;
-  const navigate = useNavigate();
-
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/showcalendrier/${id_cal}`);
-        setCalendrier(processCalendarData(response.data || []));
+        const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/domaines-with-sessions`);
         
-        // Simuler le chargement des formations (à remplacer par un appel API réel)
-        const mockFormations: Formation[] = [
-          {
-            domaine: "Développement Web",
-            sessions: [
-              {
-                id_session: 1,
-                theme: "React Avancé",
-                code: "REACT-ADV",
-                formateur_nom: "Jean Dupont",
-                domaine: "Développement Web",
-                fiche_programme: "",
-                type_formation: "Inter-entreprise",
-                date_debut: "2023-05-15",
-                date_fin: "2023-05-19",
-                duree: 5
-              }
-            ]
-          },
-          {
-            domaine: "Data Science",
-            sessions: [
-              {
-                id_session: 2,
-                theme: "Machine Learning",
-                code: "ML-101",
-                formateur_nom: "Marie Curie",
-                domaine: "Data Science",
-                fiche_programme: "",
-                type_formation: "Intra-entreprise",
-                date_debut: "2023-06-10",
-                date_fin: "2023-06-14",
-                duree: 5
-              }
-            ]
-          }
-        ];
-        setFormations(mockFormations);
-        
-        // Initialiser les mois
-        const initialMonths: Month[] = calendrier.map(item => ({
-          mois: item.mois,
-          annee: item.annee,
-          formationsList: item.sessions.map(session => ({
-            domaine: {
-              domaine: session.domaine,
-              sessions: [session]
-            },
-            session,
-            nbj: session.duree,
-            date_debut: session.date_debut,
-            date_fin: session.date_fin
-          }))
-        }));
-        setMonths(initialMonths);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
-        setCalendrier([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id_cal]);
-
-  const handleDeleteSession = async (id_session: number) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette session du calendrier ?')) {
-      try {
-        await axios.delete(`${import.meta.env.VITE_APP_API_URL}/api/calendrier/${id_cal}/session/${id_session}`);
-        
-        setCalendrier(prevCalendrier => 
-          prevCalendrier.map(moisData => ({
-            ...moisData,
-            sessions: moisData.sessions.filter(session => session.id_session !== id_session)
-          }))
-        );
-      } catch (err) {
-        console.error('Erreur lors de la suppression:', err);
-        setError('Échec de la suppression de la session');
-      }
-    }
-  };
-
-  const addFormationToMonth = (mois: string) => {
-    const updatedMonths = months.map((month) => {
-      if (month.mois === mois) {
-        return {
-          ...month,
-          formationsList: [
-            ...month.formationsList,
-            {
-              domaine: null,
-              session: null,
-              nbj: 0,
-              date_debut: "",
-              date_fin: "",
-            },
-          ],
-        };
-      }
-      return month;
-    });
-    setMonths(updatedMonths);
-  };
-
-  const handleDomaineChange = (mois: string, formationIndex: number, domaineValue: string) => {
-    const domaine = formations.find((f) => f.domaine === domaineValue);
-    if (!domaine) return;
-
-    const updatedMonths = months.map((month) => {
-      if (month.mois === mois) {
-        const updatedFormationsList = [...month.formationsList];
-        updatedFormationsList[formationIndex] = {
-          ...updatedFormationsList[formationIndex],
-          domaine,
-          session: null,
-        };
-        return {
-          ...month,
-          formationsList: updatedFormationsList,
-        };
-      }
-      return month;
-    });
-    setMonths(updatedMonths);
-  };
-
-  const handleThemeChange = (mois: string, formationIndex: number, sessionId: number) => {
-    const updatedMonths = months.map((month) => {
-      if (month.mois === mois) {
-        const updatedFormationsList = [...month.formationsList];
-        const selectedDomaine = updatedFormationsList[formationIndex].domaine;
-        if (selectedDomaine) {
-          const session = selectedDomaine.sessions.find((s) => s.id_session === sessionId);
-          if (session) {
-            updatedFormationsList[formationIndex] = {
-              ...updatedFormationsList[formationIndex],
-              session,
-            };
-          }
+        if (!response.data.success) {
+          setError(response.data.message || "Structure de données inattendue");
+          return;
         }
-        return {
-          ...month,
-          formationsList: updatedFormationsList,
-        };
-      }
-      return month;
-    });
-    setMonths(updatedMonths);
-  };
 
-  const handleAddSessionSubmit = async (mois: string) => {
-    try {
-      const monthData = months.find(m => m.mois === mois);
-      if (!monthData) return;
-
-      // Récupérer toutes les formations valides du mois
-      const validFormations = monthData.formationsList.filter(f => 
-        f.domaine && f.session && f.date_debut && f.date_fin
-      );
-
-      // Envoyer chaque formation au backend
-      for (const formation of validFormations) {
-        if (!formation.session) continue;
-
-        await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/calendrier/${id_cal}/session`, {
-          id_domaine: formation.domaine?.domaine,
-          id_session: formation.session.id_session,
-          nbj: formation.nbj || calculateDuration(formation.date_debut, formation.date_fin),
-          mois: monthData.mois,
-          date_debut: formation.date_debut,
-          date_fin: formation.date_fin
-        });
-      }
-
-      // Mettre à jour le calendrier
-      const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/api/showcalendrier/${id_cal}`);
-      setCalendrier(processCalendarData(response.data || []));
-      setShowAddForm({ visible: false });
-    } catch (err) {
-      console.error('Erreur lors de l\'ajout:', err);
-      setError('Échec de l\'ajout de la session');
-    }
-  };
-
-  const handleCreateNewCalendar = () => {
-    setShowCreateForm(true);
-  };
-
-  const handleCancelCreate = () => {
-    setShowCreateForm(false);
-  };
-
-  if (showCreateForm) {
-    return <CreateCalendrierFormation onCancel={handleCancelCreate} />;
-  }
-
-  if (loading) {
-    return <div className="text-center py-8">Chargement en cours...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8 text-red-500">
-        Erreur lors du chargement des données: {error}
-      </div>
-    );
-  }
-
-  if (!calendrier || calendrier.length === 0) {
-    return (
-      <div className="p-6 max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Calendrier de Formation</h1>
-          <button
-            onClick={handleCreateNewCalendar}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-          >
-            Créer un nouveau calendrier
-          </button>
-        </div>
-        <div className="text-center py-8">Aucune donnée disponible</div>
-      </div>
-    );
-  }
-
-  // Filtrer les domaines
-  const distinctDomaines = [...new Set(formations.map((formation) => formation.domaine))];
-  const filteredDomaines = distinctDomaines.filter((domaine) =>
-    domaine.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Calendrier de Formation</h1>
-        <button
-          onClick={handleCreateNewCalendar}
-          className="bg-teal-500 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-        >
-          Créer un nouveau calendrier
-        </button>
-      </div>
-      
-      {calendrier.map((moisData, index) => (
-        <div key={`${moisData.mois}-${moisData.annee}-${index}`} className="mb-8 border rounded-lg shadow-md overflow-hidden">
-          <div className="bg-gray-100 px-6 py-3 border-b flex justify-between items-center">
-            <h2 className="text-xl font-semibold">
-              {moisData.mois} 
-            </h2>
-            <button
-              onClick={() => setShowAddForm({visible: true, mois: moisData.mois, annee: moisData.annee})}
-              className="bg-teal-500 hover:bg-teal-700 text-white text-sm py-1 px-3 rounded"
-            >
-              Ajouter une session
-            </button>
-          </div>
-          
-          <div className="p-4">
-            {moisData.sessions && moisData.sessions.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Thème</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Code</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Période</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Durée</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Formateur</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Domaine</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Type</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {moisData.sessions.map((session, idx) => (
-                      <tr key={`${session.id_session}-${idx}`} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-4 py-3 text-sm text-gray-800">
-                          <div className="font-medium">{session.theme}</div>
-                          {session.fiche_programme && (
-                            <div className="text-xs text-blue-600 mt-1">
-                              <a href={session.fiche_programme} target="_blank" rel="noopener noreferrer">
-                                Voir fiche programme
-                              </a>
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-800">{session.code}</td>
-                        <td className="px-4 py-3 text-sm text-gray-800">
-                          Du {extractDay(session.date_debut)} au {extractDay(session.date_fin)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-800">{session.duree} jours</td>
-                        <td className="px-4 py-3 text-sm text-gray-800">{session.formateur_nom}</td>
-                        <td className="px-4 py-3 text-sm text-gray-800">{session.domaine}</td>
-                        <td className="px-4 py-3 text-sm text-gray-800">{session.type_formation}</td>
-                        <td className="px-4 py-3 text-sm text-gray-800">
-                          <button
-                            onClick={() => handleDeleteSession(session.id_session)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Supprimer cette session"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-4 text-gray-500 italic">
-                Aucune session prévue ce mois
-              </div>
-            )}
-          </div>
-        </div>
-      ))}
-
-      {showAddForm.visible && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
-            <h3 className="text-lg font-medium mb-4">
-              Ajouter une session pour {showAddForm.mois} {showAddForm.annee}
-            </h3>
-            
-            <div className="space-y-4">
-              {months
-                .find(month => month.mois === showAddForm.mois && month.annee === showAddForm.annee)
-                ?.formationsList.map((formation, formationIndex) => (
-                  <div key={formationIndex} className="mb-4 border p-4 rounded-lg">
-                    <div className="mb-4">
-                      <h3 className="text-lg font-semibold mb-2">Sélectionnez un domaine</h3>
-                      <input
-                        type="text"
-                        placeholder="Rechercher un domaine..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="p-2 border rounded w-full mb-2"
-                      />
-                      <select
-                        value={formation.domaine?.domaine || ""}
-                        onChange={(e) => handleDomaineChange(showAddForm.mois || "", formationIndex, e.target.value)}
-                        className="p-2 border rounded w-full"
-                      >
-                        <option value="">Choisissez un domaine</option>
-                        {filteredDomaines.map((domaine, index) => (
-                          <option key={index} value={domaine}>
-                            {domaine}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {formation.domaine && (
-                      <div className="mb-4">
-                        <h3 className="text-lg font-semibold mb-2">Sélectionnez un thème</h3>
-                        <select
-                          value={formation.session?.id_session || ""}
-                          onChange={(e) => handleThemeChange(showAddForm.mois || "", formationIndex, parseInt(e.target.value))}
-                          className="p-2 border rounded w-full"
-                        >
-                          <option value="">Choisissez un thème</option>
-                          {formation.domaine.sessions.map((session) => (
-                            <option key={session.id_session} value={session.id_session}>
-                              {session.theme} ({session.date_debut} au {session.date_fin})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    <div className="mb-4">
-                      <label className="block mb-2">Nombre de jours :</label>
-                      <input
-                        type="number"
-                        placeholder="Nb jours"
-                        value={formation.nbj}
-                        onChange={(e) => {
-                          const updatedMonths = [...months];
-                          const monthIndex = updatedMonths.findIndex(m => 
-                            m.mois === showAddForm.mois && m.annee === showAddForm.annee
-                          );
-                          if (monthIndex >= 0) {
-                            updatedMonths[monthIndex].formationsList[formationIndex].nbj = Number(
-                              e.target.value
-                            );
-                            setMonths(updatedMonths);
-                          }
-                        }}
-                        className="p-1 border rounded mb-2 w-full"
-                      />
-                    </div>
-
-                    <div className="mb-4">
-                      <label className="block mb-2">Date de début :</label>
-                      <input
-                        type="date"
-                        value={formation.date_debut}
-                        onChange={(e) => {
-                          const updatedMonths = [...months];
-                          const monthIndex = updatedMonths.findIndex(m => 
-                            m.mois === showAddForm.mois && m.annee === showAddForm.annee
-                          );
-                          if (monthIndex >= 0) {
-                            updatedMonths[monthIndex].formationsList[formationIndex].date_debut =
-                              e.target.value;
-                            setMonths(updatedMonths);
-                          }
-                        }}
-                        className="p-1 border rounded mb-2 w-full"
-                      />
-                    </div>
-
-                    <div className="mb-4">
-                      <label className="block mb-2">Date de fin :</label>
-                      <input
-                        type="date"
-                        value={formation.date_fin}
-                        onChange={(e) => {
-                          const updatedMonths = [...months];
-                          const monthIndex = updatedMonths.findIndex(m => 
-                            m.mois === showAddForm.mois && m.annee === showAddForm.annee
-                          );
-                          if (monthIndex >= 0) {
-                            updatedMonths[monthIndex].formationsList[formationIndex].date_fin =
-                              e.target.value;
-                            setMonths(updatedMonths);
-                          }
-                        }}
-                        className="p-1 border rounded w-full"
-                      />
-                    </div>
-                  </div>
-                ))}
-
-              <div className="flex justify-between pt-4">
-                <button
-                  type="button"
-                  onClick={() => addFormationToMonth(showAddForm.mois || "")}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded"
-                >
-                  Ajouter une autre formation
-                </button>
-                
-                <div className="space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddForm({visible: false})}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddSessionSubmit(showAddForm.mois || "")}
-                    className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded"
-                  >
-                    Enregistrer
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default ShowCalendrierformation;*/}
-
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import CreateCalendrierFormation from './CreateCalendrierformation';
-
-interface Session {
-  id_session: number;
-  theme: string;
-  code: string;
-  formateur_nom: string;
-  domaine: string;
-  fiche_programme: string;
-  type_formation: string;
-  date_debut: string;
-  date_fin: string;
-  duree: number;
-}
-
-interface Formation {
-  domaine: string;
-  sessions: Session[];
-}
-
-interface FormationItem {
-  domaine: {
-    domaine: string;
-    sessions: Session[];
-  } | null;
-  session: Session | null;
-  nbj: number;
-  date_debut: string;
-  date_fin: string;
-}
-
-interface Month {
-  mois: string;
-  annee: string;
-  formationsList: FormationItem[];
-}
-
-interface CalendrierItem {
-  mois: string;
-  annee: string;
-  sessions: Session[];
-}
-
-const moisOrdre = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
-];
-
-const extractDay = (dateString: string): string => {
-  try {
-    const date = new Date(dateString);
-    return isNaN(date.getTime()) ? '--' : date.getDate().toString();
-  } catch {
-    return '--';
-  }
-};
-
-const calculateDuration = (date_debut: string, date_fin: string): number => {
-  try {
-    const start = new Date(date_debut);
-    const end = new Date(date_fin);
-    return Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  } catch {
-    return 0;
-  }
-};
-
-const processCalendarData = (data: any[]): CalendrierItem[] => {
-  const groupedData: Record<string, CalendrierItem> = {};
-
-  (data || []).forEach((item) => {
-    try {
-      const dateDebut = new Date(item.date_debut);
-      const moisKey = `${item.mois}-${dateDebut.getFullYear()}`;
-
-      if (!groupedData[moisKey]) {
-        groupedData[moisKey] = {
-          mois: item.mois || '--',
-          annee: dateDebut.getFullYear().toString(),
-          sessions: []
-        };
-      }
-
-      if (item.theme) {
-        groupedData[moisKey].sessions.push({
-          id_session: item.id_session || 0,
-          theme: item.theme || '--',
-          code: item.code || '--',
-          formateur_nom: item.formateur_nom || '--',
-          domaine: item.domaine || '--',
-          fiche_programme: item.fiche_programme || '',
-          type_formation: item.type_formation || '--',
-          date_debut: item.date_debut || '',
-          date_fin: item.date_fin || '',
-          duree: item.duree || calculateDuration(item.date_debut, item.date_fin)
-        });
-      }
-    } catch (e) {
-      console.error('Error processing item:', item, e);
-    }
-  });
-
-  return Object.values(groupedData).sort((a, b) => {
-    const moisCompare = moisOrdre.indexOf(a.mois) - moisOrdre.indexOf(b.mois);
-    return moisCompare !== 0 ? moisCompare : parseInt(a.annee) - parseInt(b.annee);
-  });
-};
-
-const ShowCalendrierformation = () => {
-  const [calendrier, setCalendrier] = useState<CalendrierItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showAddForm, setShowAddForm] = useState<{visible: boolean, mois?: string, annee?: string}>({visible: false});
-  const [months, setMonths] = useState<Month[]>([]);
-  const [formations, setFormations] = useState<Formation[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const id_cal = 1744319313054
-  ;
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/showcalendrier/${id_cal}`);
-        const calendarData = processCalendarData(response.data || []);
-        setCalendrier(calendarData);
-        
-   
-        
-        // Initialiser les mois avec une formation vide pour chaque mois
-        const initialMonths: Month[] = calendarData.map(item => ({
-          mois: item.mois,
-          annee: item.annee,
-          formationsList: item.sessions.length > 0 
-            ? item.sessions.map(session => ({
-                domaine: {
-                  domaine: session.domaine,
-                  sessions: [session]
-                },
-                session,
-                nbj: session.duree,
-                date_debut: session.date_debut,
-                date_fin: session.date_fin
-              }))
-            : [{
-                domaine: null,
-                session: null,
-                nbj: 0,
-                date_debut: new Date().toISOString().split('T')[0],
-                date_fin: new Date().toISOString().split('T')[0],
-              }]
-        }));
-        setMonths(initialMonths);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
-        setCalendrier([]);
+        setDomainesData(response.data.data || []);
+      } catch (error) {
+        console.error("Erreur réseau:", error);
+        setError("Impossible de charger les données");
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [id_cal]);
+  }, []);
 
-  const handleDeleteSession = async (id_session: number) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette session du calendrier ?')) {
-      try {
-        await axios.delete(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/calendrier/${id_cal}/session/${id_session}`);
-        
-        setCalendrier(prevCalendrier => 
-          prevCalendrier.map(moisData => ({
-            ...moisData,
-            sessions: moisData.sessions.filter(session => session.id_session !== id_session)
-          }))
-        );
-      } catch (err) {
-        console.error('Erreur lors de la suppression:', err);
-        setError('Échec de la suppression de la session');
+  const handleAddSelector = (month: number) => {
+    setCalendarData((prev) => ({
+      ...prev,
+      [month]: {
+        selectors: [...(prev[month]?.selectors || []), { selectedDomaine: null }],
+        sessions: prev[month]?.sessions || []
       }
-    }
+    }));
   };
 
-  const addFormationToMonth = (mois: string) => {
-    setMonths(prevMonths => {
-      // Si le mois n'existe pas encore, on le crée
-      const monthExists = prevMonths.some(m => m.mois === mois);
-      if (!monthExists) {
-        return [
-          ...prevMonths,
-          {
-            mois,
-            annee: new Date().getFullYear().toString(),
-            formationsList: [{
-              domaine: null,
-              session: null,
-              nbj: 0,
-              date_debut: new Date().toISOString().split('T')[0],
-              date_fin: new Date().toISOString().split('T')[0],
-            }]
-          }
-        ];
-      }
+  const handleDomaineChange = (month: number, selectorIndex: number, id_domaine: number) => {
+    setCalendarData((prev) => {
+      const currentData = prev[month] || { selectors: [], sessions: [] };
+      const updatedSelectors = [...currentData.selectors];
+      updatedSelectors[selectorIndex] = { selectedDomaine: id_domaine };
       
-      // Sinon on ajoute une formation au mois existant
-      return prevMonths.map(month => {
-        if (month.mois === mois) {
-          return {
-            ...month,
-            formationsList: [
-              ...month.formationsList,
-              {
-                domaine: null,
-                session: null,
-                nbj: 0,
-                date_debut: new Date().toISOString().split('T')[0],
-                date_fin: new Date().toISOString().split('T')[0],
-              },
-            ],
+      return {
+        ...prev,
+        [month]: {
+          ...currentData,
+          selectors: updatedSelectors
+        }
+      };
+    });
+  };
+
+  const handleAddSession = (month: number, selectorIndex: number, sessionId: number) => {
+    let selectedSession: CalendarSession | null = null;
+
+    for (const domaine of domainesData) {
+      for (const theme of domaine.themes) {
+        const session = theme.sessions.find((s) => s.id_session === sessionId);
+        if (session) {
+          selectedSession = {
+            id_session: session.id_session,
+            id_theme: theme.id_theme,
+            id_domaine: domaine.id_domaine,
+            theme: theme.theme,
+            domaine: domaine.domaine,
+            createdAt: session.createdAt,
+            date_debut: new Date(),
+            date_fin: new Date(new Date().setDate(new Date().getDate() + 1)),
+            duree: 1
           };
+          break;
         }
-        return month;
-      });
-    });
-  };
-
-  const handleDomaineChange = (mois: string, formationIndex: number, domaineValue: string) => {
-    const domaine = formations.find((f) => f.domaine === domaineValue);
-    if (!domaine) return;
-
-    const updatedMonths = months.map((month) => {
-      if (month.mois === mois) {
-        const updatedFormationsList = [...month.formationsList];
-        updatedFormationsList[formationIndex] = {
-          ...updatedFormationsList[formationIndex],
-          domaine,
-          session: null,
-        };
-        return {
-          ...month,
-          formationsList: updatedFormationsList,
-        };
       }
-      return month;
+      if (selectedSession) break;
+    }
+
+    if (!selectedSession) return;
+
+    setCalendarData((prev) => {
+      const monthData = prev[month] || { selectors: [], sessions: [] };
+      return {
+        ...prev,
+        [month]: {
+          ...monthData,
+          sessions: [...monthData.sessions, selectedSession as CalendarSession],
+        },
+      };
     });
-    setMonths(updatedMonths);
   };
 
-  const handleThemeChange = (mois: string, formationIndex: number, sessionId: number) => {
-    const updatedMonths = months.map((month) => {
-      if (month.mois === mois) {
-        const updatedFormationsList = [...month.formationsList];
-        const selectedDomaine = updatedFormationsList[formationIndex].domaine;
-        if (selectedDomaine) {
-          const session = selectedDomaine.sessions.find((s) => s.id_session === sessionId);
-          if (session) {
-            updatedFormationsList[formationIndex] = {
-              ...updatedFormationsList[formationIndex],
-              session,
-            };
-          }
-        }
-        return {
-          ...month,
-          formationsList: updatedFormationsList,
-        };
-      }
-      return month;
+  const handleRemoveSession = (month: number, sessionId: number) => {
+    setCalendarData((prev) => {
+      if (!prev[month]) return prev;
+      return {
+        ...prev,
+        [month]: {
+          ...prev[month],
+          sessions: prev[month].sessions.filter((s) => s.id_session !== sessionId),
+        },
+      };
     });
-    setMonths(updatedMonths);
   };
 
-  const handleAddSessionSubmit = async (mois: string) => {
+  const handleDateChange = (month: number, sessionId: number, field: 'date_debut' | 'date_fin', value: Date) => {
+    setCalendarData((prev) => {
+      if (!prev[month]) return prev;
+      
+      return {
+        ...prev,
+        [month]: {
+          ...prev[month],
+          sessions: prev[month].sessions.map((session) => {
+            if (session.id_session === sessionId) {
+              const updatedSession = {
+                ...session,
+                [field]: value
+              };
+              
+              // Recalculer la durée si les deux dates sont définies
+              if (updatedSession.date_debut && updatedSession.date_fin) {
+                updatedSession.duree = differenceInDays(
+                  new Date(updatedSession.date_fin),
+                  new Date(updatedSession.date_debut)
+                ) + 1; // +1 pour inclure le dernier jour
+              }
+              
+              return updatedSession;
+            }
+            return session;
+          }),
+        },
+      };
+    });
+  };
+
+  const handleSave = async () => {
     try {
-      const monthData = months.find(m => m.mois === mois);
-      if (!monthData) return;
-
-      // Récupérer toutes les formations valides du mois
-      const validFormations = monthData.formationsList.filter(f => 
-        f.domaine && f.session && f.date_debut && f.date_fin
+      // 1. Préparer les données
+      const sessionsToSave = Object.entries(calendarData).flatMap(([month, monthData]) =>
+        monthData.sessions.map(session => ({
+          id_session: session.id_session,
+          date_debut: session.date_debut?.toISOString().split('T')[0],
+          date_fin: session.date_fin?.toISOString().split('T')[0],
+          duree: session.duree
+        }))
       );
 
-      // Envoyer chaque formation au backend
-      for (const formation of validFormations) {
-        if (!formation.session) continue;
+      console.log("Données à envoyer:", sessionsToSave);
 
-        await axios.post(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/calendrier/${id_cal}/session`, {
-          id_domaine: formation.domaine?.domaine,
-          id_session: formation.session.id_session,
-          nbj: formation.nbj || calculateDuration(formation.date_debut, formation.date_fin),
-          mois: monthData.mois,
-          date_debut: formation.date_debut,
-          date_fin: formation.date_fin
-        });
+      // 2. Envoyer directement le tableau (sans l'objet wrapper)
+      const response = await axios.post(
+        `${import.meta.env.VITE_APP_API_URL}/apiAdmin/sessions/save`,
+        sessionsToSave,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      // 3. Gérer la réponse
+      if (response.data.success) {
+        alert(response.data.message || "Sessions enregistrées avec succès !");
+      } else {
+        throw new Error(response.data.error || "Erreur inconnue du serveur");
       }
-
-      // Mettre à jour le calendrier
-      const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/showcalendrier/${id_cal}`);
-      setCalendrier(processCalendarData(response.data || []));
-      setShowAddForm({ visible: false });
-    } catch (err) {
-      console.error('Erreur lors de l\'ajout:', err);
-      setError('Échec de l\'ajout de la session');
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error("Erreur détaillée:", error.response?.data || error.message);
+        alert(`Erreur lors de l'enregistrement: ${error.response?.data?.error || error.message}`);
+      } else {
+        console.error("Erreur détaillée:", error);
+        alert("Erreur inconnue lors de l'enregistrement.");
+      }
     }
   };
 
-  const handleCreateNewCalendar = () => {
-    setShowCreateForm(true);
-  };
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
-  const handleCancelCreate = () => {
-    setShowCreateForm(false);
-  };
-
-  if (showCreateForm) {
-    return <CreateCalendrierFormation onCancel={handleCancelCreate} />;
-  }
-
-  if (loading) {
-    return <div className="text-center py-8">Chargement en cours...</div>;
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8 text-red-500">
-        Erreur lors du chargement des données: {error}
-      </div>
-    );
-  }
-
-  if (!calendrier || calendrier.length === 0) {
-    return (
-      <div className="p-6 max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl text-teal-500 text-center font-bold">Calendrier des Formations</h1>
-          <button
-            onClick={handleCreateNewCalendar}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-          >
-            Créer un nouveau calendrier
-          </button>
-        </div>
-        <div className="text-center py-8">Aucune donnée disponible</div>
-      </div>
-    );
-  }
-
-  // Filtrer les domaines
-  const distinctDomaines = [...new Set(formations.map((formation) => formation.domaine))];
-  const filteredDomaines = distinctDomaines.filter((domaine) =>
-    domaine.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  if (loading) return <div className="p-6">Chargement...</div>;
+  if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold text-gray-600">Calendrier des Formations</h1>
-        <button
-          onClick={handleCreateNewCalendar}
-          className="bg-teal-500 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-        >
-          Créer un nouveau calendrier
-        </button>
-      </div>
-      
-      {calendrier.map((moisData, index) => (
-        <div key={`${moisData.mois}-${moisData.annee}-${index}`} className="mb-8 border rounded-lg shadow-md overflow-hidden">
-          <div className="bg-gray-100 px-6 py-3 border-b flex justify-between items-center">
-            <h2 className="text-xl font-semibold">
-              {moisData.mois} {moisData.annee}
-            </h2>
-            <button
-              onClick={() => {
-                addFormationToMonth(moisData.mois);
-                setShowAddForm({
-                  visible: true,
-                  mois: moisData.mois,
-                  annee: moisData.annee
-                });
-              }}
-              className="bg-teal-500 hover:bg-teal-700 text-white text-sm py-1 px-3 rounded"
-            >
-              Ajouter une session
-            </button>
-          </div>
-          
-          <div className="p-4">
-            {moisData.sessions && moisData.sessions.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Thème</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Code</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Période</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Durée</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Formateur</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Domaine</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Type</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {moisData.sessions.map((session, idx) => (
-                      <tr key={`${session.id_session}-${idx}`} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                        <td className="px-4 py-3 text-sm text-gray-800">
-                          <div className="font-medium">{session.theme}</div>
-                          {session.fiche_programme && (
-                            <div className="text-xs text-blue-600 mt-1">
-                              <a href={session.fiche_programme} target="_blank" rel="noopener noreferrer">
-                                Voir fiche programme
-                              </a>
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-800">{session.code}</td>
-                        <td className="px-4 py-3 text-sm text-gray-800">
-                          Du {extractDay(session.date_debut)} au {extractDay(session.date_fin)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-800">{session.duree} jours</td>
-                        <td className="px-4 py-3 text-sm text-gray-800">{session.formateur_nom}</td>
-                        <td className="px-4 py-3 text-sm text-gray-800">{session.domaine}</td>
-                        <td className="px-4 py-3 text-sm text-gray-800">{session.type_formation}</td>
-                        <td className="px-4 py-3 text-sm text-gray-800">
-                          <button
-                            onClick={() => handleDeleteSession(session.id_session)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Supprimer cette session"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="text-center py-4 text-gray-500 italic">
-                Aucune session prévue ce mois
-              </div>
-            )}
-          </div>
-        </div>
-      ))}
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Calendrier des Formations</h1>
 
-{showAddForm.visible && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-     <br/> <br/> <br/>
-    <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-      <h3 className="text-lg font-medium mb-4 sticky top-0 bg-white py-2">
-        Ajouter une session pour {showAddForm.mois} {showAddForm.annee}
-      </h3>
-            
-      <div className="space-y-4">
-       
-        {months
-          .find(month => month.mois === showAddForm.mois && month.annee === showAddForm.annee)
-          ?.formationsList.map((formation, formationIndex) => (
-            <div key={formationIndex} className="mb-4 border p-4 rounded-lg"><div className="mb-4">
-                      <h3 className="text-lg font-semibold mb-2">Sélectionnez un domaine</h3>
-                      <input
-                        type="text"
-                        placeholder="Rechercher un domaine..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="p-2 border rounded w-full mb-2"
-                      />
+      <div className="grid grid-cols-3 gap-4">
+        {months.map((month) => {
+          const monthData = calendarData[month] || { selectors: [], sessions: [] };
+
+          return (
+            <div key={month} className="border rounded p-4">
+              <h3 className="font-bold mb-2">
+                {format(addMonths(startOfYear(new Date()), month - 1), "MMMM")}
+              </h3>
+
+              <button
+                className="mb-4 text-sm bg-blue-100 text-blue-600 px-2 py-1 rounded"
+                onClick={() => handleAddSelector(month)}
+              >
+                + Ajouter une sélection
+              </button>
+
+              {monthData.selectors.map((selector, selectorIndex) => {
+                const availableSessions: CalendarSession[] = [];
+                
+                if (selector.selectedDomaine) {
+                  const selectedDomaine = domainesData.find((d) => d.id_domaine === selector.selectedDomaine);
+                  if (selectedDomaine) {
+                    selectedDomaine.themes.forEach((theme) => {
+                      theme.sessions.forEach((session) => {
+                        if (!monthData.sessions.some(s => s.id_session === session.id_session)) {
+                          availableSessions.push({
+                            id_session: session.id_session,
+                            id_theme: theme.id_theme,
+                            id_domaine: selectedDomaine.id_domaine,
+                            theme: theme.theme,
+                            domaine: selectedDomaine.domaine,
+                            createdAt: session.createdAt,
+                          });
+                        }
+                      });
+                    });
+                  }
+                }
+
+                return (
+                  <div key={selectorIndex} className="mb-4 border-b pb-4">
+                    <div className="mb-2">
+                      <label className="block text-sm mb-1">Domaine:</label>
                       <select
-                        value={formation.domaine?.domaine || ""}
-                        onChange={(e) => handleDomaineChange(showAddForm.mois || "", formationIndex, e.target.value)}
-                        className="p-2 border rounded w-full"
+                        className="w-full p-2 border rounded text-sm"
+                        value={selector.selectedDomaine || ""}
+                        onChange={(e) => handleDomaineChange(month, selectorIndex, Number(e.target.value))}
                       >
-                        <option value="">Choisissez un domaine</option>
-                        {filteredDomaines.map((domaine, index) => (
-                          <option key={index} value={domaine}>
-                            {domaine}
+                        <option value="">Sélectionnez un domaine</option>
+                        {domainesData.map((domaine) => (
+                          <option key={domaine.id_domaine} value={domaine.id_domaine}>
+                            {domaine.domaine}
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    {formation.domaine && (
-                      <div className="mb-4">
-                        <h3 className="text-lg font-semibold mb-2">Sélectionnez un thème</h3>
+                    {selector.selectedDomaine && (
+                      <div className="mb-2">
+                        <label className="block text-sm mb-1">Sessions:</label>
                         <select
-                          value={formation.session?.id_session || ""}
-                          onChange={(e) => handleThemeChange(showAddForm.mois || "", formationIndex, parseInt(e.target.value))}
-                          className="p-2 border rounded w-full"
+                          className="w-full p-2 border rounded text-sm"
+                          onChange={(e) => handleAddSession(month, selectorIndex, Number(e.target.value))}
+                          disabled={!selector.selectedDomaine}
+                          value=""
                         >
-                          <option value="">Choisissez un thème</option>
-                          {formation.domaine.sessions.map((session) => (
+                          <option value="">Ajouter une session</option>
+                          {availableSessions.map((session) => (
                             <option key={session.id_session} value={session.id_session}>
-                              {session.theme} ({session.date_debut} au {session.date_fin})
+                              {`${session.theme} (${format(new Date(session.createdAt), "dd/MM/yyyy")})`}
                             </option>
                           ))}
                         </select>
                       </div>
                     )}
+                  </div>
+                );
+              })}
 
-                    <div className="mb-4">
-                      <label className="block mb-2">Nombre de jours :</label>
-                      <input
-                        type="number"
-                        placeholder="Nb jours"
-                        value={formation.nbj}
-                        onChange={(e) => {
-                          const updatedMonths = [...months];
-                          const monthIndex = updatedMonths.findIndex(m => 
-                            m.mois === showAddForm.mois && m.annee === showAddForm.annee
-                          );
-                          if (monthIndex >= 0) {
-                            updatedMonths[monthIndex].formationsList[formationIndex].nbj = Number(
-                              e.target.value
-                            );
-                            setMonths(updatedMonths);
-                          }
-                        }}
-                        className="p-1 border rounded mb-2 w-full"
-                      />
+              <div className="space-y-2 mt-2">
+                {monthData.sessions.map((session) => (
+                  <div key={session.id_session} className="bg-gray-100 p-2 rounded text-sm">
+                    <div className="flex justify-between items-center mb-1">
+                      <div className="font-medium">{session.theme}</div>
+                      <button
+                        className="text-red-500 hover:text-red-700"
+                        onClick={() => handleRemoveSession(month, session.id_session)}
+                      >
+                        ×
+                      </button>
                     </div>
-
-                    <div className="mb-4">
-                      <label className="block mb-2">Date de début :</label>
-                      <input
-                        type="date"
-                        value={formation.date_debut}
-                        onChange={(e) => {
-                          const updatedMonths = [...months];
-                          const monthIndex = updatedMonths.findIndex(m => 
-                            m.mois === showAddForm.mois && m.annee === showAddForm.annee
-                          );
-                          if (monthIndex >= 0) {
-                            updatedMonths[monthIndex].formationsList[formationIndex].date_debut =
-                              e.target.value;
-                            setMonths(updatedMonths);
+                    
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div>
+                        <label className="block text-xs mb-1">Date début:</label>
+                        <input
+                          type="date"
+                          className="w-full p-1 border rounded text-xs"
+                          value={session.date_debut?.toISOString().split('T')[0] || ''}
+                          onChange={(e) => handleDateChange(
+                            month, 
+                            session.id_session, 
+                            'date_debut', 
+                            new Date(e.target.value))
                           }
-                        }}
-                        className="p-1 border rounded mb-2 w-full"
-                      />
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs mb-1">Date fin:</label>
+                        <input
+                          type="date"
+                          className="w-full p-1 border rounded text-xs"
+                          value={session.date_fin?.toISOString().split('T')[0] || ''}
+                          onChange={(e) => handleDateChange(
+                            month, 
+                            session.id_session, 
+                            'date_fin', 
+                            new Date(e.target.value))
+                          }
+                        />
+                      </div>
                     </div>
-
-                    <div className="mb-4">
-                      <label className="block mb-2">Date de fin :</label>
-                      <input
-                        type="date"
-                        value={formation.date_fin}
-                        onChange={(e) => {
-                          const updatedMonths = [...months];
-                          const monthIndex = updatedMonths.findIndex(m => 
-                            m.mois === showAddForm.mois && m.annee === showAddForm.annee
-                          );
-                          if (monthIndex >= 0) {
-                            updatedMonths[monthIndex].formationsList[formationIndex].date_fin =
-                              e.target.value;
-                            setMonths(updatedMonths);
-                          }
-                        }}
-                        className="p-1 border rounded w-full"
-                      />
+                    
+                    <div className="mt-1 text-xs">
+                      Durée: {session.duree || 0} jour(s)
                     </div>
                   </div>
                 ))}
-
-<div className="flex justify-between pt-4 sticky bottom-0 bg-white py-4 border-t">
-                
-                
-                <div className="space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddForm({visible: false})}
-                    className="bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleAddSessionSubmit(showAddForm.mois || "")}
-                    className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded"
-                  >
-                    Enregistrer
-                  </button>
-                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          );
+        })}
+      </div>
+
+      <div className="mt-6">
+        <button
+          className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700"
+          onClick={handleSave}
+        >
+          Enregistrer le calendrier
+        </button>
+      </div>
     </div>
   );
 };
 
-export default ShowCalendrierformation;
+export default TrainingCalendar;

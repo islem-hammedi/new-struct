@@ -27,18 +27,18 @@ class DomainRepository {
 
   async createFormation(domaineName) {
     const [result] = await db.query(
-      'INSERT INTO formation (domaine) VALUES (?)',
+      'INSERT INTO domaine (domaine) VALUES (?)',
       [domaineName]
     );
-    return result.insertId;
+    return result.insertIdDom;
   }
 
-  async createSession(theme, code, id_formation) {
+  async createSession(theme, code, id_domaine) {
     const [result] = await db.query(
-      'INSERT INTO session (theme, code, id_formation) VALUES (?, ?, ?)',
-      [theme, code, id_formation]
+      'INSERT INTO theme (theme, code, id_domaine) VALUES (?, ?, ?)',
+      [theme, code, id_domaine]
     );
-    return result.insertId;
+    return result.insertIdThem;
   }
 
   async updateFormateur(id_formateur, domaineName, themes) {

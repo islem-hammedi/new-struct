@@ -37,7 +37,7 @@ class AvisRepository {
           console.error('❌ Erreur lors de la création de la table "avis":', err);
           return reject(new Error('Échec de l\'initialisation de la table avis'));
         }
-        console.log('✅ Table "avis" initialisée avec succès');
+        //console.log('✅ Table "avis" initialisée avec succès');
         resolve();
       });
     });
@@ -68,6 +68,15 @@ class AvisRepository {
         // Convertir les résultats en objets Avis
         const avisList = results.map(row => new Avis(row));
         resolve(avisList);
+      });
+    });
+    
+  }
+  async getSessions() {
+    return new Promise((resolve, reject) => {
+      db.query('SELECT * FROM session', (err, results) => {
+        if (err) return reject(err);
+        resolve(results);
       });
     });
   }

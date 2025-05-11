@@ -133,8 +133,11 @@ const addDomain = async (req, res) => {
         try {
           const { domaineName, abbreviation, themes } = req.body;
           
-          if (!domaineName || !abbreviation || !themes) {
-            return res.status(400).json({ error: 'Tous les champs sont obligatoires' });
+          // Validation des données
+          if (!domaineName || !themes || !Array.isArray(themes)) {
+            return res.status(400).json({ 
+              error: 'Données invalides: domaineName et themes (array) sont obligatoires' 
+            });
           }
     
           const result = await domainService.addDomain({
@@ -144,14 +147,15 @@ const addDomain = async (req, res) => {
           });
     
           res.status(201).json({
-            message: 'Domaine, thèmes et formateurs créés avec succès',
-            ...result
+            message: 'Domaine et thèmes créés avec succès',
+            id_domaine: result.id_domaine,
+            themes: result.themes
           });
         } catch (error) {
-          console.error("Erreur lors de l'ajout du domaine:", error);
+          console.error("Erreur dans addDomain:", error);
           res.status(500).json({ 
-            error: error.message,
-            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            error: 'Erreur lors de la création',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
           });
         }
       }

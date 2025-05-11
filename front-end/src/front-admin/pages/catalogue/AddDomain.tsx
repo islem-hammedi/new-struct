@@ -1,5 +1,5 @@
 
-//
+
 import React, { useEffect, useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import axios from "axios";
@@ -125,7 +125,7 @@ const AddDomaine: React.FC<AddFormationProps> = ({ onClose, onFormationAdded }) 
       console.log("Données envoyées:", finalData);
 
       const response = await axios.post(
-        `${import.meta.env.VITE_APP_API_URL}/apiAdmin/formations/addDomain`,
+        `${import.meta.env.VITE_APP_API_URL}/apiAdmin/catalogue/addDomain`,
         finalData
       );
 

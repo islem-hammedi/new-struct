@@ -8,8 +8,8 @@ const {
   addFormateur,
   updateFormateur,
   deleteFormateur,
-  extractPDF,
   getDomaineThemes
+  
 } = require('../../Controllers/Admin/formateursAdminController');
 
 const router = express.Router();
@@ -34,11 +34,10 @@ const uploads = multer({
 
 
 router.post('/formateurs', uploads, addFormateur);
-
+router.get('/domaine-themes',getDomaineThemes);
 router.get('/formateurs', getFormateurs);
 router.get('/formateurs/:id', getFormateurById);
 router.put('/formateurs/:id', uploads, updateFormateur);
 router.delete('/formateurs/:id', deleteFormateur);
-router.post('/formateurs/extract-pdf-content',extractPDF);
-router.get('/domaine-themes',getDomaineThemes)
+
 module.exports = router;

@@ -23,7 +23,7 @@ class EventRepository {
           console.error('❌ Erreur création table calendrier:', err);
           return reject(err);
         }
-        console.log('✅ Table "calendrier" initialisée');
+       // console.log('✅ Table "calendrier" initialisée');
         resolve();
       });
     });

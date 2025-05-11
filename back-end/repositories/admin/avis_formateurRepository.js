@@ -7,9 +7,10 @@ class AvisFormateurRepository {
   async getBySession(idSession) {
     return new Promise((resolve, reject) => {
       const sql = `
-        SELECT a.*, s.theme
+        SELECT a.*, t.theme
         FROM avis_formateur a
         JOIN session s ON a.id_session = s.id_session
+        join theme t ON s.id_theme = t.id_theme
         WHERE a.id_session = ?`;
       
       db.query(sql, [idSession], (err, results) => {

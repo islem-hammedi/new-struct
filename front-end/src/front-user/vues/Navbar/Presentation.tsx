@@ -122,7 +122,7 @@ const Presentation: React.FC = () => {
           
           <div className="text-4xl font-semibold text-center text-emerald-500/80 mt-[-5.5rem] mb-4 ">           
             <h1 className="text-6xl backdrop-blur-sm bg-black/5 font-bold text-center  text-white/100 mb-20 rounded-lg">
-                Sac-consulting
+                Sac-academy
             </h1>
             <br/>
             <p className="font-light text-2xl text-white mx-auto backdrop-blur-sm bg-black/5 p-6 rounded-lg leading-relaxed">

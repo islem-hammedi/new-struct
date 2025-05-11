@@ -22,7 +22,7 @@ class AccesRepository {
         }
         this.seedDefaultData()
           .then(() => {
-            console.log('✅ Table acces initialisée');
+            //console.log('✅ Table acces initialisée');
             resolve();
           })
           .catch(reject);

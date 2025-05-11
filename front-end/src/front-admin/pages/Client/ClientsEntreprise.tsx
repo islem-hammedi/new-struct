@@ -11,11 +11,13 @@ interface Client {
   themes: string;
 }
 interface Participant {
+  id_participant: number;
   nom_complet: string;
   telephone: string;
   mail: string;
   adresse: string;
   themes: string;
+  badge: string;
 }
 const ClientsEntreprise = () => {
   const [clients, setClients] = useState<Client[]>([]); // Set the type of the array to Client[]
@@ -30,6 +32,7 @@ const ClientsEntreprise = () => {
     axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/clients-entreprises`)
       .then(response => {
         setClients(response.data);
+
         setLoading(false);
       })
       .catch(error => {
@@ -37,7 +40,30 @@ const ClientsEntreprise = () => {
         setLoading(false);
       });
   }, []);
-
+  const handleBadgeChange = async (id_participant: number, newBadge: string) => {
+    try {
+      const response = await axios.put(
+        `${import.meta.env.VITE_APP_API_URL}/apiAdmin/update-badge/${id_participant}`,
+        { badge: newBadge }
+      );
+      
+      if (response.data.success) {
+        
+        setParticipants(participants.map(p => 
+          p.id_participant === id_participant ? { ...p, badge: newBadge } : p
+        ));
+        alert("Badge mis à jour avec succès");
+      } else {
+        console.error("Échec de la mise à jour:", response.data.message);
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error("Erreur lors de la mise à jour du badge:", error.response?.data || error.message);
+      } else {
+        console.error("Erreur lors de la mise à jour du badge:", error);
+      }
+    }
+  };
   const handleEntrepriseClick = (entrepriseName: string) => {
     setLoadingParticipants(true);
     setSelectedEntreprise(entrepriseName);
@@ -46,6 +72,8 @@ const ClientsEntreprise = () => {
     axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/clients-entreprises/${encodedEntrepriseName}`)
       .then(response => {
         setParticipants(response.data);
+        console.log("Données participants:", response.data); // Ajoutez ce log
+
         setLoadingParticipants(false);
       })
       .catch(error => {
@@ -94,7 +122,6 @@ const ClientsEntreprise = () => {
             <th className="py-2 px-4 border-b text-left">Email Entreprise</th>
             <th className="py-2 px-4 border-b text-left">Adresse Entreprise</th>
             <th className="py-2 px-4 border-b text-left">matricule Fiscale</th>
-            <th className="py-2 px-4 border-b text-left">Sessions</th>
           </tr>
         </thead>
         <tbody>
@@ -105,7 +132,6 @@ const ClientsEntreprise = () => {
               <td className="py-2 px-4 border-b">{client.email_entreprise}</td>
               <td className="py-2 px-4 border-b">{client.adresse_entreprise}</td>
               <td className="py-2 px-4 border-b">{client.matricule}</td>
-              <td className="py-2 px-4 border-b">{client.themes}</td>
             </tr>
           ))}
         </tbody>
@@ -125,17 +151,26 @@ const ClientsEntreprise = () => {
                     <th className="py-2 px-4 border-b text-left">Téléphone</th>
                     <th className="py-2 px-4 border-b text-left">Email</th>
                     <th className="py-2 px-4 border-b text-left">Adresse</th>
-                    <th className="py-2 px-4 border-b text-left">Sessions</th>
+                    <th className="py-2 px-4 border-b text-left">Badge</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredParticipants.map((participant, index) => (
-                    <tr key={index}>
+                  {filteredParticipants.map((participant, id_participant) => (
+                    <tr key={id_participant}>
                       <td className="py-2 px-4 border-b">{participant.nom_complet}</td>
                       <td className="py-2 px-4 border-b">{participant.telephone}</td>
                       <td className="py-2 px-4 border-b">{participant.mail}</td>
                       <td className="py-2 px-4 border-b">{participant.adresse}</td>
-                      <td className="py-2 px-4 border-b">{participant.themes}</td>
+                      <td className="py-2 px-4 border-b">
+                        <select 
+                          value={participant.badge || 'normal'} // Utilise le badge du participant ou "normal" si le badge est null/undefined
+                          onChange={(e) => handleBadgeChange(participant.id_participant, e.target.value)}
+                          className="border rounded p-2 bg-gray-200"
+                        >
+                          <option value="normal">Normal</option>
+                          <option value="special">Spécial</option>
+                        </select>
+                      </td>         
                     </tr>
                   ))}
                 </tbody>

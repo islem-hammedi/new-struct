@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const domaineController = require('../Controllers/Admin/domaineController');
-router.get('/domaine/Domains', domaineController.getDomains);
+const domaineAdminController = require('../../Controllers/Admin/domaineAdminController');
+router.get('/domaine/Domains', domaineAdminController.getDomains);
+router.get('/themes', domaineAdminController.getThemesByDomaine);
 module.exports = router;

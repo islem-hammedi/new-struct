@@ -326,7 +326,8 @@ const ProfilParticipant: React.FC = () => {
           </p>
           <p className="text-gray-700 dark:text-gray-300">
             <strong className="text-gray-900 dark:text-white">Nature:</strong> {participant.nature_participant}
-          </p>
+          </p></div>
+          <div className='backdrop-blur-sm bg-black/5 p-6 rounded-lg leading-relaxed flex-1'>
 
           {participant.nature_participant === "entreprise" && (
             <div className="border-t pt-4 mt-4">

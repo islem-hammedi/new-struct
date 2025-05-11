@@ -148,7 +148,7 @@ const ProfilFormateur: React.FC = () => {
       }
     
       if (value.length === 0 && (key === 'domaine_de_competences' || key === 'themes_a_enseigner')) {
-        formData.append(key, JSON.stringify(value)); // <- ✅ JSON stringify pour MySQL
+        formData.append(key, JSON.stringify(value)); 
       } else {
         if (Array.isArray(value)) {
           value.forEach((item) => {
@@ -204,6 +204,7 @@ const ProfilFormateur: React.FC = () => {
           "Content-Type": "multipart/form-data",
         },
       });
+      
       setIsEditing(false);
     setError(null);
     setFichePrgFiles([]);
@@ -230,10 +231,8 @@ const ProfilFormateur: React.FC = () => {
     <div className="max-w-3xl mx-auto mt-12 bg-white shadow-lg p-6 rounded-lg">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">Fiche du Formateur</h2>
 
-      {/* Photo du formateur */}
      
-      {/* CV du formateur */}
-      <div className="mb-6">
+      <div className="grid grid-cols-2 gap-4 bg-gray-200 marge-10  p-6 w-full mb-6">
         <p className="font-semibold">CV:</p>
         {formateur.cv ? (
           <a 
@@ -257,7 +256,7 @@ const ProfilFormateur: React.FC = () => {
         )}
       </div>
 
-      <div className="mb-6">
+      <div className="grid grid-cols-2 gap-4 bg-gray-200 marge-10  p-6 w-full mb-6">
         <p className="font-semibold">Fiches programme :</p>
         {formateur.fichePrg && formateur.fichePrg.length > 0 ? (
           <ul className="mt-2">
@@ -280,21 +279,10 @@ const ProfilFormateur: React.FC = () => {
           <p className="text-gray-600">Aucune fiche programme disponible</p>
         )}
 
-        {isEditing && (
-          <input
-            type="file"
-            multiple
-            onChange={(e) => {
-              const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
-              setFichePrgFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
-            }}
-            accept=".pdf"
-            className="mt-2 p-2 border rounded"
-          />
-        )}
+        
       </div>
 
-      <div className="mb-6">
+      <div className="grid grid-cols-2 gap-4 bg-gray-200 marge-10  p-6 w-full mb-6">
         <p className="font-semibold">Cours de session:</p>
         {formateur.coursSession && formateur.coursSession.length > 0 ? (
           <ul className="mt-2">
@@ -319,24 +307,13 @@ const ProfilFormateur: React.FC = () => {
           <p className="text-gray-600">Aucune cours disponible</p>
         )}
 
-        {isEditing && (
-          <input
-            type="file"
-            multiple
-            onChange={(e) => {
-              const selectedFiles = e.target.files ? Array.from(e.target.files) : [];
-              setCoursSessionFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
-            }}
-            accept=".pdf"
-            className="mt-2 p-2 border rounded"
-          />
-        )}
+       
       </div>
 
 
       {/* Formulaire */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
+      <div className="grid grid-cols-2 gap-4  bg-gray-200 marge-10  p-6 w-full mb-6">
+        <div className=" grid bg-gray-100 marge-6  p-6 w-full mb-10">
           <p className="font-semibold">Nom complet:</p>
           {isEditing ? (
             <input
@@ -352,7 +329,7 @@ const ProfilFormateur: React.FC = () => {
         </div>
         
 
-        <div>
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
           <p className="font-semibold">Email:</p>
           {isEditing ? (
             <input
@@ -363,12 +340,13 @@ const ProfilFormateur: React.FC = () => {
               className="w-full p-2 border rounded"
             />
           ) : (
+           
             <p>{formateur.mail}</p>
           )}
         </div>
 
-        <div>
-          <p className="font-semibold">Adresse:</p>
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
+          <p className="font-semibold ">Adresse:</p>
           {isEditing ? (
             <input
               type="text"
@@ -382,8 +360,8 @@ const ProfilFormateur: React.FC = () => {
           )}
         </div>
 
-        <div>
-          <p className="font-semibold">Téléphone:</p>
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
+          <p className="font-semibold ">Téléphone:</p>
           {isEditing ? (
             <input
               type="tel"
@@ -396,8 +374,8 @@ const ProfilFormateur: React.FC = () => {
             <p>{formateur.tel}</p>
           )}
         </div>
-        <div>
-          <p className="font-semibold"> Niveau d'Etude:</p>
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
+          <p className="font-semibold "> Niveau d'Etude:</p>
           {isEditing ? (
             <textarea
               name="niveau_etude"
@@ -409,8 +387,8 @@ const ProfilFormateur: React.FC = () => {
             <p>{formateur.niveau_etude}</p>
           )}
         </div>
-        <div>
-          <p className="font-semibold">Domaine de Compétences:</p>
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
+          <p className="font-semibold ">Domaine de Compétences:</p>
           {isEditing ? (
             <select
             name="domaine_de_competences"
@@ -427,9 +405,9 @@ const ProfilFormateur: React.FC = () => {
       ) : (
         <p>{formateur.domaine_de_competences}</p>
       )}
-    </div>
-        <div>
-          <p className="font-semibold">Domaine de Compétences au niveau d'assistance:</p>
+    </div >
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
+          <p className="font-semibold ">Domaine de Compétences au niveau d'assistance:</p>
           {isEditing ? (
             <textarea
               name="domaine_assistance"
@@ -442,8 +420,8 @@ const ProfilFormateur: React.FC = () => {
           )}
         </div>
 
-        <div>
-          <p className="font-semibold">Thèmes à enseigner:</p>
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
+          <p className="font-semibold ">Thèmes à enseigner:</p>
           {isEditing ? (
             <select
             name="themes_a_enseigner"
@@ -466,8 +444,8 @@ const ProfilFormateur: React.FC = () => {
       )}
     </div>
 
-        <div>
-          <p className="font-semibold">Tarif journalier:</p>
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
+          <p className="font-semibold ">Tarif journalier:</p>
           {isEditing ? (
             <input
               type="text"
@@ -481,7 +459,7 @@ const ProfilFormateur: React.FC = () => {
           )}
         </div>
 
-        <div>
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
           <p className="font-semibold">Nombre de formations:</p>
           {isEditing ? (
             <input
@@ -495,8 +473,8 @@ const ProfilFormateur: React.FC = () => {
             <p>{formateur.nb_formations}</p>
           )}
         </div>
-        <div>
-          <p className="font-semibold">Nombre d'Experiences:</p>
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
+          <p className="font-semibold ">Nombre d'Experiences:</p>
           {isEditing ? (
             <input
               type="text"
@@ -509,8 +487,8 @@ const ProfilFormateur: React.FC = () => {
             <p>{formateur.nb_experience}</p>
           )}
         </div>
-        <div>
-          <p className="font-semibold">Horraire par jour:</p>
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
+          <p className="font-semibold ">Horraire par jour:</p>
           {isEditing ? (
             <input
               type="text"
@@ -523,8 +501,8 @@ const ProfilFormateur: React.FC = () => {
             <p>{formateur.horraire_jour}</p>
           )}
         </div>
-        <div>
-          <p className="font-semibold">Nom du Banque:</p>
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
+          <p className="font-semibold ">Nom du Banque:</p>
           {isEditing ? (
             <input
               type="text"
@@ -537,8 +515,8 @@ const ProfilFormateur: React.FC = () => {
             <p>{formateur.nom_banque}</p>
           )}
         </div>
-        <div>
-          <p className="font-semibold">RIB du Banque:</p>
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
+          <p className="font-semibold ">RIB du Banque:</p>
           {isEditing ? (
             <input
               type="text"
@@ -551,8 +529,8 @@ const ProfilFormateur: React.FC = () => {
             <p>{formateur.RIB}</p>
           )}
         </div>
-        <div>
-          <p className="font-semibold">Retour de l'entreprise :</p>
+        <div className="grid bg-gray-100 marge-6  p-6 w-full mb-6">
+          <p className="font-semibold ">Retour de l'entreprise :</p>
           {isEditing ? (
             <input
               type="text"

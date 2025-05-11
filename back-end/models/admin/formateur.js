@@ -1,11 +1,23 @@
-class Formateur {
+{class Formateur {
     constructor({
       id_formateur,
       nom_complet,
       mail,
-      adr,domaine_de_competences,tarif_journalier,nb_formations,tel,cv,mdp_formateur,niveau_etude,nb_experience,horraire_jour,nombanque,RIB,domaine_assistance,retour_sacConsulting,CIN,
+      adr,
+      domaine_de_competences,
+      tarif_journalier,
+      nb_formations,
+      tel,
+      cv,
+      mdp_formateur,
+      niveau_etude,
+      nb_experience,
+      nomBanque,
+      RIB,
+      retour_sacConsulting,
+      CIN,
       themes_a_enseigner,
-      // ... autres champs
+   
     }) {
       this.id_formateur = id_formateur;
       this.nom_complet = nom_complet;
@@ -22,13 +34,11 @@ class Formateur {
         this.mdp_formateur=mdp_formateur;
         this.niveau_etude=niveau_etude;
         this.nb_experience=nb_experience;
-        this.horraire_jour=horraire_jour;
-        this.nombanque=nombanque;
+        this.nomBanque=nomBanque;
         this.RIB=RIB;
-        this.domaine_assistance=domaine_assistance;
         this.retour_sacConsulting=retour_sacConsulting;
         this.CIN=CIN;
         
     }
   }
-  module.exports = Formateur;
+  module.exports = Formateur;}

@@ -1,120 +1,121 @@
-const db = require('../../connect');
+
+  const db = require('../../connect');
+
+
+
+
+
+
+
 
 const getCatalogue = async (req, res) => {
   const query = `
-  SELECT f.domaine, f.id_formation,
-  s.id_session, s.code, s.theme, 
-  fiche_prg.chemin as fiche_prg , 
-  cours_session.chemin as cours , 
-  fm.nom_complet , 
-  fm.id_formateur, fm.mail, fm.adr, 
-  fm.domaine_de_competences , 
-  fm.themes_a_enseigner, 
-  fm.tarif_journalier, 
-  fm.nb_formations, fm.tel, fm.cv, 
-  fm.niveau_etude, fm.nb_experience, 
-  fm.horraire_jour, fm.nom_banque, 
-  fm.RIB, fm.domaine_assistance, 
-  fm.retour_sacConsulting 
-  FROM formation f LEFT JOIN session s 
-  ON f.id_formation = s.id_formation 
-  LEFT Join fiche_prg ON s.id_session = fiche_prg.id_session 
-  LEFT Join cours_session ON s.id_session = cours_session.id_session 
-   LEFT JOIN formateur fm ON JSON_CONTAINS(
-      JSON_KEYS(fm.themes_a_enseigner), 
-      JSON_QUOTE(s.theme),
-      '$'
-    )
-   ORDER BY s.id_session;`
+ SELECT d.domaine, d.id_domaine as id_formation,t.id_theme, t.theme, t.code,
+   fm.id_formateur, fm.nom_complet,
+    fm.mail,
+      fm.adr,
+      fm.domaine_de_competences,
+      fm.themes_a_enseigner,
+      fm.tarif_journalier,
+      fm.tel,
+      fm.cv,
+      fm.niveau_etude,
+      fm.nb_experience
+    FROM domaine d 
+    LEFT JOIN theme t ON t.id_domaine = d.id_domaine 
+    LEFT JOIN formateur fm ON JSON_CONTAINS( JSON_KEYS(fm.themes_a_enseigner),
+   JSON_QUOTE(t.theme), '$' ) ORDER BY d.domaine;`
   db.query(query, (err, results) => {
     if (err) {
       console.error("Error fetching catalogue:", err);
       return res.status(500).json({ error: err.message });
     }
-
-    const formationsMap = new Map();
+    const catalogues = [];
+    const domainesMap = new Map();
 
     results.forEach(row => {
-      if (!formationsMap.has(row.id_formation)) {
-        formationsMap.set(row.id_formation, {
+      if (!domainesMap.has(row.id_formation)) {
+        domainesMap.set(row.id_formation, {
           id_formation: row.id_formation,
           domaine: row.domaine,
           sessions: []
         });
       }
 
-      const formation = formationsMap.get(row.id_formation);
-      let session = formation.sessions.find(s => s.id_session === row.id_session);
+      const catalogue = domainesMap.get(row.id_formation);
+      if (row.id_theme) {
+        let session = catalogue.sessions.find(s => s.id_theme === row.id_theme);
+        
+        if (!session) {
+          session = {
+            id_theme: row.id_theme,
+            theme: row.theme,
+            code: row.code,
+            formateurs: [],
+          };
+          catalogue.sessions.push(session);
+        }
 
-      if (row.id_session && !session) {
-        session = {
-          id_session: row.id_session,
-          theme: row.theme,
-          code: row.code,
-          fiche_prg: row.fiche_prg,
-          cours: row.cours,
-          formateurs: []
-        };
-        formation.sessions.push(session);
-      }
+        if (row.id_formateur) {
+          try {
+            const themesFormateur = row.themes_a_enseigner 
+              ? JSON.parse(row.themes_a_enseigner) : {};
 
-      if (row.id_formateur && session) {
-        try {
-          // Parser les thèmes du formateur (qui est un JSON string)
-          const themesFormateur = row.themes_a_enseigner 
-            ? JSON.parse(row.themes_a_enseigner)
-            : {};
-          
-          // Vérifier si le formateur a le thème de la session et récupérer son rang
-          if (themesFormateur[row.theme]) {
-            const formateur = {
-              id_formateur: row.id_formateur,
-              nom_complet: row.nom_complet,
-              mail: row.mail,
-              adr: row.adr,
-              domaine_de_competences: row.domaine_de_competences,
-              themes_a_enseigner: themesFormateur,
-              tarif_journalier: row.tarif_journalier,
-              tel: row.tel,
-              cv: row.cv,
-              niveau_etude: row.niveau_etude,
-              nb_experience: row.nb_experience,
-              // Ajouter le rang spécifique pour ce thème
-              rang: themesFormateur[row.theme]
-            };
+            if (themesFormateur[row.theme]) {
+              const formateur = {
+                id_formateur: row.id_formateur,
+                nom_complet: row.nom_complet,
+                mail: row.mail,
+                adr: row.adr,
+                domaine_de_competences: row.domaine_de_competences,
+                themes_a_enseigner: themesFormateur,
+                tarif_journalier: row.tarif_journalier,
+                tel: row.tel,
+                cv: row.cv,
+                niveau_etude: row.niveau_etude,
+                nb_experience: row.nb_experience,
+                rang: themesFormateur[row.theme]
+              };
 
-            // Vérifier si le formateur n'est pas déjà dans la liste
-            const formateurExists = session.formateurs.some(
-              f => f.id_formateur === row.id_formateur
-            );
-            
-            if (!formateurExists) {
-              session.formateurs.push(formateur);
-              
-              // Trier les formateurs par rang (1 d'abord, puis 2, etc.)
-              session.formateurs.sort((a, b) => a.rang - b.rang);
+              if (!session.formateurs.some(f => f.id_formateur === row.id_formateur)) {
+                session.formateurs.push(formateur);
+                session.formateurs.sort((a, b) => a.rang - b.rang);
+              }              
+
             }
+          } catch (e) {
+            console.error("Error parsing themes_a_enseigner:", e);
           }
-        } catch (e) {
-          console.error("Error parsing themes_a_enseigner:", e);
         }
       }
     });
 
-    res.json(Array.from(formationsMap.values()));
+    res.json(Array.from(domainesMap.values()));
   });
 };
 
-const getFormateursBySession = async (req, res) => {
-  const { id_session } = req.params;
 
+
+
+
+
+
+
+
+
+
+
+
+
+const getFormateursBySession = async (req, res) => {
+  const { id_theme } = req.params;
 
   try {
     // 1. Récupération des informations de la session
     const sessionResults = await new Promise((resolve, reject) => {
       db.query(
-        'SELECT id_session, theme FROM session WHERE id_session = ?', 
-        [id_session], 
+        'SELECT  theme,code FROM theme WHERE id_theme = ?', 
+        [id_theme], 
         (err, results) => {
           if (err) {
             console.error('Erreur SQL:', err);
@@ -126,19 +127,17 @@ const getFormateursBySession = async (req, res) => {
         }
       );
     });
-
-    // Vérification améliorée
     if (!Array.isArray(sessionResults) || sessionResults.length === 0) {
-      console.log(`Aucune session trouvée pour l'ID ${id_session}`);
+      console.log(`Aucune theme trouvée pour l'ID ${id_theme}`);
       return res.status(404).json({ 
         success: false,
-        error: 'Session non trouvée',
-        sessionId: id_session
+        error: 'theme non trouvée',
+        sessionId: id_theme
       });
     }
 
     const sessionTheme = sessionResults[0].theme;
-    //console.log(`Thème de la session ${id_session}: ${sessionTheme}`); // Log
+    console.log(`Thème de la session ${id_session}: ${sessionTheme}`); // Log
 
     // 2. Récupération des formateurs
     const formateurs = await new Promise((resolve, reject) => {
@@ -160,14 +159,15 @@ const getFormateursBySession = async (req, res) => {
           resolve(results);
         }
       });
-    });
+    },)
+   
 
     // Formatage des résultats
     const result = formateurs.map(formateur => {
       let rang = 1;
       try {
         const themes = JSON.parse(formateur.themes_a_enseigner);
-        rang = themes[sessionTheme] || 1;
+        rang = themes[sessionTheme];
       } catch (e) {
         console.error("Erreur parsing themes_a_enseigner:", e);
       }
@@ -181,7 +181,7 @@ const getFormateursBySession = async (req, res) => {
 
     res.json({
       success: true,
-      id_session: parseInt(id_session),
+      id_theme: parseInt(id_theme),
       theme: sessionTheme,
       formateurs: result
     });
@@ -195,13 +195,13 @@ const getFormateursBySession = async (req, res) => {
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
-};
+}; 
 
 
-
+{/*}
 const updateDomain = async (req, res) => {
-  const { formation, sessions } = req.body;
-  const { id_formation } = req.params;
+  const { domaine, themes } = req.body;
+  const { id_domaine } = req.params;
 
   db.beginTransaction(async (err) => {
     if (err) {
@@ -210,9 +210,9 @@ const updateDomain = async (req, res) => {
 
     try {
       // 1. Mettre à jour le domaine dans la table formation
-      const queryUpdateFormation = 'UPDATE formation SET domaine = ? WHERE id_formation = ?';
+      const queryUpdateFormation = 'UPDATE domaine SET domaine = ? WHERE id_domaine = ?';
       await new Promise((resolve, reject) => {
-        db.query(queryUpdateFormation, [formation, id_formation], (err, result) => {
+        db.query(queryUpdateFormation, [domaine, id_domaine], (err, result) => {
           if (err) return reject(err);
           resolve(result);
         });
@@ -220,45 +220,45 @@ const updateDomain = async (req, res) => {
 
       // 2. Récupérer les sessions existantes
       const existingSessions = await new Promise((resolve, reject) => {
-        db.query('SELECT id_session, theme, code FROM session WHERE id_formation = ?', [id_formation], (err, results) => {
+        db.query('SELECT id_theme, theme, code FROM theme WHERE id_domaine = ?', [id_domaine], (err, results) => {
           if (err) return reject(err);
           resolve(results);
         });
       });
 
       // 3. Identifier les thèmes qui vont être supprimés
-      const currentThemeCodes = sessions.map(t => t.code);
-      const themesToDelete = existingSessions.filter(s => !currentThemeCodes.includes(s.code));
+      const currentThemeCodes = themes.map(t => t.code);
+      const themesToDelete = existingSessions.filter(s => !currentThemeCodes.includes(t.code));
       const deletedThemeNames = themesToDelete.map(t => t.theme);
 
       // 4. Traiter chaque session/thème
-      const sessionPromises = sessions.map(async (session) => {
-        const { theme, code, formateurs } = session;
+      const sessionPromises = themes.map(async (theme) => {
+        const { code, formateurs } = theme;
 
         // Trouver ou créer la session
-        let existingSession = existingSessions.find(s => s.code === code);
-        let id_session;
+        let existingSession = existingSessions.find(t => t.code === code);
+        let id_theme;
 
         if (existingSession) {
           // Mettre à jour la session existante
-          const queryUpdateSession = 'UPDATE session SET theme = ? WHERE id_session = ?';
+          const queryUpdateSession = 'UPDATE theme SET theme = ? WHERE id_theme = ?';
           await new Promise((resolve, reject) => {
-            db.query(queryUpdateSession, [theme, existingSession.id_session], (err, result) => {
+            db.query(queryUpdateSession, [theme, existingSession.id_theme], (err, result) => {
               if (err) return reject(err);
               resolve(result);
             });
           });
-          id_session = existingSession.id_session;
+          id_theme = existingSession.id_theme;
         } else {
           // Créer une nouvelle session
-          const queryInsertSession = 'INSERT INTO session (theme, code, id_formation) VALUES (?, ?, ?)';
+          const queryInsertSession = 'INSERT INTO theme (theme, code, id_domaine) VALUES (?, ?, ?)';
           const insertResult = await new Promise((resolve, reject) => {
-            db.query(queryInsertSession, [theme, code, id_formation], (err, result) => {
+            db.query(queryInsertSession, [theme, code, id_domaine], (err, result) => {
               if (err) return reject(err);
               resolve(result);
             });
           });
-          id_session = insertResult.insertId;
+          id_theme = insertResult.insertId;
         }
 
         // 5. Mettre à jour les thèmes enseignés par chaque formateur
@@ -284,7 +284,6 @@ const updateDomain = async (req, res) => {
               console.error("Erreur parsing JSON:", e);
             }
           }
-
           // Mettre à jour seulement le thème actuel avec son rang
           const updatedThemes = {
             ...existingThemes,
@@ -361,9 +360,9 @@ const updateDomain = async (req, res) => {
       await Promise.all(sessionPromises);
 
       // 7. Supprimer les sessions qui n'existent plus
-      const deletePromises = themesToDelete.map(session => {
+      const deletePromises = themesToDelete.map(theme => {
         return new Promise((resolve, reject) => {
-          db.query('DELETE FROM session WHERE id_session = ?', [session.id_session], (err, result) => {
+          db.query('DELETE FROM theme WHERE id_theme = ?', [theme.id_theme], (err, result) => {
             if (err) return reject(err);
             resolve(result);
           });
@@ -382,8 +381,8 @@ const updateDomain = async (req, res) => {
 
         return res.status(200).json({
           message: 'Domaine, thèmes et formateurs mis à jour avec succès',
-          id_formation: id_formation,
-          sessions,
+          id_domaine: id_domaine,
+          themes,
         });
       });
     } catch (error) {
@@ -397,6 +396,220 @@ const updateDomain = async (req, res) => {
     }
   });
 };
+*/}
+
+
+const updateTheme = async (req, res) => {
+  const { id_theme } = req.params;
+  const { theme, formateurs } = req.body;
+
+  // Démarrer une transaction
+  db.beginTransaction(async (err) => {
+    if (err) {
+      return res.status(500).json({ error: "Erreur de transaction" });
+    }
+
+    try {
+      // 1. Mettre à jour le thème
+      const updateThemeQuery = 'UPDATE theme SET theme = ? WHERE id_theme = ?';
+      await new Promise((resolve, reject) => {
+        db.query(updateThemeQuery, [theme, id_theme], (err, result) => {
+          if (err) return reject(err);
+          resolve(result);
+        });
+      });
+
+      // 2. Récupérer les formateurs actuellement associés au thème
+      const currentFormateurs = await new Promise((resolve, reject) => {
+        db.query(
+          'SELECT id_formateur FROM formateur_theme WHERE id_theme = ?',
+          [id_theme],
+          (err, results) => {
+            if (err) return reject(err);
+            resolve(results.map(f => f.id_formateur));
+          }
+        );
+      });
+
+      // 3. Identifier les formateurs à ajouter et à supprimer
+      const newFormateurIds = formateurs.map(f => f.id_formateur);
+      const formateursToAdd = formateurs.filter(
+        f => !currentFormateurs.includes(f.id_formateur)
+      );
+      const formateursToRemove = currentFormateurs.filter(
+        id => !newFormateurIds.includes(id)
+      );
+
+      // 4. Supprimer les associations qui ne sont plus nécessaires
+      if (formateursToRemove.length > 0) {
+        await new Promise((resolve, reject) => {
+          db.query(
+            'DELETE FROM formateur_theme WHERE id_theme = ? AND id_formateur IN (?)',
+            [id_theme, formateursToRemove],
+            (err, result) => {
+              if (err) return reject(err);
+              resolve(result);
+            }
+          );
+        });
+
+        // Mettre à jour les thèmes_a_enseigner pour les formateurs supprimés
+        const cleanupPromises = formateursToRemove.map(async (id_formateur) => {
+          // Récupérer les thèmes actuels du formateur
+          const formateurData = await new Promise((resolve, reject) => {
+            db.query(
+              'SELECT themes_a_enseigner FROM formateur WHERE id_formateur = ?',
+              [id_formateur],
+              (err, results) => {
+                if (err) return reject(err);
+                resolve(results[0]);
+              }
+            );
+          });
+
+          if (formateurData?.themes_a_enseigner) {
+            try {
+              let themes = JSON.parse(formateurData.themes_a_enseigner);
+              delete themes[theme]; // Supprimer le thème actuel
+
+              // Mettre à jour le formateur
+              await new Promise((resolve, reject) => {
+                db.query(
+                  'UPDATE formateur SET themes_a_enseigner = ? WHERE id_formateur = ?',
+                  [JSON.stringify(themes), id_formateur],
+                  (err, result) => {
+                    if (err) return reject(err);
+                    resolve(result);
+                  }
+                );
+              });
+            } catch (e) {
+              console.error("Erreur parsing JSON:", e);
+            }
+          }
+        });
+
+        await Promise.all(cleanupPromises);
+      }
+
+      // 5. Ajouter les nouvelles associations
+      if (formateursToAdd.length > 0) {
+        const insertPromises = formateursToAdd.map(async (formateur) => {
+          // Ajouter à la table formateur_theme
+          await new Promise((resolve, reject) => {
+            db.query(
+              'INSERT INTO formateur_theme (id_formateur, id_theme, rang) VALUES (?, ?, ?)',
+              [formateur.id_formateur, id_theme, formateur.rang],
+              (err, result) => {
+                if (err) return reject(err);
+                resolve(result);
+              }
+            );
+          });
+
+          // Mettre à jour les thèmes_a_enseigner dans la table formateur
+          const formateurData = await new Promise((resolve, reject) => {
+            db.query(
+              'SELECT themes_a_enseigner FROM formateur WHERE id_formateur = ?',
+              [formateur.id_formateur],
+              (err, results) => {
+                if (err) return reject(err);
+                resolve(results[0]);
+              }
+            );
+          });
+
+          let themes = {};
+          if (formateurData?.themes_a_enseigner) {
+            try {
+              themes = JSON.parse(formateurData.themes_a_enseigner);
+            } catch (e) {
+              console.error("Erreur parsing JSON:", e);
+            }
+          }
+
+          // Ajouter/mettre à jour le thème avec son rang
+          themes[theme] = formateur.rang;
+
+          await new Promise((resolve, reject) => {
+            db.query(
+              'UPDATE formateur SET themes_a_enseigner = ? WHERE id_formateur = ?',
+              [JSON.stringify(themes), formateur.id_formateur],
+              (err, result) => {
+                if (err) return reject(err);
+                resolve(result);
+              }
+            );
+          });
+        });
+
+        await Promise.all(insertPromises);
+      }
+
+      // 6. Mettre à jour les rangs des formateurs existants
+      const updateRankPromises = formateurs
+        .filter(f => currentFormateurs.includes(f.id_formateur))
+        .map(async (formateur) => {
+          await new Promise((resolve, reject) => {
+            db.query(
+              'UPDATE formateur_theme SET rang = ? WHERE id_theme = ? AND id_formateur = ?',
+              [formateur.rang, id_theme, formateur.id_formateur],
+              (err, result) => {
+                if (err) return reject(err);
+                resolve(result);
+              }
+            );
+          });
+
+          // Mettre à jour aussi dans themes_a_enseigner
+          await new Promise((resolve, reject) => {
+            db.query(
+              'UPDATE formateur SET themes_a_enseigner = JSON_SET(themes_a_enseigner, ?) WHERE id_formateur = ?',
+              [`$.${theme}`, formateur.rang, formateur.id_formateur],
+              (err, result) => {
+                if (err) return reject(err);
+                resolve(result);
+              }
+            );
+          });
+        });
+
+      await Promise.all(updateRankPromises);
+
+      // Valider la transaction
+      db.commit((err) => {
+        if (err) {
+          return db.rollback(() => {
+            throw err;
+          });
+        }
+
+        return res.status(200).json({
+          message: 'Thème et formateurs mis à jour avec succès',
+          id_theme,
+          theme,
+          formateurs
+        });
+      });
+    } catch (error) {
+      db.rollback(() => {
+        console.error("Erreur lors de la mise à jour du thème:", error);
+        return res.status(500).json({ 
+          error: error.message,
+          details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+      });
+    }
+  });
+};
+
+
+
+
+
+
+
+
 
 const addThemeToDomain = async (req, res) => {
   const { domaineName, abbreviation, themes } = req.body;
@@ -413,7 +626,7 @@ const addThemeToDomain = async (req, res) => {
     try {
       // Vérifier d'abord si le domaine existe déjà
       const checkDomain = await new Promise((resolve, reject) => {
-        db.query('SELECT domaine FROM formation WHERE domaine = ? LIMIT 1', [domaineName], (err, results) => {
+        db.query('SELECT domaine FROM domaine WHERE domaine = ? LIMIT 1', [domaineName], (err, results) => {
           if (err) return reject(err);
           resolve(results[0]);
         });
@@ -425,13 +638,13 @@ const addThemeToDomain = async (req, res) => {
 
       // Récupérer le dernier code de thème pour ce domaine (tous codes confondus)
       const lastCodeQuery = `
-        SELECT s.code 
-        FROM session s
-        JOIN formation f ON s.id_formation = f.id_formation
-        WHERE f.domaine = ?
+        SELECT t.code 
+        FROM theme t
+        JOIN domaine d ON t.id_domaine = d.id_domaine
+        WHERE d.domaine = ?
         ORDER BY 
-          LENGTH(s.code) DESC,  -- Priorité aux codes les plus longs
-          s.code DESC          -- Puis tri alphabétique inverse
+          LENGTH(t.code) DESC,  -- Priorité aux codes les plus longs
+          t.code DESC          -- Puis tri alphabétique inverse
         LIMIT 1
       `;
       
@@ -480,24 +693,24 @@ const addThemeToDomain = async (req, res) => {
         
         // Créer une entrée dans la table formation
         const formationResult = await new Promise((resolve, reject) => {
-          db.query('INSERT INTO formation (domaine) VALUES (?)', [domaineName], (err, result) => {
+          db.query('INSERT INTO domaine (domaine) VALUES (?)', [domaineName], (err, result) => {
             if (err) return reject(err);
             resolve(result);
           });
         });
-        const new_id_formation = formationResult.insertId;
+        const new_id_domaine = formationResult.insertId;
 
         // Insérer le thème dans la table session
-        const querySession = 'INSERT INTO session (theme, code, id_formation) VALUES (?, ?, ?)';
-        console.log("Inserting session with params:", [name, code, new_id_formation]);
+        const querySession = 'INSERT INTO theme (theme, code, id_domaine) VALUES (?, ?, ?)';
+        console.log("Inserting theme with params:", [name, code, new_id_domaine]);
         
         const sessionResult = await new Promise((resolve, reject) => {
-          db.query(querySession, [name, code, new_id_formation], (err, result) => {
+          db.query(querySession, [name, code, new_id_domaine], (err, result) => {
             if (err) return reject(err);
             resolve(result);
           });
         });
-        const id_session = sessionResult.insertId;
+        const id_theme = sessionResult.insertId;
 
         // Mettre à jour les formateurs
         const formateurPromises = formateurs.map((formateur) => {
@@ -542,8 +755,8 @@ const addThemeToDomain = async (req, res) => {
 
         await Promise.all(formateurPromises);
         return { 
-          id_session, 
-          id_formation: new_id_formation,
+          id_theme, 
+          id_domaine: new_id_domaine,
           theme: name,
           code: code
         };
@@ -562,8 +775,8 @@ const addThemeToDomain = async (req, res) => {
         return res.status(201).json({
           message: 'Thèmes créés avec succès',
           results: results.map(r => ({
-            id_formation: r.id_formation,
-            id_session: r.id_session,
+            id_domaine: r.id_domaine,
+            id_theme: r.id_theme,
             theme: r.theme,
             code: r.code
           })),
@@ -583,11 +796,81 @@ const addThemeToDomain = async (req, res) => {
   });
 };
 
+const deleteDomain = (req, res) => {
+  const { id_formation } = req.params;
 
+  if (!id_formation || isNaN(id_formation)) {
+    return res.status(400).json({ message: "ID de domaine invalide." });
+  }
+  const deleteFormationQuery = `DELETE FROM domaine WHERE id_domaine = ?;`
+
+    // Ensuite, supprime la formation
+    db.query(deleteFormationQuery, [id_formation], (err, result) => {
+      if (err) {
+        console.error("Erreur lors de la suppression de domaine(fc) :", err);
+        return res.status(500).json({ message: "Erreur lors de la suppression de domaine(fc)", error: err });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ message: "Aucune domaine trouvée avec cet ID" });
+      }
+      res.json({ message: "Domaine supprimé avec succès" });
+  });
+};
+
+
+
+
+
+
+// Assurez-vous que votre route est bien configurée comme ceci :
+const deleteTheme= (req, res) => {
+  const { id_domaine, id_theme } = req.params;
+
+  console.log(`Requête reçue - Domaine: ${id_domaine}, Thème: ${id_theme}`); // Debug
+
+  // 1. Vérification de l'existence
+  db.query(
+    `SELECT 1 FROM theme WHERE id_domaine = ? AND id_theme = ?`, 
+    [id_domaine, id_theme],
+    (err, results) => {
+      if (err) {
+        console.error('Erreur DB:', err);
+        return res.status(500).json({ success: false, message: 'Erreur serveur' });
+      }
+
+      if (results.length === 0) {
+        console.log('Thème non trouvé en base');
+        return res.status(404).json({ 
+          success: false,
+          message: `Association non trouvée: domaine ${id_domaine} / thème ${id_theme}`
+        });
+      }
+
+      // 2. Suppression
+      db.query(
+        `DELETE FROM theme WHERE id_domaine = ? AND id_theme = ?`,
+        [id_domaine, id_theme],
+        (err, result) => {
+          if (err) {
+            console.error('Erreur suppression:', err);
+            return res.status(500).json({ success: false, message: 'Échec suppression' });
+          }
+
+          console.log(`Suppression réussie - Lignes affectées: ${result.affectedRows}`);
+          res.json({ 
+            success: true,
+            message: `Thème ${id_theme} supprimé du domaine ${id_domaine}`
+          });
+        }
+      );
+    }
+  );
+};
 
   module.exports = {
-    getCatalogue,updateDomain,getFormateursBySession,addThemeToDomain
-  };
+    getCatalogue,updateTheme,getFormateursBySession,addThemeToDomain,deleteDomain
+  ,deleteTheme};
 
 
 
@@ -609,7 +892,28 @@ const addThemeToDomain = async (req, res) => {
 
 
 
-{/*}  const catalogueService = require('../../services/admin/catalogueService');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{/*}
+
+const catalogueService = require('../../services/admin/catalogueService');
 
 class CatalogueController {
   async getCatalogue(req, res) {
@@ -635,10 +939,7 @@ class CatalogueController {
 
   async updateDomain(req, res) {
     try {
-      const result = await catalogueService.updateDomain(
-        req.params.id_formation,
-        req.body
-      );
+      const result = await catalogueService.updateDomain(req.params.id_domaine, req.body.nom_domaine);
       res.json(result);
     } catch (error) {
       res.status(500).json({ error: error.message });
@@ -647,10 +948,7 @@ class CatalogueController {
 
   async addThemeToDomain(req, res) {
     try {
-      const result = await catalogueService.addThemeToDomain(
-        req.body.domaineName,
-        req.body
-      );
+      const result = await catalogueService.addThemeToDomain(req.params.id_domaine, req.body.themes);
       res.status(201).json(result);
     } catch (error) {
       res.status(500).json({ error: error.message });

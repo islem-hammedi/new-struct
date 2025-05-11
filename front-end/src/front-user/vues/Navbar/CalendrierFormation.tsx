@@ -17,6 +17,7 @@ type CalendrierType = {
     date_debut: string;
     date_fin: string;
     fiche_prg_chemin: string;
+    cv: string;
 };
 type FormationDetails = {
     theme: string;
@@ -28,6 +29,7 @@ type FormationDetails = {
     date_debut: string;
     date_fin: string;
     fiche_prg_chemin: string;
+    cv: string;
 };
 const CalendrierFormation = () => {
     const [calendrier, setCalendrier] = useState<CalendrierType[]>([]);
@@ -93,7 +95,9 @@ const CalendrierFormation = () => {
                 duree: data.duree || formation.duree,
                 date_debut: data.date_debut || formation.date_debut,
                 date_fin: data.date_fin || formation.date_fin,
-                fiche_prg_chemin: data.fiche_prg_chemin || formation.fiche_prg_chemin
+                fiche_prg_chemin: data.fiche_prg_chemin || formation.fiche_prg_chemin,
+                cv: data.fiche_prg_chemin || formation.cv
+
             });
         } catch (err) {
             console.error("Erreur :", err);
@@ -107,7 +111,9 @@ const CalendrierFormation = () => {
                 duree: formation.duree,
                 date_debut: formation.date_debut,
                 date_fin: formation.date_fin,
-                fiche_prg_chemin: formation.fiche_prg_chemin
+                fiche_prg_chemin: formation.fiche_prg_chemin, 
+                cv: formation.cv
+
             });
         }
     };

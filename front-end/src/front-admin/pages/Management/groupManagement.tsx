@@ -105,7 +105,7 @@ const GroupManagement = () => {
             <th className="px-6 py-3 text-left border border-gray-300">Email</th>
             <th className="px-6 py-3 text-left border border-gray-300">Rôle</th>
             <th className="px-6 py-3 text-left border border-gray-300">Poste</th>
-            <th className="px-6 py-3 text-left border border-gray-300">Accès</th>
+            <th className="px-6 py-3 text-left border border-gray-300">Role</th>
           </tr>
         </thead>
         <tbody>
@@ -141,7 +141,6 @@ const GroupManagement = () => {
                         ))}
                       </ul>
                     )}
-                    {/* Affichage du nom de l'accès */}
                     <span>
                       {accessList.find(acc => acc.id_acces === admin.id_acces)?.nom_acces}
                     </span>

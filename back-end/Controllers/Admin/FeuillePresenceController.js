@@ -1,4 +1,4 @@
-const db = require('../../connect');
+{/*const db = require('../../connect');
 
 // Fonction pour récupérer les détails de la session
 const getSessionDetails = (req, res) => {
@@ -295,4 +295,4 @@ module.exports = {
   addParticipantAndInsertPresence,
   getSessionDetails,
   getCalendrier
-};
+};*/}

@@ -53,11 +53,9 @@
 };
 
 
-
-
 const getDomainesWithSessions = async (req, res) => {
   const query = `
-    SELECT 
+  SELECT 
       f.id_formation,
       d.id_domaine,
       d.domaine,
@@ -69,73 +67,46 @@ const getDomainesWithSessions = async (req, res) => {
     FROM formation f
     JOIN domaine d ON f.id_domaine = d.id_domaine
     JOIN session s ON f.id_formation = s.id_formation
-    JOIN theme t ON t.id_theme = s.id_theme;
-  `;
-
+    JOIN theme t ON t.id_theme = s.id_theme;`
   db.query(query, (err, results) => {
     if (err) {
-      console.error("Error fetching domaines with sessions:", err);
-      return res.status(500).json({
-        success: false,
-        message: "Erreur lors de la récupération des données.",
-        details: err.message,
-      });
+      console.error("Error fetching calendrier:", err);
+      return res.status(500).json({ error: err.message });
     }
-
-    if (results.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "Aucun domaine trouvé.",
-      });
-    }
-
-    const formattedData = [];
+    const catalogues = [];
     const domainesMap = new Map();
 
-    results.forEach((row) => {
-      // Trouver ou créer le domaine
-      if (!domainesMap.has(row.id_domaine)) {
-        domainesMap.set(row.id_domaine, {
-          id_domaine: row.id_domaine,
+    results.forEach(row => {
+      if (!domainesMap.has(row.id_formation)) {
+        domainesMap.set(row.id_formation, {
+          id_formation: row.id_formation,
           domaine: row.domaine,
-          themes: [],
+          sessions: []
         });
       }
 
-      const domaine = domainesMap.get(row.id_domaine);
-
-      // Trouver ou créer le thème au sein du domaine
-      let theme = domaine.themes.find((t) => t.id_theme === row.id_theme);
-      if (!theme) {
-        theme = {
-          id_theme: row.id_theme,
-          theme: row.theme,
-          code: row.code,
-          sessions: [],
-        };
-        domaine.themes.push(theme);
-      }
-
-      // Ajouter la session au thème
+      const catalogue = domainesMap.get(row.id_formation);
       if (row.id_session) {
-        const sessionExists = theme.sessions.some((s) => s.id_session === row.id_session);
-        if (!sessionExists) {
-          theme.sessions.push({
-            id_session: row.id_session,
+        let session = catalogue.sessions.find(s => s.id_session === row.id_session);
+        
+        if (!session) {
+          session = {
+            id_theme: row.id_theme,
+            theme: row.theme,
+            code: row.code,
             createdAt: row.createdAt,
-          });
+            id_session: row.id_session
+
+           
+          };
+          catalogue.sessions.push(session);
         }
       }
     });
 
-   return {
-  success: true,
-  message: "Données récupérées avec succès.",
-  data: Array.from(domainesMap.values())
-};
+    res.json(Array.from(domainesMap.values()));
   });
 };
-
 
 
 

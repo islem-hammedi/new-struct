@@ -3,20 +3,17 @@ import axios from "axios";
 import { format, startOfYear, addMonths, differenceInDays } from "date-fns";
 
 interface Domaine {
-  id_domaine: number;
+  id_formation: number;  
   domaine: string;
-  themes: Theme[];
+  sessions: Session[];   
 }
 
-interface Theme {
-  id_theme: number;
-  theme: string;
-  sessions: Session[];
-}
 
 interface Session {
   id_session: number;
+  id_theme: number;
   createdAt: string;
+  theme?: string; 
 }
 
 interface CalendarSession {
@@ -43,31 +40,40 @@ const TrainingCalendar: React.FC = () => {
   const [calendarData, setCalendarData] = useState<Record<number, MonthData>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/domaines-with-sessions`);
-        
-        if (!response.data.success) {
-          setError(response.data.message || "Structure de données inattendue");
-          return;
-        }
 
-        setDomainesData(response.data.data || []);
-      } catch (error) {
-        console.error("Erreur réseau:", error);
-        setError("Impossible de charger les données");
-      } finally {
-        setLoading(false);
-      }
-    };
+ useEffect(() => {
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/calendrier`);
+      
+      console.log("Données reçues:", response.data);
+      
+      // Transformation des données pour correspondre à la structure attendue
+      const transformedData = response.data.map((domaine: any) => ({
+        id_formation: domaine.id_formation,
+        domaine: domaine.domaine,
+        sessions: domaine.sessions.map((session: any) => ({
+          id_session: session.id_session,
+          createdAt: session.createdAt,
+          theme: session.theme || `Session ${session.id_session}` // Valeur par défaut si theme n'existe pas
+        }))
+      }));
+      
+      setDomainesData(transformedData);
+    } catch (error) {
+      console.error("Erreur réseau:", error);
+      setError("Impossible de charger les données");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchData();
-  }, []);
+  fetchData();
+}, []);
 
+ 
   const handleAddSelector = (month: number) => {
     setCalendarData((prev) => ({
       ...prev,
@@ -78,11 +84,11 @@ const TrainingCalendar: React.FC = () => {
     }));
   };
 
-  const handleDomaineChange = (month: number, selectorIndex: number, id_domaine: number) => {
+  const handleDomaineChange = (month: number, selectorIndex: number, id_formation: number) => {
     setCalendarData((prev) => {
       const currentData = prev[month] || { selectors: [], sessions: [] };
       const updatedSelectors = [...currentData.selectors];
-      updatedSelectors[selectorIndex] = { selectedDomaine: id_domaine };
+      updatedSelectors[selectorIndex] = { selectedDomaine: id_formation || null };
       
       return {
         ...prev,
@@ -98,24 +104,21 @@ const TrainingCalendar: React.FC = () => {
     let selectedSession: CalendarSession | null = null;
 
     for (const domaine of domainesData) {
-      for (const theme of domaine.themes) {
-        const session = theme.sessions.find((s) => s.id_session === sessionId);
-        if (session) {
-          selectedSession = {
-            id_session: session.id_session,
-            id_theme: theme.id_theme,
-            id_domaine: domaine.id_domaine,
-            theme: theme.theme,
-            domaine: domaine.domaine,
-            createdAt: session.createdAt,
-            date_debut: new Date(),
-            date_fin: new Date(new Date().setDate(new Date().getDate() + 1)),
-            duree: 1
-          };
-          break;
-        }
+      const session = domaine.sessions.find((s) => s.id_session === sessionId);
+      if (session) {
+        selectedSession = {
+          id_session: session.id_session,
+          id_theme :session.id_theme,
+          id_domaine: domaine.id_formation,
+          theme: session.theme || `Session ${session.id_session}`,
+          domaine: domaine.domaine,
+          createdAt: session.createdAt,
+          date_debut: new Date(),
+          date_fin: new Date(new Date().setDate(new Date().getDate() + 1)),
+          duree: 1
+        };
+        break;
       }
-      if (selectedSession) break;
     }
 
     if (!selectedSession) return;
@@ -211,7 +214,7 @@ const TrainingCalendar: React.FC = () => {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error("Erreur détaillée:", error.response?.data || error.message);
-        alert(`Erreur lors de l'enregistrement: ${error.response?.data?.error || error.message}`);
+        alert(` ${error.response?.data?.error || error.message}`);
       } else {
         console.error("Erreur détaillée:", error);
         alert("Erreur inconnue lors de l'enregistrement.");
@@ -226,20 +229,20 @@ const TrainingCalendar: React.FC = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Calendrier des Formations</h1>
+      <h1 className="text-2xl text-teal-700 text-center font-semibold mb-6">Calendrier des formations</h1>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4 bg-gray-100 p-10">
         {months.map((month) => {
           const monthData = calendarData[month] || { selectors: [], sessions: [] };
 
           return (
-            <div key={month} className="border rounded p-4">
-              <h3 className="font-bold mb-2">
+            <div key={month} className="border rounded p-4 bg-white hover:bg-gray-50">
+              <h3 className="font-bold text-teal-700 mb-8 text-center">
                 {format(addMonths(startOfYear(new Date()), month - 1), "MMMM")}
               </h3>
 
               <button
-                className="mb-4 text-sm bg-blue-100 text-blue-600 px-2 py-1 rounded"
+                className="mb-4 text-sm bg-teal-50 text-teal-600 px-2 py-1 rounded"
                 onClick={() => handleAddSelector(month)}
               >
                 + Ajouter une sélection
@@ -249,21 +252,19 @@ const TrainingCalendar: React.FC = () => {
                 const availableSessions: CalendarSession[] = [];
                 
                 if (selector.selectedDomaine) {
-                  const selectedDomaine = domainesData.find((d) => d.id_domaine === selector.selectedDomaine);
+                  const selectedDomaine = domainesData.find((d) => d.id_formation === selector.selectedDomaine);
                   if (selectedDomaine) {
-                    selectedDomaine.themes.forEach((theme) => {
-                      theme.sessions.forEach((session) => {
-                        if (!monthData.sessions.some(s => s.id_session === session.id_session)) {
-                          availableSessions.push({
-                            id_session: session.id_session,
-                            id_theme: theme.id_theme,
-                            id_domaine: selectedDomaine.id_domaine,
-                            theme: theme.theme,
-                            domaine: selectedDomaine.domaine,
-                            createdAt: session.createdAt,
-                          });
-                        }
-                      });
+                    selectedDomaine.sessions.forEach((session) => {
+                      if (!monthData.sessions.some(s => s.id_session === session.id_session)) {
+                        availableSessions.push({
+                          id_session: session.id_session,
+                          id_theme: session.id_theme,
+                          id_domaine: selectedDomaine.id_formation,
+                          theme: session.theme || `Session ${session.id_session}`,
+                          domaine: selectedDomaine.domaine,
+                          createdAt: session.createdAt,
+                        });
+                      }
                     });
                   }
                 }
@@ -275,11 +276,15 @@ const TrainingCalendar: React.FC = () => {
                       <select
                         className="w-full p-2 border rounded text-sm"
                         value={selector.selectedDomaine || ""}
-                        onChange={(e) => handleDomaineChange(month, selectorIndex, Number(e.target.value))}
+                        onChange={(e) => handleDomaineChange(
+                          month, 
+                          selectorIndex, 
+                          Number(e.target.value) 
+                        )}
                       >
                         <option value="">Sélectionnez un domaine</option>
                         {domainesData.map((domaine) => (
-                          <option key={domaine.id_domaine} value={domaine.id_domaine}>
+                          <option key={domaine.id_formation} value={domaine.id_formation}>
                             {domaine.domaine}
                           </option>
                         ))}
@@ -365,10 +370,10 @@ const TrainingCalendar: React.FC = () => {
 
       <div className="mt-6">
         <button
-          className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700"
+          className="bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-700"
           onClick={handleSave}
         >
-          Enregistrer le calendrier
+          Publier le calendrier
         </button>
       </div>
     </div>

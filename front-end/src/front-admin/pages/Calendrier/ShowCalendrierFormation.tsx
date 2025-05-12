@@ -33,10 +33,12 @@ interface MonthData {
     selectedDomaine: number | null;
   }[];
   sessions: CalendarSession[];
-}
+  publishedSessions: CalendarSession[]; }
 
 const TrainingCalendar: React.FC = () => {
   const [domainesData, setDomainesData] = useState<Domaine[]>([]);
+    const [calendarSessionData, setSessionCalendrierData] = useState<Domaine[]>([]);
+
   const [calendarData, setCalendarData] = useState<Record<number, MonthData>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,17 +75,130 @@ const TrainingCalendar: React.FC = () => {
   fetchData();
 }, []);
 
- 
-  const handleAddSelector = (month: number) => {
-    setCalendarData((prev) => ({
-      ...prev,
-      [month]: {
-        selectors: [...(prev[month]?.selectors || []), { selectedDomaine: null }],
-        sessions: prev[month]?.sessions || []
-      }
-    }));
+
+
+
+
+
+
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/SessionCalendrier`);
+      
+      console.log("sessions publiées:", response.data);
+      
+      // Créer un objet temporaire pour organiser les sessions par mois
+      const sessionsByMonth: Record<number, CalendarSession[]> = {};
+      
+      response.data.forEach((domaine: any) => {
+        domaine.sessions.forEach((session: any) => {
+          if (session.date_debut) {
+            const dateDebut = new Date(session.date_debut);
+            const month = dateDebut.getMonth() + 1; // +1 car les mois vont de 0 à 11
+            
+            if (!sessionsByMonth[month]) {
+              sessionsByMonth[month] = [];
+            }
+            
+            sessionsByMonth[month].push({
+              id_session: session.id_session,
+              id_theme: session.id_theme,
+              id_domaine: domaine.id_formation,
+              theme: session.theme || `Session ${session.id_session}`,
+              domaine: domaine.domaine,
+              createdAt: session.createdAt,
+              date_debut: new Date(session.date_debut),
+              date_fin: new Date(session.date_fin),
+              duree: session.duree
+            });
+          }
+        });
+      });
+      
+      // Mettre à jour calendarData avec les sessions publiées
+      setCalendarData(prev => {
+        const newData = {...prev};
+        Object.keys(sessionsByMonth).forEach(month => {
+          const monthNum = parseInt(month);
+          newData[monthNum] = {
+            ...(newData[monthNum] || { selectors: [], sessions: [] }),
+            publishedSessions: sessionsByMonth[monthNum]
+          };
+        });
+        return newData;
+      });
+      
+    } catch (error) {
+      console.error("Erreur réseau:", error);
+      setError("Impossible de charger les données");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  fetchData();
+}, []);
+
+ 
+ const handleAddSelector = (month: number) => {
+  setCalendarData((prev) => {
+    const currentMonthData = prev[month] || {
+      selectors: [],
+      sessions: [],
+      publishedSessions: []
+    };
+    
+    return {
+      ...prev,
+      [month]: {
+        ...currentMonthData,
+        selectors: [...currentMonthData.selectors, { selectedDomaine: null }]
+      }
+    };
+  });
+};
+const handleDeletePublishedSession = async (sessionId: number) => {
+  try {
+    const confirmDelete = window.confirm("Voulez-vous vraiment retirer cette session du calendrier ?");
+    if (!confirmDelete) return;
+
+    const response = await axios.delete(
+      `${import.meta.env.VITE_APP_API_URL}/apiAdmin/sessions/${sessionId}`
+    );
+
+    if (response.data.success) {
+      // Mettre à jour l'état local pour refléter la suppression
+      setCalendarData(prev => {
+        const newData = {...prev};
+        Object.keys(newData).forEach(month => {
+          const monthNum = parseInt(month, 10);
+          if (newData[monthNum].publishedSessions) {
+            const monthNum = parseInt(month, 10);
+            newData[monthNum].publishedSessions = newData[monthNum].publishedSessions.filter(
+              s => s.id_session !== sessionId
+            );
+          }
+        });
+        return newData;
+      });
+
+      alert(response.data.message || "Session retirée du calendrier avec succès");
+    } else {
+      throw new Error(response.data.error || "Erreur inconnue du serveur");
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("Erreur détaillée:", error.response?.data || error.message);
+      alert(` ${error.response?.data?.error || error.message}`);
+    } else {
+      console.error("Erreur détaillée:", error);
+      alert("Erreur inconnue lors de la suppression.");
+    }
+  }
+};
   const handleDomaineChange = (month: number, selectorIndex: number, id_formation: number) => {
     setCalendarData((prev) => {
       const currentData = prev[month] || { selectors: [], sessions: [] };
@@ -233,20 +348,41 @@ const TrainingCalendar: React.FC = () => {
 
       <div className="grid grid-cols-2 gap-4 bg-gray-100 p-10">
         {months.map((month) => {
-          const monthData = calendarData[month] || { selectors: [], sessions: [] };
-
+        const monthData = calendarData[month] || { selectors: [], sessions: [], publishedSessions: [] };
           return (
-            <div key={month} className="border rounded p-4 bg-white hover:bg-gray-50">
-              <h3 className="font-bold text-teal-700 mb-8 text-center">
-                {format(addMonths(startOfYear(new Date()), month - 1), "MMMM")}
-              </h3>
+          <div key={month} className="border rounded p-4 bg-white hover:bg-gray-50">
+            <h3 className="font-bold text-teal-700 mb-8 text-center">
+              {format(addMonths(startOfYear(new Date()), month - 1), "MMMM")}
+            </h3>
 
-              <button
-                className="mb-4 text-sm bg-teal-50 text-teal-600 px-2 py-1 rounded"
-                onClick={() => handleAddSelector(month)}
-              >
-                + Ajouter une sélection
-              </button>
+            {/* Afficher les sessions publiées */}
+          {monthData.publishedSessions && monthData.publishedSessions.length > 0 && (
+  <div className="mb-4 space-y-2">
+    <h4 className="text-sm font-semibold text-gray-600">Sessions programmées:</h4>
+    {monthData.publishedSessions.map((session) => (
+      <div key={`published-${session.id_session}`} className="bg-teal-50 p-2 rounded text-sm relative group">
+        <div className="font-medium text-teal-800">{session.theme}</div>
+        <div className="text-xs text-gray-600">
+          {session.date_debut && format(session.date_debut, "dd/MM/yyyy")} - {session.date_fin && format(session.date_fin, "dd/MM/yyyy")}
+        </div>
+        <button
+          className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-xs bg-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm group-hover:opacity-100 transition-opacity"
+          onClick={() => handleDeletePublishedSession(session.id_session)}
+          title="Retirer du calendrier"
+        >
+          ×
+        </button>
+      </div>
+    ))}
+  </div>
+)}
+
+            <button
+              className="mb-4 text-sm bg-teal-50 text-teal-600 px-2 py-1 rounded"
+              onClick={() => handleAddSelector(month)}
+            >
+              + Ajouter une sélection
+            </button>
 
               {monthData.selectors.map((selector, selectorIndex) => {
                 const availableSessions: CalendarSession[] = [];
@@ -319,10 +455,10 @@ const TrainingCalendar: React.FC = () => {
                     <div className="flex justify-between items-center mb-1">
                       <div className="font-medium">{session.theme}</div>
                       <button
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-500 text-2xl hover:text-red-700"
                         onClick={() => handleRemoveSession(month, session.id_session)}
                       >
-                        ×
+                         ×
                       </button>
                     </div>
                     

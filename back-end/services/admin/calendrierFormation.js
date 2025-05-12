@@ -1,206 +1,107 @@
-{/*const calendrierFormationRepository = require('../../repositories/admin/calendrierFormation');
-const Session = require('../../models/admin/session');
+const calendrierFormationRepo = require('../../repositories/admin/calendrierFormation');
 
-const saveSessions = async (sessionsData) => {
-  const sessions = Array.isArray(sessionsData) ? sessionsData : [];
-  
+const updateCalendrierFormation = async (sessions) => {
   if (sessions.length === 0) {
-    throw { message: "Aucune session à enregistrer.", status: 400 };
+    throw new Error("Aucune session à enregistrer.");
   }
 
-  // Validation
-  const invalidSessions = sessions.filter(session => 
+  const invalidSessions = sessions.filter(session =>
     !session.id_session || !session.date_debut || !session.date_fin || !session.duree
   );
 
   if (invalidSessions.length > 0) {
-    throw { 
-      message: `${invalidSessions.length} sessions invalides (champs manquants)`, 
-      status: 400 
-    };
+    throw new Error(`${invalidSessions.length} sessions invalides (champs manquants)`);
   }
 
-  const updatedCount = await calendrierFormationRepository.updateSessions(sessions);
-  
-  return {
-    message: `${updatedCount} sessions mises à jour avec succès.`,
-    updatedCount,
-    data: sessions
-  };
+  await calendrierFormationRepo.updateSessions(sessions);
+  return `${sessions.length} sessions mises à jour avec succès.`;
 };
 
-const getDomainesWithSessions = async () => {
-  const rawData = await calendrierFormation.fetchDomainesWithSessions();
-  
-  if (!rawData || rawData.length === 0) {
-    throw { message: "Aucun domaine trouvé.", status: 404 };
-  }
-
+const fetchDomainesWithSessions = async () => {
+  const results = await calendrierFormationRepo.getDomainesWithSessions();
   const domainesMap = new Map();
 
-  rawData.forEach((row) => {
-    if (!domainesMap.has(row.id_domaine)) {
-      domainesMap.set(row.id_domaine, {
-        id_domaine: row.id_domaine,
+  results.forEach(row => {
+    if (!domainesMap.has(row.id_formation)) {
+      domainesMap.set(row.id_formation, {
+        id_formation: row.id_formation,
         domaine: row.domaine,
-        themes: [],
+        sessions: []
       });
     }
 
-    const domaine = domainesMap.get(row.id_domaine);
-    let theme = domaine.themes.find((t) => t.id_theme === row.id_theme);
-    
-    if (!theme) {
-      theme = {
-        id_theme: row.id_theme,
-        theme: row.theme,
-        code: row.code,
-        sessions: [],
-      };
-      domaine.themes.push(theme);
-    }
-
-    if (row.id_session && !theme.sessions.some((s) => s.id_session === row.id_session)) {
-      theme.sessions.push(new Session({
-        id_session: row.id_session,
-        createdAt: row.createdAt
-      }));
-    }
-  });
-
-  return {
-    message: "Données récupérées avec succès.",
-    data: Array.from(domainesMap.values())
-  };
-};
-
-
-
-const getCurrentYearSessions = async () => {
-  try {
-    const currentYear = new Date().getFullYear();
-    const sessions = await calendrierFormationRepository.getSessionsByYear(currentYear);
-    
-    // Validation supplémentaire
-    if (!Array.isArray(sessions)) {
-      throw new Error(`Le repository a retourné un type invalide: ${typeof sessions}`);
-    }
-    
-    return {
-      success: true,
-      data: {
-        year: currentYear,
-        count: sessions.length,
-        sessions: sessions
+    const catalogue = domainesMap.get(row.id_formation);
+    if (row.id_session) {
+      let session = catalogue.sessions.find(s => s.id_session === row.id_session);
+      if (!session) {
+        session = {
+          id_theme: row.id_theme,
+          theme: row.theme,
+          code: row.code,
+          createdAt: row.createdAt,
+          id_session: row.id_session
+        };
+        catalogue.sessions.push(session);
       }
-    };
-  } catch (error) {
-    console.error('Erreur dans le service getCurrentYearSessions:', {
-      message: error.message,
-      stack: error.stack
-    });
-    return {
-      success: false,
-      message: error.message.includes('Erreur du repository') 
-        ? error.message 
-        : 'Erreur lors de la récupération des sessions'
-    };
-  }
-};
-
-module.exports = {
-  saveSessions,
-  getDomainesWithSessions,getCurrentYearSessions
-};*/}
-
-
-
-
-
-
-
-
-
-
-
-
-const calendrierFormationRepository = require('../../repositories/admin/calendrierFormation');
-const Session = require('../../models/admin/session');
-
-const saveSessions = async (sessionsData) => {
-  const sessions = Array.isArray(sessionsData) ? sessionsData : [];
-  
-  if (sessions.length === 0) {
-    throw { message: "Aucune session à enregistrer.", status: 400 };
-  }
-
-  // Validation
-  const invalidSessions = sessions.filter(session => 
-    !session.id_session || !session.date_debut || !session.date_fin || !session.duree
-  );
-
-  if (invalidSessions.length > 0) {
-    throw { 
-      message: `${invalidSessions.length} sessions invalides (champs manquants)`, 
-      status: 400 
-    };
-  }
-
-  const updatedCount = await calendrierFormationRepository.updateSessions(sessions);
-  
-  return {
-    message: `${updatedCount} sessions mises à jour avec succès.`,
-    updatedCount,
-    data: sessions
-  };
-};
-
-const getDomainesWithSessions = async () => {
-  const rawData = await calendrierFormationRepository.fetchDomainesWithSessions();
-  
-  if (!rawData || rawData.length === 0) {
-    throw { message: "Aucun domaine trouvé.", status: 404 };
-  }
-
-  const domainesMap = new Map();
-
-  rawData.forEach((row) => {
-    if (!domainesMap.has(row.id_domaine)) {
-      domainesMap.set(row.id_domaine, {
-        id_domaine: row.id_domaine,
-        domaine: row.domaine,
-        themes: [],
-      });
-    }
-
-    const domaine = domainesMap.get(row.id_domaine);
-    let theme = domaine.themes.find((t) => t.id_theme === row.id_theme);
-    
-    if (!theme) {
-      theme = {
-        id_theme: row.id_theme,
-        theme: row.theme,
-        code: row.code,
-        sessions: [],
-      };
-      domaine.themes.push(theme);
-    }
-
-    if (row.id_session && !theme.sessions.some((s) => s.id_session === row.id_session)) {
-      theme.sessions.push(new Session({
-        id_session: row.id_session,
-        createdAt: row.createdAt
-      }));
     }
   });
 
-  return {
-    message: "Données récupérées avec succès.",
-    data: Array.from(domainesMap.values())
-  };
+  return Array.from(domainesMap.values());
+};
+
+const fetchCalendarSessions = async () => {
+  const results = await calendrierFormationRepo.getCalendarSessions();
+  const domainesMap = new Map();
+
+  results.forEach(row => {
+    if (!domainesMap.has(row.id_formation)) {
+      domainesMap.set(row.id_formation, {
+        id_formation: row.id_formation,
+        domaine: row.domaine,
+        sessions: []
+      });
+    }
+
+    const catalogue = domainesMap.get(row.id_formation);
+    if (row.id_session) {
+      let session = catalogue.sessions.find(s => s.id_session === row.id_session);
+      if (!session) {
+        session = {
+          id_theme: row.id_theme,
+          theme: row.theme,
+          code: row.code,
+          createdAt: row.createdAt,
+          id_session: row.id_session,
+          date_debut: row.date_debut,
+          date_fin: row.date_fin,
+          duree: row.duree
+        };
+        catalogue.sessions.push(session);
+      }
+    }
+  });
+
+  return Array.from(domainesMap.values());
+};
+
+const removeSessionFromCalendrier = async (id) => {
+  const result = await calendrierFormationRepo.deleteSession(id);
+
+  if (!result) {
+    throw new Error("Session non trouvée");
+  }
+
+  const affectedRows = result.affectedRows || 0;
+  if (affectedRows === 0) {
+    throw new Error("Erreur lors de la suppression");
+  }
+
+  return "Session retirée du calendrier avec succès";
 };
 
 module.exports = {
-  saveSessions,
-  getDomainesWithSessions
+  updateCalendrierFormation,
+  fetchDomainesWithSessions,
+  fetchCalendarSessions,
+  removeSessionFromCalendrier,
 };

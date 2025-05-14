@@ -8,6 +8,17 @@ const participants = require('../../models/admin/participant');
 class AuthRepository {
   constructor() {
     this.initTables();
+
+    this.transporter = nodemailer.createTransport({
+      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: 'khadijabenabdelkader1206@gmail.com',
+        pass: 'qqij aava gtxv hpdz',
+      }
+    });
   }
 
   async initTables() {
@@ -50,9 +61,8 @@ class AuthRepository {
           pwd VARCHAR(255) NOT NULL,
           telephone VARCHAR(20),
           adresse TEXT,
-          nature_participant VARCHAR(50),
+          CIN VARCHAR(50),
           id_entreprise INT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (id_entreprise) REFERENCES entreprise(id_entreprise)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
@@ -64,135 +74,108 @@ class AuthRepository {
     }
   }
 
-  async findByUsername(nom_complet) {
-    try {
-        // Recherche dans la table formateur
-        const formateurResult = await db.query(
-            "SELECT * FROM formateur WHERE nom_complet = ?", 
-            [nom_complet]
-        );
-        
-        if (formateurResult && formateurResult.length > 0) {
-            return { 
-                user: new Formateur(formateurResult[0]),
-                isFormateur: true 
-            };
-        }
-
-        // Recherche dans la table participant (notez le nom correct de la table)
-        const participantResult = await db.query(
-            "SELECT * FROM participants WHERE nom_complet = ?", 
-            [nom_complet]
-        );
-
-        if (participantResult && participantResult.length > 0) {
-            const participant = participantResult[0];
-            let entrepriseInfo = {};
-            
-            if (participant.id_entreprise) {
-                const entrepriseResult = await db.query(
-                    "SELECT * FROM entreprise WHERE id_entreprise = ?",
-                    [participant.id_entreprise]
-                );
-                entrepriseInfo = entrepriseResult[0] || {};
-            }
-
-            return { 
-                user: new participants({
-                    ...participant,
-                    entrepriseInfo
-                }),
-                isFormateur: false 
-            };
-        }
-
-        return null;
-    } catch (error) {
-        console.error('Erreur dans findByUsername:', error);
-        throw new Error('Erreur lors de la recherche de l\'utilisateur');
-    }
+ 
+async findFormateurByUsername(nom_complet) {
+  const query = "SELECT * FROM formateur WHERE nom_complet = ?";
+  return new Promise((resolve, reject) => {
+    db.query(query, [nom_complet], (err, results) => {
+      if (err) reject(err);
+      resolve(results.length > 0 ? results[0] : null);
+    });
+  });
 }
 
-  async findByEmail(mail) {
-    try {
-      // Cherche dans les deux tables
-      const participantRows = await db.query(
-        "SELECT * FROM participants WHERE mail = ?", 
-        [mail]
-      );
-      
-      if (participantRows.length) {
-        return {
-          user: new Participant(participantRows[0]),
-          isFormateur: false
-        };
-      }
+async findParticipantByUsername(nom_complet) {
+  const query = "SELECT * FROM participants WHERE nom_complet = ?";
+  return new Promise((resolve, reject) => {
+    db.query(query, [nom_complet], (err, results) => {
+      if (err) reject(err);
+      resolve(results.length > 0 ? results[0] : null);
+    });
+  });
+}
 
-      const formateurRows = await db.query(
-        "SELECT * FROM formateur WHERE mail = ?",
-        [mail]
-      );
+async findByEmail(email) {
+  const query = "SELECT * FROM participants WHERE mail = ?";
+  return new Promise((resolve, reject) => {
+    db.query(query, [email], (err, results) => {
+      if (err) reject(err);
+      resolve(results.length > 0 ? results[0] : null);
+    });
+  });
+}
 
-      if (formateurRows.length) {
-        return {
-          user: new Formateur(formateurRows[0]),
-          isFormateur: true
-        };
-      }
 
-      return null;
-    } catch (error) {
-      console.error('Erreur findByEmail:', error);
-      throw new Error('Erreur lors de la recherche par email');
-    }
-  }
-async createParticipant(participantData) {
-    const hashedPwd = await bcrypt.hash(participantData.pwd, 10);
-    const result = await db.query(
-      "INSERT INTO participants SET ?",
-      {
-        nom_complet: participantData.nom_complet,
-        mail: participantData.mail,
-        pwd: hashedPwd,
-        telephone: participantData.telephone,
-        adresse: participantData.adresse,
-        nature_participant: participantData.nature_participant,
-        id_entreprise: participantData.id_entreprise
-      }
+/*async findByEmail(mail) {
+  try {
+    // Version sécurisée sans déstructuration [rows]
+    const participantResult = await this.db.query(
+      "SELECT * FROM participants WHERE mail = ?", 
+      [mail]
     );
-    return result.insertId;
-  }
-
-  async comparePasswords(plainPassword, hashedPassword) {
-    return bcrypt.compare(plainPassword, hashedPassword);
-  }
-
-  
-  async findFormateurById(id) {
-    try {
-      const rows = await db.query(
-        "SELECT * FROM formateur WHERE id_formateur = ?",
-        [id]
-      );
-      return rows.length ? new Formateur(rows[0]) : null;
-    } catch (error) {
-      console.error('Erreur findFormateurById:', error);
-      throw new Error('Erreur lors de la recherche formateur');
+    
+    // Accès sécurisé aux résultats
+    const participantRows = participantResult && participantResult[0] ? participantResult[0] : [];
+    
+    if (participantRows.length > 0) {
+      return {
+        user: participantRows[0],
+        isFormateur: false
+      };
     }
-  }
-  
-  async findParticipantById(id) {
-    try {
-      const rows = await db.query(
-        "SELECT * FROM participants WHERE id_participant = ?",
-        [id]
-      );
-      return rows.length ? new Participant(rows[0]) : null;
-    } catch (error) {
-      console.error('Erreur findParticipantById:', error);
-      throw new Error('Erreur lors de la recherche participant');
+
+    const formateurResult = await this.db.query(
+      "SELECT * FROM formateur WHERE mail = ?",
+      [mail]
+    );
+    
+    const formateurRows = formateurResult && formateurResult[0] ? formateurResult[0] : [];
+    
+    if (formateurRows.length > 0) {
+      return {
+        user: formateurRows[0],
+        isFormateur: true
+      };
     }
+
+    return null;
+  } catch (error) {
+    console.error('Repository Error - findByEmail:', error);
+    throw new Error('Erreur lors de la recherche par email');
   }
+}*/
+
+
+async findParticipantById(id) {
+  const query = "SELECT * FROM participants WHERE id_participant = ?";
+  return new Promise((resolve, reject) => {
+    db.query(query, [id], (err, results) => {
+      if (err) reject(err);
+      resolve(results.length > 0 ? results[0] : null);
+    });
+  });
+}
+
+
+async findFormateurById(id) {
+  const query = "SELECT * FROM formateur WHERE id_formateur = ?";
+  return new Promise((resolve, reject) => {
+    db.query(query, [id], (err, results) => {
+      if (err) reject(err);
+      resolve(results.length > 0 ? results[0] : null);
+    });
+  });
+}
+
+async updateParticipantPassword(id, hashedPassword) {
+  return new Promise((resolve, reject) => {
+    const query = "UPDATE participants SET pwd = ? WHERE id_participant = ?";
+    db.query(query, [hashedPassword, id], (err, result) => {
+      if (err) return reject(err);
+      resolve(result.affectedRows > 0);
+    });
+  });
+}
   async createParticipant(participantData) {
     try {
       const hashedPwd = await bcrypt.hash(participantData.pwd, 10);
@@ -216,6 +199,7 @@ async createParticipant(participantData) {
       throw new Error('Erreur lors de la création participant');
     }
   }
+
   async createFormateur(formateurData) {
     try {
       const hashedPwd = await bcrypt.hash(formateurData.mdp_formateur, 10);
@@ -241,53 +225,35 @@ async createParticipant(participantData) {
       throw new Error('Erreur lors de la création formateur');
     }
   }
-  async updatePassword(userId, newPassword, isFormateur = false) {
-    try {
-      const hashedPwd = await bcrypt.hash(newPassword, 10);
-      const table = isFormateur ? 'formateur' : 'participant';
-      const idField = isFormateur ? 'id_formateur' : 'id_participant';
-      
-      await db.query(
-       ` UPDATE ${table} SET ${isFormateur ? 'mdp_formateur' : 'pwd'} = ? WHERE ${idField} = ?`,
-        [hashedPwd, userId]
-      );
-      return true;
-    } catch (error) {
-      console.error('Erreur updatePassword:', error);
-      throw new Error('Erreur lors de la mise à jour du mot de passe');
-    }
-  }
 
+  
+
+  
   generateResetToken() {
     return crypto.randomBytes(32).toString('hex');
   }
 
-  async sendResetEmail(email, token) {
+  async sendResetEmail(email, token, expiresAt) {
     try {
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASS
-        }
-      });
-
-      const resetLink = `${process.env.APP_URL}/reset-password?token=${token}&email=${email};`
+      const resetLink = `${process.env.APP_URL}/reset-password?token=${token}&email=${email}`;
       
-      await transporter.sendMail({
-        from: "Support" `<${process.env.EMAIL_USER}>`,
+      const mailOptions = {
+        from: `khadijabenabdelkader1206@gmail.com`,
         to: email,
-        subject: 'Réinitialisation de mot de passe',
+        subject: 'Réinitialisation de votre mot de passe',
         html: `
-          <p>Vous avez demandé une réinitialisation de mot de passe.</p>
-          <p>Cliquez <a href="${resetLink}">ici</a> pour réinitialiser votre mot de passe</p>
-          <p>Ce lien expirera dans 1 heure.</p>
+          <p>Vous avez demandé à réinitialiser votre mot de passe.</p>
+          <p>Ce lien expirera le ${expiresAt.toLocaleString()}</p>
+          <a href="${resetLink}">Cliquez ici pour réinitialiser votre mot de passe</a>
+          <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.</p>
         `
-      });
+      };
+
+      await this.transporter.sendMail(mailOptions);
       return true;
     } catch (error) {
-      console.error('Erreur sendResetEmail:', error);
-      throw new Error('Erreur lors de l\'envoi de l\'email');
+      console.error('Repository Error - sendResetEmail:', error);
+      throw new Error("Erreur lors de l'envoi de l'email de réinitialisation");
     }
   }
 }

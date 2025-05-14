@@ -4,7 +4,7 @@ const AuthAdmin = require('../../models/admin/authAdmin');
 
 class AuthAdminRepository {
   async findByUsername(nom_admin) {
-    const [rows] = await db.query(
+    const rows = await db.query(
       `SELECT admin.id_admin, admin.nom_admin, admin.mdp_admin, 
               admin.telephone, admin.poste, acces.nom_acces 
        FROM admin 

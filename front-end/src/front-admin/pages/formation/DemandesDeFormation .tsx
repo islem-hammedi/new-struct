@@ -13,7 +13,7 @@ const DemandesDeFormation = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        
+
         const response = await axios.get(
           `${import.meta.env.VITE_APP_API_URL}/apiAdmin/demanderFormation`,
           {
@@ -35,7 +35,16 @@ const DemandesDeFormation = () => {
           };
         });
 
-        setDemandes(formattedDemandes);
+        // Charger les demandes archivées depuis localStorage
+        const archivedFromStorage = JSON.parse(localStorage.getItem('archivedDemandes') || '[]');
+
+        // Filtrer les demandes pour ne pas inclure celles archivées
+        const filteredDemandes = formattedDemandes.filter(
+          (demande: any) => !archivedFromStorage.some((archived: any) => archived.id === demande.id)
+        );
+
+        setDemandes(filteredDemandes);
+        setArchivedDemandes(archivedFromStorage);
       } catch (error) {
         console.error('Erreur lors de la récupération des demandes:', error);
         setError('Une erreur est survenue lors du chargement des demandes.');
@@ -49,9 +58,13 @@ const DemandesDeFormation = () => {
 
   const handleArchiver = (id: number) => {
     const demandeToArchive = demandes.find((demande) => demande.id === id);
-    if (demandeToArchive && !archivedDemandes.some((d) => d.id === id)) {
-      setArchivedDemandes((prev) => [...prev, demandeToArchive]);
+    if (demandeToArchive) {
+      const updatedArchivedDemandes = [...archivedDemandes, demandeToArchive];
+      setArchivedDemandes(updatedArchivedDemandes);
       setDemandes((prevDemandes) => prevDemandes.filter((demande) => demande.id !== id));
+
+      // Sauvegarder dans localStorage
+      localStorage.setItem('archivedDemandes', JSON.stringify(updatedArchivedDemandes));
     }
   };
 
@@ -125,4 +138,3 @@ const DemandesDeFormation = () => {
 };
 
 export default DemandesDeFormation;
-

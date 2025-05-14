@@ -1,4 +1,4 @@
-
+{/*
   const db = require('../../connect');
 
 
@@ -198,205 +198,7 @@ const getFormateursBySession = async (req, res) => {
 }; 
 
 
-{/*}
-const updateDomain = async (req, res) => {
-  const { domaine, themes } = req.body;
-  const { id_domaine } = req.params;
 
-  db.beginTransaction(async (err) => {
-    if (err) {
-      return res.status(500).json({ error: "Erreur de transaction" });
-    }
-
-    try {
-      // 1. Mettre à jour le domaine dans la table formation
-      const queryUpdateFormation = 'UPDATE domaine SET domaine = ? WHERE id_domaine = ?';
-      await new Promise((resolve, reject) => {
-        db.query(queryUpdateFormation, [domaine, id_domaine], (err, result) => {
-          if (err) return reject(err);
-          resolve(result);
-        });
-      });
-
-      // 2. Récupérer les sessions existantes
-      const existingSessions = await new Promise((resolve, reject) => {
-        db.query('SELECT id_theme, theme, code FROM theme WHERE id_domaine = ?', [id_domaine], (err, results) => {
-          if (err) return reject(err);
-          resolve(results);
-        });
-      });
-
-      // 3. Identifier les thèmes qui vont être supprimés
-      const currentThemeCodes = themes.map(t => t.code);
-      const themesToDelete = existingSessions.filter(s => !currentThemeCodes.includes(t.code));
-      const deletedThemeNames = themesToDelete.map(t => t.theme);
-
-      // 4. Traiter chaque session/thème
-      const sessionPromises = themes.map(async (theme) => {
-        const { code, formateurs } = theme;
-
-        // Trouver ou créer la session
-        let existingSession = existingSessions.find(t => t.code === code);
-        let id_theme;
-
-        if (existingSession) {
-          // Mettre à jour la session existante
-          const queryUpdateSession = 'UPDATE theme SET theme = ? WHERE id_theme = ?';
-          await new Promise((resolve, reject) => {
-            db.query(queryUpdateSession, [theme, existingSession.id_theme], (err, result) => {
-              if (err) return reject(err);
-              resolve(result);
-            });
-          });
-          id_theme = existingSession.id_theme;
-        } else {
-          // Créer une nouvelle session
-          const queryInsertSession = 'INSERT INTO theme (theme, code, id_domaine) VALUES (?, ?, ?)';
-          const insertResult = await new Promise((resolve, reject) => {
-            db.query(queryInsertSession, [theme, code, id_domaine], (err, result) => {
-              if (err) return reject(err);
-              resolve(result);
-            });
-          });
-          id_theme = insertResult.insertId;
-        }
-
-        // 5. Mettre à jour les thèmes enseignés par chaque formateur
-        const formateurPromises = formateurs.map(async (formateur) => {
-          // Récupérer les données actuelles du formateur
-          const formateurData = await new Promise((resolve, reject) => {
-            db.query(
-              'SELECT themes_a_enseigner FROM formateur WHERE id_formateur = ?',
-              [formateur.id_formateur],
-              (err, results) => {
-                if (err) return reject(err);
-                resolve(results[0]);
-              }
-            );
-          });
-
-          // Parser les thèmes existants ou initialiser un objet vide
-          let existingThemes = {};
-          if (formateurData?.themes_a_enseigner) {
-            try {
-              existingThemes = JSON.parse(formateurData.themes_a_enseigner);
-            } catch (e) {
-              console.error("Erreur parsing JSON:", e);
-            }
-          }
-          // Mettre à jour seulement le thème actuel avec son rang
-          const updatedThemes = {
-            ...existingThemes,
-            [theme]: formateur.rang,
-          };
-
-          // Mettre à jour le formateur
-          await new Promise((resolve, reject) => {
-            db.query(
-              `UPDATE formateur 
-               SET domaine_de_competences = ?,
-                   themes_a_enseigner = ?
-               WHERE id_formateur = ?`,
-              [
-                formation,
-                JSON.stringify(updatedThemes),
-                formateur.id_formateur,
-              ],
-              (err, result) => {
-                if (err) return reject(err);
-                resolve(result);
-              }
-            );
-          });
-        });
-
-        // 6. Nettoyer les thèmes supprimés pour les formateurs non inclus dans cette session
-        const currentFormateurIds = formateurs.map(f => f.id_formateur);
-        const allFormateurs = await new Promise((resolve, reject) => {
-          db.query(
-            'SELECT id_formateur, themes_a_enseigner FROM formateur',
-            (err, results) => {
-              if (err) return reject(err);
-              resolve(results);
-            }
-          );
-        });
-
-        const cleanupPromises = allFormateurs.map(async (formateur) => {
-          if (!formateur.themes_a_enseigner) return;
-
-          try {
-            let themes = JSON.parse(formateur.themes_a_enseigner);
-            let updatedThemes = {};
-
-            // Garder seulement les thèmes qui n'ont pas été supprimés
-            for (const [themeName, rang] of Object.entries(themes)) {
-              if (themeName !== theme || currentFormateurIds.includes(formateur.id_formateur)) {
-                updatedThemes[themeName] = rang;
-              }
-            }
-
-            // Mettre à jour le formateur si les thèmes ont changé
-            if (Object.keys(themes).length !== Object.keys(updatedThemes).length) {
-              await new Promise((resolve, reject) => {
-                db.query(
-                  'UPDATE formateur SET themes_a_enseigner = ? WHERE id_formateur = ?',
-                  [JSON.stringify(updatedThemes), formateur.id_formateur],
-                  (err, result) => {
-                    if (err) return reject(err);
-                    resolve(result);
-                  }
-                );
-              });
-            }
-          } catch (e) {
-            console.error("Erreur lors du traitement des thèmes du formateur:", e);
-          }
-        });
-
-        await Promise.all([...formateurPromises, ...cleanupPromises]);
-      });
-
-      await Promise.all(sessionPromises);
-
-      // 7. Supprimer les sessions qui n'existent plus
-      const deletePromises = themesToDelete.map(theme => {
-        return new Promise((resolve, reject) => {
-          db.query('DELETE FROM theme WHERE id_theme = ?', [theme.id_theme], (err, result) => {
-            if (err) return reject(err);
-            resolve(result);
-          });
-        });
-      });
-
-      await Promise.all(deletePromises);
-
-      // Valider la transaction
-      db.commit((err) => {
-        if (err) {
-          return db.rollback(() => {
-            throw err;
-          });
-        }
-
-        return res.status(200).json({
-          message: 'Domaine, thèmes et formateurs mis à jour avec succès',
-          id_domaine: id_domaine,
-          themes,
-        });
-      });
-    } catch (error) {
-      db.rollback(() => {
-        console.error("Erreur lors de la mise à jour du domaine:", error);
-        return res.status(500).json({ 
-          error: error.message,
-          details: process.env.NODE_ENV === 'development' ? error.stack : undefined
-        });
-      });
-    }
-  });
-};
-*/}
 
 
 const updateTheme = async (req, res) => {
@@ -874,86 +676,100 @@ const deleteTheme= (req, res) => {
 
 
 
+*/}
 
 
 
 
 
+const CatalogueService = require('../../services/admin/catalogue');
 
+const getCatalogue = async (req, res) => {
+  try {
+    const catalogues = await CatalogueService.getCatalogue();
+    res.json(catalogues);
+  } catch (error) {
+    console.error("Error fetching catalogue:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
+const getFormateursBySession = async (req, res) => {
+  const { id_theme } = req.params;
 
+  try {
+    const result = await CatalogueService.getFormateursBySession(id_theme);
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching formateurs by session:", error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+    });
+  }
+};
 
+const addThemeToDomain = async (req, res) => {
+  const { domaineName, abbreviation, themes } = req.body;
+  try {
+    const result = await CatalogueService.addThemeToDomain(domaineName, abbreviation, themes);
+    res.status(201).json(result);
+  } catch (error) {
+    console.error("Error adding theme to domain:", error);
+    res.status(500).json({
+      error: error.message,
+      details: error.stack,
+    });
+  }};
 
+const deleteDomain = async (req, res) => {
+  const { id_formation } = req.params;
+  try {
+    const result = await CatalogueService.deleteDomain(id_formation);
+    res.json(result);
+  } catch (error) {
+    console.error("Error deleting domain:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
+const deleteTheme = async (req, res) => {
+  const { id_domaine, id_theme } = req.params;
+  try {
+    const result = await CatalogueService.deleteTheme(id_domaine, id_theme);
+    res.json(result);
+  } catch (error) {
+    console.error("Error deleting theme:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
+const updateTheme = async (req, res) => {
+  const { id_theme } = req.params;
+  const { formateursToAdd, formateursToRemove } = req.body;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-{/*}
-
-const catalogueService = require('../../services/admin/catalogueService');
-
-class CatalogueController {
-  async getCatalogue(req, res) {
-    try {
-      const catalogue = await catalogueService.getCatalogue();
-      res.json(catalogue);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
+  if (!Array.isArray(formateursToAdd) || !Array.isArray(formateursToRemove)) {
+    return res.status(400).json({ error: "Les données doivent être des tableaux" });
   }
 
-  async getFormateursBySession(req, res) {
-    try {
-      const result = await catalogueService.getFormateursBySession(req.params.id_session);
-      res.json(result);
-    } catch (error) {
-      if (error.message === 'Session non trouvée') {
-        return res.status(404).json({ error: error.message });
-      }
-      res.status(500).json({ error: error.message });
-    }
+  try {
+    const result = await CatalogueService.updateTheme(id_theme, formateursToAdd, formateursToRemove);
+    res.json(result);
+  } catch (error) {
+    console.error("Error updating theme:", error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+    });
   }
+};
 
-  async updateDomain(req, res) {
-    try {
-      const result = await catalogueService.updateDomain(req.params.id_domaine, req.body.nom_domaine);
-      res.json(result);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  }
 
-  async addThemeToDomain(req, res) {
-    try {
-      const result = await catalogueService.addThemeToDomain(req.params.id_domaine, req.body.themes);
-      res.status(201).json(result);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-}
-
-module.exports = new CatalogueController();*/}
+module.exports = {
+  getCatalogue,
+  getFormateursBySession,
+  addThemeToDomain,
+  deleteDomain,
+  deleteTheme,
+  updateTheme,
+};

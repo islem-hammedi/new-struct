@@ -2,7 +2,7 @@ const db = require('../../connect');
 const AvisFormateur = require('../../models/admin/avis_f');
 
 class AvisFormateurRepository {
-  // ... (initTable reste identique)
+ 
 
   async getBySession(idSession) {
     return new Promise((resolve, reject) => {

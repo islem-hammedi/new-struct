@@ -1,15 +1,9 @@
 const express = require('express');
+const router = express.Router();
+const profilFormateurUserController = require('../../Controllers/user/profilFormateurUserController');
 const jwt = require('jsonwebtoken');
 
-const router = express.Router();
-const { 
-    getFormationsARealiser, 
-    getHistoriqueFormations, 
-    getFormateurDetails,
-    updatePassword,
-    getEvents,// createEvent, deleteEvent
-    sendModificationRequest,handleModificationResponse
-} = require('../../Controllers/User/profilFormateurUserController');
+const controller = new profilFormateurUserController();
 
 const multer = require("multer");
 const path = require("path");
@@ -48,42 +42,45 @@ router.get('/uploads/:filename', (req, res) => {
   });
 });
 
-router.get('/apiUser/formations-a-realiser/:id_formateur', getFormationsARealiser);
+router.get('/apiUser/formations-a-realiser/:id_formateur', (req, res) => controller.getUpcomingSessions(req, res));
 
-router.get('/apiUser/historique-formations/:id_formateur', getHistoriqueFormations);
+router.get('/apiUser/historique-formations/:id_formateur', (req, res) => controller.getHistoricalSessions(req, res));
 
-router.get('/apiUser/formateur/details/:id_formateur', getFormateurDetails);
-router.put('/apiUser/formateur/details/:id_formateur', updatePassword);
-router.post('/apiUser/modification', uploads, sendModificationRequest);
-router.get('/apiUser/modification/response', handleModificationResponse);
+router.get('/apiUser/formateur/details/:id_formateur', (req, res) => controller.getProfile(req, res));
+router.put('/apiUser/formateur/details/:id', (req, res) => controller.changePassword(req, res));
+router.post('/apiUser/modification', uploads, (req, res) => 
+  controller.sendModificationRequest(req, res));
+router.get('/apiUser/modification/response', (req, res) => controller.handleModificationResponse(req, res));
 
+// Middleware authenticateToken
 const authenticateToken = (req, res, next) => {
-    console.log("Token reçu dans la requête :", req.headers.authorization);
-  
-    if (!req.headers.authorization) {
-      return res.status(401).json({ error: "Token manquant" });
-    }
-  
-    const token = req.headers.authorization.split(" ")[1]; // Vérifie que le format est "Bearer TOKEN"
-    if (!token) {
-      return res.status(401).json({ error: "Token invalide ou mal formaté" });
-    }
-  
-    jwt.verify(token, process.env.SECRET_KEY, (err, user) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+      return res.status(401).json({ error: 'Token manquant' });
+  }
+
+  jwt.verify(token, process.env.SECRET_KEY, (err, decoded) => {
       if (err) {
-        return res.status(401).json({ error: "Token invalide ou expiré" });
+          return res.status(403).json({ error: 'Token invalide' });
       }
-      req.user = user;
+
+      // Ajoutez toutes les informations utilisateur nécessaires
+      req.user = {
+          id: decoded.id,
+          nom_complet: decoded.nom_complet,
+          email: decoded.email
+          // Ajoutez d'autres champs si nécessaire
+      };
+      
       next();
-    });
-  };
+  });
+};
+  router.get('/api/calendrier', authenticateToken,  (req, res) => controller.getEvents(req, res));
   
-  router.get('/api/calendrier', authenticateToken, getEvents);
+  router.post('/api/calendrier', (req, res) => controller.createEvent(req, res));
   
-  // Route pour créer un nouvel événement (seulement pour un formateur authentifié)
-  //router.post('/api/calendrier', createEvent);
-  
-  // Route pour supprimer un événement (seulement par le formateur ayant créé l'événement)
-  //router.delete('/api/calendrier/:id', authenticateToken, deleteEvent);
+  router.delete('/api/calendrier/:id_event', authenticateToken, (req, res) => controller.deleteEvent(req, res));
   
 module.exports = router;

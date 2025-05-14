@@ -1,5 +1,6 @@
 const db = require('../../connect');
 
+// Fonction de conversion des évaluations textuelles en notes
 const convertEvaluationToNote = (evaluation) => {
   switch(evaluation) {
     case 'Insuffisant': return 1;
@@ -11,6 +12,7 @@ const convertEvaluationToNote = (evaluation) => {
   }
 };
 
+// Fonction utilitaire pour normaliser les résultats de la base de données
 const normalizeDbResult = (result) => {
   if (Array.isArray(result)) return result;
   if (result?.rows) return result.rows;
@@ -25,7 +27,7 @@ const Avis = {
       const result = await db.query(`
         SELECT 
           s.id_session,
-          t.theme,
+          s.theme,
           a.note,
           a.adaptation_programme_vie_pro,
           a.moyens_pedagogiques_utilises,
@@ -40,8 +42,6 @@ const Avis = {
           a.duree_formation
         FROM avis a
         JOIN session s ON a.id_session = s.id_session
-        JOIN theme t ON t.id_theme = s.id_theme
-
         WHERE s.id_session = ?
       `, [id_session]);
   
@@ -174,8 +174,7 @@ const getAdminStats = async (req, res) => {
       message: 'Error fetching admin statistics'
     });
   }
-};
-{/*const getSessionStats = async (req, res) => {
+};const getSessionStats = async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -221,12 +220,12 @@ ORDER BY
       message: 'Error fetching session statistics'
     });
   }
-};*/}
+};
 
 module.exports = {
   getSessions,
   getAllSessionsWithAverages,
   getAdminStats,
-  //getSessionStats,
+  getSessionStats,
 
 };

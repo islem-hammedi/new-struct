@@ -45,6 +45,7 @@ const avisP = require('./Routes/Admin/avisParticipantRoutes');
 const avisF= require('./Routes/Admin/avisFormateurRoutes');
 const calForm = require('./Routes/Admin/calendrierFormationRoutes');
 const catalogueR= require('./Routes/Admin/catalogueRoutes');
+const domaine= require('./Routes/Admin/domaineRoutes');
 // Importation des routes utilisateur
 
 const formateurRoute = require('./Routes/User/formateursRoute'); // Using require for consistency
@@ -68,7 +69,8 @@ app.use('/apiAdmin/auth', authRoutes);
 app.use('',accesRoutes);
 app.use('/apiAdmin/calendrierEvent', calendrierRoutes);
 app.use('/apiAdmin',clientRoutes);
-app.use('/apiAdmin', chartRoutes);
+//app.use('/apiAdmin', chartRoutes);
+app.use('/apiAdmin',domaine);
 app.use('/apiAdmin/demanderFormation',demanderFormationRoutes);
 app.use('/apiAdmin',calendrierFormationRoutes);
 app.use('/apiAdmin', feuillePresenceRoutes);
@@ -85,10 +87,16 @@ app.use('/apiUser',authRoute);
 app.use('/apiUser', AvisParticipantRoute);
 app.use('/apiUser', AvisFormateurRoute);
 app.use('/apiUser/demanderFormation',demanderFormationRoute);
-app.use('/apiUser/calendrierFormation',CalendrierFormationRoute);
+//app.use('/apiUser/calendrierFormation',CalendrierFormationRoute);
 app.use('/apiUser/formateur-candidatures', formateurCandidatureRoutes);
 
 
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
 });
+
+
+
+
+
+

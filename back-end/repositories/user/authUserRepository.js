@@ -50,23 +50,7 @@ class AuthRepository {
               matricule VARCHAR(50) UNIQUE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
           `);
-          console.log('✅ Table Entreprise initialisée');
-
-      // Initialisation table participant
-      await db.query(`
-        CREATE TABLE IF NOT EXISTS participants (
-          id_participant INT PRIMARY KEY AUTO_INCREMENT,
-          nom_complet VARCHAR(100) NOT NULL,
-          mail VARCHAR(100) NOT NULL UNIQUE,
-          pwd VARCHAR(255) NOT NULL,
-          telephone VARCHAR(20),
-          adresse TEXT,
-          CIN VARCHAR(50),
-          id_entreprise INT,
-          FOREIGN KEY (id_entreprise) REFERENCES entreprise(id_entreprise)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-      `);
-      console.log('✅ Table participant initialisée');
+          console.log('✅ Table entreprise initialisée');
 
     } catch (error) {
       console.error('❌ Erreur initialisation tables:', error);
@@ -86,7 +70,7 @@ async findFormateurByUsername(nom_complet) {
 }
 
 async findParticipantByUsername(nom_complet) {
-  const query = "SELECT * FROM participants WHERE nom_complet = ?";
+  const query = "SELECT * FROM participant WHERE nom_complet = ?";
   return new Promise((resolve, reject) => {
     db.query(query, [nom_complet], (err, results) => {
       if (err) reject(err);
@@ -96,7 +80,7 @@ async findParticipantByUsername(nom_complet) {
 }
 
 async findByEmail(email) {
-  const query = "SELECT * FROM participants WHERE mail = ?";
+  const query = "SELECT * FROM participant WHERE mail = ?";
   return new Promise((resolve, reject) => {
     db.query(query, [email], (err, results) => {
       if (err) reject(err);
@@ -147,7 +131,7 @@ async findByEmail(email) {
 
 
 async findParticipantById(id) {
-  const query = "SELECT * FROM participants WHERE id_participant = ?";
+  const query = "SELECT * FROM participant WHERE id_participant = ?";
   return new Promise((resolve, reject) => {
     db.query(query, [id], (err, results) => {
       if (err) reject(err);
@@ -169,7 +153,7 @@ async findFormateurById(id) {
 
 async updateParticipantPassword(id, hashedPassword) {
   return new Promise((resolve, reject) => {
-    const query = "UPDATE participants SET pwd = ? WHERE id_participant = ?";
+    const query = "UPDATE participant SET pwd = ? WHERE id_participant = ?";
     db.query(query, [hashedPassword, id], (err, result) => {
       if (err) return reject(err);
       resolve(result.affectedRows > 0);
@@ -180,16 +164,15 @@ async updateParticipantPassword(id, hashedPassword) {
     try {
       const hashedPwd = await bcrypt.hash(participantData.pwd, 10);
       const result = await db.query(
-        `INSERT INTO participants 
-        (nom_complet, mail, pwd, telephone, adresse, nature_participant, id_entreprise)
-        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO participant 
+        (nom_complet, mail, pwd, telephone, adresse, id_entreprise)
+        VALUES (?, ?, ?, ?, ?, ?)`,
         [
           participantData.nom_complet,
           participantData.mail,
           hashedPwd,
           participantData.telephone,
           participantData.adresse,
-          participantData.nature_participant,
           participantData.id_entreprise || null
         ]
       );

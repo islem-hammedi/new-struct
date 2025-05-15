@@ -4,16 +4,20 @@ import axios from "axios";
 
 // Définition des types
 interface SessionData {
+  id_session: number;
   theme: string;
-    type_session: string;
-    lieu?: string;
-    id_formateur: number;
-    fiche_programme?: File;
-    mode?: string;
-    duree?: string;
-    nb_participants?: number;
-    genre?: string;
-}
+  code: string;
+  nb_participants: number;
+  etat: string;
+  type_session: string;
+  lieu: string;
+  formateur: string;
+  fiche_programme: string | File | null| undefined;
+  cours_session: string | File | null| undefined;
+  id_formateur: number;
+  genre: string;
+  mode: string;
+  createdAt: string;}
 
 interface FormationData {
   id_formation: number;
@@ -33,9 +37,9 @@ interface Formateur {
 }
 
 const AddFormation: React.FC<AddFormationProps> = ({ onClose, onFormationAdded }) => {
-  const { register, handleSubmit, control, reset, setValue, watch  } = useForm<FormationData>({
+  const { register, handleSubmit, control, reset, setValue, watch } = useForm<FormationData>({
     defaultValues: {
-      id_domaine: null,
+      id_domaine: undefined,
       domaine: "",
       sessions: [{ theme: "", nb_participants: 0, type_session: "", lieu: '', id_formateur: 0 }],
     },
@@ -62,28 +66,22 @@ const AddFormation: React.FC<AddFormationProps> = ({ onClose, onFormationAdded }
       .catch(error => console.error("Erreur formateurs:", error));
 
     // Charger les domaines avec leurs IDs
-    axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/domaine-themes`)
-      .then(response => {
-        let domainesData = [];
-        
-        if (typeof response.data === 'string') {
-          domainesData = response.data.split('\n')
-            .filter(Boolean)
-            .map((domaine, index) => ({ 
-              id_domaine: index + 1, 
-              domaine 
-            }));
-        } else if (Array.isArray(response.data)) {
-          domainesData = response.data;
-        }
-        
-        setFormations(domainesData);
-      })
-      .catch(error => {
-        console.error("Erreur domaines:", error);
+    axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/domaine/Domains`)
+    .then(response => {
+      if (Array.isArray(response.data)) {
+        // Utilisez directement les données si elles sont dans un tableau structuré
+        setFormations(response.data); // Exemple [{ id_domaine: 1, domaine: "Informatique" }]
+        console.log("Domaines récupérés :", response.data);
+      } else {
+        console.error("Format inattendu pour les domaines :", response.data);
         setFormations([]);
-      });
-  }, []);
+      }
+    })
+    .catch(error => {
+      console.error("Erreur lors de la récupération des domaines :", error);
+      setFormations([]);
+    });
+}, []);
 
   useEffect(() => {
     if (selectedDomaineId) {
@@ -95,6 +93,8 @@ const AddFormation: React.FC<AddFormationProps> = ({ onClose, onFormationAdded }
         const themesData = response.data?.themes || 
                          (Array.isArray(response.data) ? response.data : []);
         setThemes(themesData);
+        console.log('theme de domaine:',themesData);
+
       })
       .catch(error => {
         console.error("Erreur thèmes:", error);
@@ -106,183 +106,349 @@ const AddFormation: React.FC<AddFormationProps> = ({ onClose, onFormationAdded }
   }, [selectedDomaineId]);
 
 
-
   const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedType(e.target.value);
   };
 
   const onSubmit = async (data: FormationData) => {
     try {
-      const formData = new FormData();
-      const date = new Date().toISOString().slice(0, 10); // Format YYYY-MM-DD
+        const formData = new FormData();
+        
+        // Ajouter les données de base
+        formData.append("domaine", data.domaine);
+        
+        // Préparer et ajouter les sessions
+        const sessionsToSend = data.sessions.map((session, index) => ({
+            theme: session.theme,
+            type_session: session.type_session,
+            lieu: session.lieu || null,
+            id_formateur: session.id_formateur,
+            mode: session.mode || 'inter-entreprise',
+            nb_participants: session.nb_participants || 0,
+            genre: session.genre || 'normal',
+           
 
-      // Ajouter les données de base
-      formData.append("domaine", data.domaine);
+             }));
+        
+        formData.append("sessions", JSON.stringify(sessionsToSend));
 
-      // Préparer les sessions pour l'envoi
-      const sessionsToSend = data.sessions.map((session, index) => {
-        return {
-          theme: session.theme,
-          type_session: session.type_session,
-          lieu: session.lieu ||null,
-          id_formateur: session.id_formateur,
-          mode: session.mode || 'inter-entreprise',
-          duree: session.duree ,
-          nb_participants: session.nb_participants || 0,
-          genre: session.genre || 'normal',
-          requireFile: !!session.fiche_programme,
-          CreatedAt: date
-        }
-      });
-      
-      // Ajouter les sessions au FormData
-      formData.append("sessions", JSON.stringify(sessionsToSend));
-      
-      // Ajouter les fichiers séparément
-      data.sessions.forEach((session, index) => {
-        if (session.fiche_programme instanceof File) {
-          // Utiliser le même nom de champ que dans multer
-          formData.append("fiche_programme", session.fiche_programme);
-        }
+        // Ajouter les fichiers
+        data.sessions.forEach((session, index) => {
+          if (session.fiche_programme && session.fiche_programme instanceof File) {
+              formData.append("fiche_programme" , session.fiche_programme); // Même nom pour tous
+          }
+          if (session.cours_session && session.cours_session instanceof File) {
+              formData.append("cours_session", session.cours_session); // Même nom pour tous
+          }
       });
 
-      const response = await axios.post(
-        `${import.meta.env.VITE_APP_API_URL}/apiAdmin/formations/Form`,
-        formData,
-        { 
-          headers: { 
-            'Content-Type': 'multipart/form-data',
-          } 
-        }
-      );
 
-      if (response.data.success) {
+        const response = await axios.post(
+            `${import.meta.env.VITE_APP_API_URL}/apiAdmin/formations/Form`,
+            formData,
+            { 
+                headers: { 
+                    'Content-Type': 'multipart/form-data',
+                },
+            }
+        );
+
+        if (!response.data.success) {
+            throw new Error(response.data.message || "Erreur serveur");
+        }
+
+        alert('Formation créée avec succès!');
         onFormationAdded();
         onClose();
-        // Optionnel: Afficher un message de succès
-        alert('Formation créée avec succès!');
-      } else {
-        throw new Error(response.data.message || "Erreur lors de la création de la formation");
-      }
     } catch (error) {
-      console.error("Erreur:", error);
-      // Afficher un message d'erreur plus clair
-      alert(error.response?.data?.message || 
-           error.message || 
-           "Une erreur est survenue lors de la création de la formation");
+        console.error("Erreur détaillée:", error);
+        let errorMessage = "Une erreur est survenue";
+        
+        if (axios.isAxiosError(error)) {
+            errorMessage = error.response?.data?.message || error.message;
+        } else if (error instanceof Error) {
+            errorMessage = error.message;
+        }
+        
+        alert(`Échec de la création : ${errorMessage}`);
     }
 };
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 p-4">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-1/2 sm:max-w-lg max-h-screen overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-4">Planifier une Formation</h2>
+return (
+  <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 p-4 z-50 overflow-y-auto">
+    <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+      {/* Header */}
+      <div className="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">
+        <h2 className="text-xl font-bold">Planifier une Formation</h2>
+        <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">
+          &times;
+        </button>
+      </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <label className="block mb-2">Domaine :</label>
-          <input
-            type="text"
-            className="w-full p-2 border rounded mb-2"
-            placeholder="Rechercher un domaine..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)} 
-          />
-         <select
-          className="w-full p-2 border rounded mb-2"
-          {...register("id_domaine", { required: true })}
-          onChange={(e) => {
-            const id = parseInt(e.target.value);
-            setSelectedDomaineId(isNaN(id) ? null : id);
-            setValue("domaine", 
-              formations.find(d => d.id_domaine === id)?.domaine || "");
-          }}
-        >
-          <option value="">Sélectionnez un domaine</option>
-          {formations.map((domaine) => (
-            <option key={domaine.id_domaine} value={domaine.id_domaine}>
-              {domaine.domaine}
-            </option>
-          ))}
-        </select>
-          <h3 className="text-xl font-semibold mb-2">Sessions :</h3>
-          {fields.map((item, index) => (
-            <div key={item.id} className="border p-3 mb-3 rounded bg-gray-100">
-              <label>Thème :</label>
-              <select 
-    className="w-full p-2 border rounded mb-2" 
-    {...register(`sessions.${index}.theme`, { required: true })}
->
-    <option value="">Sélectionnez un thème</option>
-    {themes.map((theme, i) => (
-        <option key={i} value={theme}>
-            {theme}
-        </option>
-    ))}
-</select>
-              
-              <label className="block text-gray-700">Nombre de participants :</label>
-              <input 
-                type="number" 
-                className="w-full p-2 border rounded mb-2" 
-                {...register(`sessions.${index}.nb_participants`, { required: true })} 
-              />
-              
-              <label>Type de Session :</label>
-              <select 
-                className="w-full p-2 border rounded mb-2" 
-                {...register(`sessions.${index}.type_session`, { required: true })} 
-                onChange={handleTypeChange}
-              >
-                <option value="">Sélectionnez un type</option>
-                <option value="Présentiel">Présentiel</option>
-                <option value="En ligne">En ligne</option>
-              </select>
-              
-              {selectedType === 'Présentiel' && (
-                <div>
-                  <label>Lieu :</label>
-                  <input 
-                    type="text" 
-                    className="w-full p-2 border rounded mb-2" 
-                    {...register(`sessions.${index}.lieu`)} 
-                  />
-                </div>
-              )}
-             
-              <label>Formateur :</label>
-              <select 
-                className="w-full p-2 border rounded mb-2" 
-                {...register(`sessions.${index}.id_formateur`, { required: true })}
-              >
-                <option value="">Sélectionnez un formateur</option>
-                {formateurs.map((formateur) => (
-                  <option key={formateur.id_formateur} value={formateur.id_formateur}>
-                    {formateur.nom_complet}
-                  </option>
-                ))}
-              </select>
-              
-              <label>Fiche Programme (PDF) :</label>
-              <input 
-                type="file" 
-                accept="application/pdf" 
-                className="w-full p-2 border rounded mb-2" 
-                onChange={(e) => setValue(`sessions.${index}.fiche_programme`, e.target.files?.[0])} 
-              />
+      {/* Contenu défilable */}
+      <div className="overflow-y-auto p-4 flex-1">
+        <form id="hook-form" onSubmit={handleSubmit(onSubmit)}  className="space-y-4">
+          {/* Section Domaine */}
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h3 className="font-medium mb-3">Informations sur le domaine</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block mb-1 text-sm">Rechercher un domaine :</label>
+                <input
+                  type="text"
+                  className="w-full p-2 border rounded text-sm"
+                  placeholder="Tapez pour filtrer..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-sm">Domaine :</label>
+                <select
+                  className="w-full p-2 border rounded text-sm"
+                  {...register("id_domaine", { required: true })}
+                  onChange={(e) => {
+                    const id = parseInt(e.target.value);
+                    setSelectedDomaineId(id);
+                    setValue("domaine", 
+                      formations.find(d => d.id_domaine === id)?.domaine || "");
+                  }}
+                >
+                  <option value="">Sélectionnez un domaine</option>
+                  {formations.map((domaine) => (
+                    <option key={domaine.id_domaine} value={domaine.id_domaine}>
+                      {domaine.domaine}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          ))}
+          </div>
 
-          <div className="flex justify-end">
-            <button type="button" className="bg-gray-500 text-white p-2 rounded mr-2" onClick={onClose}>
-              Annuler
-            </button>
-            <button type="submit" className="bg-teal-600 text-white p-2 rounded">
-              Ajouter Formation
-            </button>
+          {/* Liste des sessions avec accordéons */}
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <h3 className="font-medium">Sessions de formation</h3>
+              <button
+                type="button"
+                onClick={() => append({
+                  id_session:0,
+                  code:"",
+                  createdAt:"",
+                  etat:"",
+                  formateur:"",
+                  theme: "",
+                  type_session: "",
+                  lieu: "",
+                  id_formateur: 0,
+                  mode: "inter-entreprise",
+                  nb_participants: 0,
+                  genre: "normal",
+                  fiche_programme: "",
+                  cours_session:"",
+                })}
+                className="text-sm bg-teal-600 text-white px-3 py-1 rounded hover:bg-teal-700"
+              >
+                + Ajouter session
+              </button>
+            </div>
+
+            {fields.map((item, index) => (
+              <div key={item.id} className="border rounded-lg overflow-hidden">
+                <input 
+                  type="checkbox" 
+                  id={`session-${index}`} 
+                  className="peer hidden"
+                  defaultChecked={index === 0}
+                />
+                <label 
+                  htmlFor={`session-${index}`} 
+                  className="flex justify-between items-center p-3 bg-gray-100 cursor-pointer"
+                >
+                  <span className="font-medium">
+                    Session {index + 1} {`watch(sessions.${index}.theme) && : ${`watch(sessions.${index}.theme)`}`}
+                  </span>
+                  <svg className="w-4 h-4 transition-transform peer-checked:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </label>
+                
+                <div className="p-4 hidden peer-checked:block space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Thème */}
+                    <div>
+                      <label className="block mb-1 text-sm">Thème :</label>
+                      <select 
+                        className="w-full p-2 border rounded text-sm"
+                        {...register(`sessions.${index}.theme`, { required: true })}
+                      >
+                        <option value="">Sélectionnez un thème</option>
+                        {themes.map((theme, i) => (
+                          <option key={i} value={theme}>
+                            {theme}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Formateur */}
+                    <div>
+                      <label className="block mb-1 text-sm">Formateur :</label>
+                      <select 
+                        className="w-full p-2 border rounded text-sm"
+                        {...register(`sessions.${index}.id_formateur`, { required: true })}
+                      >
+                        <option value="">Sélectionnez un formateur</option>
+                        {formateurs.map((formateur) => (
+                          <option key={formateur.id_formateur} value={formateur.id_formateur}>
+                            {formateur.nom_complet}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Type */}
+                    <div>
+                      <label className="block mb-1 text-sm">Type :</label>
+                      <select 
+                        className="w-full p-2 border rounded text-sm"
+                        {...register(`sessions.${index}.type_session`, { required: true })} 
+                        onChange={(e) => {
+                          handleTypeChange(e);
+                          setValue(`sessions.${index}.type_session`, e.target.value);
+                        }}
+                      >
+                        <option value="">Sélectionnez</option>
+                        <option value="Présentiel">Présentiel</option>
+                        <option value="En ligne">En ligne</option>
+                      </select>
+                    </div>
+
+                    {/* Mode */}
+                    <div>
+                      <label className="block mb-1 text-sm">Mode :</label>
+                      <select 
+                        className="w-full p-2 border rounded text-sm"
+                        {...register(`sessions.${index}.mode`)} 
+                      >
+                        <option value="inter-entreprise">Inter-entreprise</option>
+                        <option value="intra-entreprise">Intra-entreprise</option>
+                      </select>
+                    </div>
+
+                    {/* Genre */}
+                    <div>
+                      <label className="block mb-1 text-sm">Genre :</label>
+                      <select 
+                        className="w-full p-2 border rounded text-sm"
+                        {...register(`sessions.${index}.genre`)} 
+                      >
+                        <option value="normal">normal</option>
+                        <option value="profetionnel">professionnel</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Lieu (conditionnel) */}
+                  {watch(`sessions.${index}.type_session`) === 'Présentiel' && (
+                    <div>
+                      <label className="block mb-1 text-sm">Lieu :</label>
+                      <input 
+                        type="text" 
+                        className="w-full p-2 border rounded text-sm" 
+                        {...register(`sessions.${index}.lieu`)} 
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {/* Participants */}
+                    <div>
+                      <label className="block mb-1 text-sm">Participants :</label>
+                      <input 
+                        type="number" 
+                        className="w-full p-2 border rounded text-sm" 
+                        {...register(`sessions.${index}.nb_participants`, { 
+                          required: true, 
+                          valueAsNumber: true 
+                        })} 
+                        min="0"
+                      />
+                    </div>
+
+                    
+
+                    
+
+                    
+                  </div>
+
+                  {/* Fichier */}
+                  <div>
+                    <label className="block mb-1 text-sm">Fiche programme :</label>
+                    <input 
+                      type="file" 
+                      accept="application/pdf" 
+                      className="w-full p-1 border rounded text-sm" 
+                      onChange={(e) => setValue(`sessions.${index}.fiche_programme`, e.target.files?.[0])} 
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm">Cours session :</label>
+                    <input 
+                      type="file" 
+                      accept="application/pdf" 
+                      className="w-full p-1 border rounded text-sm" 
+                      onChange={(e) => setValue(`sessions.${index}.cours_session`, e.target.files?.[0])} 
+                    />
+                  </div>
+
+                  {/* Bouton supprimer */}
+                  <div className="flex justify-between items-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => remove(index)}
+                      className="text-red-500 hover:text-red-700 text-sm"
+                    >
+                      Supprimer cette session
+                    </button>
+                    
+                    {index > 0 && (
+                      <span className="text-xs text-gray-500">
+                        Cliquez sur l'en-tête pour replier
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </form>
       </div>
+
+      {/* Footer fixe */}
+      <div className="p-4 border-t bg-white sticky bottom-0">
+        <div className="flex justify-end space-x-3">
+          <button 
+            type="button" 
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50"
+          >
+            Annuler
+          </button>
+          <button 
+            type="submit" 
+            form="hook-form"
+            className="px-4 py-2 bg-teal-600 text-white rounded text-sm hover:bg-teal-700"
+          >
+            Enregistrer la formation
+          </button>
+        </div>
+      </div>
     </div>
-  );
-};
+  </div>
+);
+}
 
 export default AddFormation;

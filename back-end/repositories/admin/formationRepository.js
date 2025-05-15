@@ -43,7 +43,12 @@ class FormationAdminRepository {
     async addFormationWithSessions(domaine, sessions, files) {
         return new Promise(async (resolve, reject) => {
             try {
-                // 1. Obtenir l'ID du domaine
+                // 1. Vérifier que les données nécessaires sont présentes
+                if (!domaine || !sessions || !Array.isArray(sessions)) {
+                    throw new Error("Données de formation invalides");
+                }
+    
+                // 2. Obtenir l'ID du domaine
                 const domainQuery = 'SELECT id_domaine FROM domaine WHERE domaine = ? LIMIT 1';
                 const domainResult = await this.query(domainQuery, [domaine]);
                 
@@ -52,66 +57,92 @@ class FormationAdminRepository {
                 }
                 
                 const id_domaine = domainResult[0].id_domaine;
-
-                // 2. Démarrer la transaction
+    
+                // 3. Démarrer la transaction
                 await this.query('START TRANSACTION');
-
-                // 3. Insérer la formation
-                const formationQuery = 'INSERT INTO formation (id_domaine) VALUES (?)';
-                const formationResult = await this.query(formationQuery, [id_domaine]);
+    
+                // 4. Insérer la formation
+                const formationResult = await this.query(
+                    'INSERT INTO formation (id_domaine) VALUES (?)', 
+                    [id_domaine]
+                );
                 const id_formation = formationResult.insertId;
-
-                // 4. Insérer les sessions
+    
+                // 5. Traiter chaque session
                 const sessionResults = [];
                 for (let i = 0; i < sessions.length; i++) {
                     const session = sessions[i];
-                    const file = files[i];
                     
-                    // Obtenir l'ID du thème
-                    const themeQuery = 'SELECT id_theme FROM theme WHERE theme = ? LIMIT 1';
-                    const themeResult = await this.query(themeQuery, [session.theme]);
+                    // Validation des données de session
+                    if (!session.theme || !session.id_formateur) {
+                        throw new Error(`Session ${i + 1} incomplète`);
+                    }
+    
+                    // Récupérer l'ID du thème
+                    const themeResult = await this.query(
+                        'SELECT id_theme FROM theme WHERE theme = ? LIMIT 1',
+                        [session.theme]
+                    );
                     
                     if (!themeResult || themeResult.length === 0) {
                         throw new Error(`Thème "${session.theme}" introuvable`);
                     }
                     
                     const id_theme = themeResult[0].id_theme;
-
-                    const sessionQuery = `
-                        INSERT INTO session (
-                            id_theme, etat, mode, lieu, id_formation, 
-                            id_formateur, fiche_prg, type_session, nb_participant, genre, createdAt 
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    `;
-                    const result = await this.query(sessionQuery, [
-                        id_theme,
-                        'A Réalisé',
-                        session.mode ,
-                        session.lieu || null,
-                        id_formation,
-                        session.id_formateur,
-                        file?.filename || null,
-                        session.type_session ,
-                        session.nb_participants || 0,
-                        session.genre,
-                        new Date() 
-                    ]);
-                    sessionResults.push(result);
+    
+                    // Gestion des fichiers
+                    const ficheProgrammeFile = files['fiche_programme']?.[0];
+                    const coursSessionFile = files['cours_session']?.[0];
+                    // Insérer la session
+                    const sessionResult = await this.query(
+                        `INSERT INTO session (
+                            id_theme, etat, mode, lieu, id_formation,
+                            id_formateur, fiche_prg, cours_session, type_session,
+                            nb_participant, genre, date_debut, date_fin, duree, createdAt
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                        [
+                            id_theme,
+                            session.etat || 'planifiée',
+                            session.mode || 'inter-entreprise',
+                            session.lieu || null,
+                            id_formation,
+                            session.id_formateur,
+                            ficheProgrammeFile?.filename || null,
+                            coursSessionFile?.filename || null,
+                             session.type_session || 'Présentiel',
+                            session.nb_participants || 0,
+                            session.genre || 'normal',
+                            session.date_debut || new Date(),
+                            session.date_fin || new Date(),
+                            session.duree || 0,
+                            new Date()
+                        ]
+                    );
+    
+                    sessionResults.push({
+                        id_session: sessionResult.insertId,
+                        ...session
+                    });
                 }
-
+    
                 await this.query('COMMIT');
                 resolve({
+                    success: true,
                     id_formation,
                     sessions: sessionResults
                 });
             } catch (error) {
                 await this.query('ROLLBACK');
-                reject(error);
+                console.error('Erreur addFormationWithSessions:', error);
+                reject({
+                    success: false,
+                    message: error.message
+                });
             }
         });
     }
-
-    // Méthode utilitaire pour exécuter les requêtes
+    
+    // Méthode utilitaire pour exécuter les requêtes (inchangée)
     query(sql, params) {
         return new Promise((resolve, reject) => {
             db.query(sql, params, (err, result) => {
@@ -126,11 +157,11 @@ class FormationAdminRepository {
     };
 
 
-    async deleteSession(sessionId) {
+    async deleteSession(sessionId, formationId) {
         return new Promise((resolve, reject) => {
             // 1. Vérifier d'abord si la session existe
-            const checkQuery = 'SELECT id_session, fiche_prg FROM session WHERE id_session = ?;'
-            db.query(checkQuery, [sessionId], (err, result) => {
+            const checkQuery = 'SELECT id_session, fiche_prg FROM session WHERE id_session = ? AND id_formation = ?';
+            db.query(checkQuery, [sessionId, formationId], (err, result) => {
                 if (err) return reject(err);
                 
                 if (result.length === 0) {
@@ -138,10 +169,10 @@ class FormationAdminRepository {
                 }
                 
                 const fileName = result[0]?.fiche_prg;
-                
-                // 2. Supprimer la session
-                const deleteQuery ='DELETE FROM session WHERE id_session = ?;' 
-                db.query(deleteQuery, [sessionId], (err, result) => {
+    
+                // 2. Supprimer la session - CORRECTION: Ajouter formationId dans le tableau des paramètres
+                const deleteQuery =' DELETE FROM session WHERE id_session = ? AND id_formation = ? ';
+                db.query(deleteQuery, [sessionId, formationId], (err, result) => { // Pass both parameters here
                     if (err) return reject(err);
                     
                     resolve({
@@ -153,7 +184,87 @@ class FormationAdminRepository {
             });
         });
     }
-  }  /*
+    async performUpdate(sessionId, formationId, sessionData, file) {
+        console.log("Début de performUpdate");
+
+        try {
+            // 1. Vérifier que la session existe et appartient à la formation
+            const checkQuery = 'SELECT id_session FROM session WHERE id_session = ? AND id_formation = ?';
+            const checkResult = await new Promise((resolve, reject) => {
+                db.query(checkQuery, [sessionId, formationId], (err, results) => {
+                    if (err) return reject(err);
+                    resolve(results);
+                });
+            });
+    
+            if (!checkResult || checkResult.length === 0) {
+                throw new Error("Session non trouvée ou n'appartient pas à cette formation");
+            }
+    
+            // 2. Obtenir l'ID du thème si nécessaire
+                const themeQuery = 'SELECT id_theme FROM theme WHERE theme = ?';
+                const themeResult = await new Promise((resolve, reject) => {
+                    db.query(themeQuery, [sessionData.theme], (err, results) => {
+                        if (err) return reject(err);
+                        resolve(results);
+                    });
+                });
+    
+                if (!themeResult || themeResult.length === 0) {
+                    throw new Error(`Thème "${sessionData.theme}" introuvable`);
+                }
+                const id_theme = themeResult[0].id_theme;
+            
+    
+            const updateData = {
+                etat: sessionData.etat ,
+                type_session: sessionData.type_session,
+                lieu: sessionData.lieu ,
+                id_formateur: sessionData.id_formateur,
+                id_theme: id_theme, // Ajout de l'ID du thème
+                mode: sessionData.mode ,
+            nb_participant: sessionData.nb_participant || 0,
+            genre: sessionData.genre,
+                createdAt: new Date()
+            };
+    
+            if (file) {
+                if (file.fiche_programme) {
+                    updateData.fiche_prg = file.fiche_programme.filename;
+                }
+                if (file.cours_session) {
+                    updateData.cours_session = file.cours_session.filename;
+                }
+            }
+    
+            // 3. Exécution de la mise à jour
+            const updateQuery = `
+                UPDATE session SET ?
+                WHERE id_session = ? AND id_formation = ?
+            `;
+            
+            const updateResult = await new Promise((resolve, reject) => {
+                db.query(updateQuery, [updateData, sessionId, formationId], (err, result) => {
+                    if (err) return reject(err);
+                    resolve(result);
+                });
+            });
+    
+            if (updateResult.affectedRows === 0) {
+                throw new Error("Aucune modification effectuée");
+            }
+    
+            return {
+                success: true,
+                affectedRows: updateResult.affectedRows
+            };
+        } catch (error) {
+            console.error("Erreur dans performUpdate:", error);
+            throw error;
+        }
+    }
+} 
+    /*
    async addSessionToFormation(id_formation, sessionData, file) {
         try {
             // Validation des champs obligatoires

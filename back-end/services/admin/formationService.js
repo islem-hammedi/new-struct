@@ -59,17 +59,13 @@ class FormationAdminService {
                 if (!session.theme || !session.id_formateur) {
                     throw new Error(`Session ${index + 1}: Le thème et le formateur sont obligatoires`);
                 }
-                
-                if (!files?.[index] && session.requireFile) {
-                    throw new Error(`Session ${index + 1}: Le fichier programme est obligatoire`);
-                }
             });
 
             // Appel au repository
             const result = await formationAdminRepository.addFormationWithSessions(
                 domaine, 
                 sessions, 
-                files || []
+                files || {}
             );
 
             return {
@@ -92,74 +88,29 @@ class FormationAdminService {
     }
 
     cleanupFiles(files) {
-        files.forEach(file => {
-            if (file?.filename) {
-                const filePath = path.join(__dirname, '../../uploads', file.filename);
-                if (fs.existsSync(filePath)) {
-                    try {
-                        fs.unlinkSync(filePath);
-                    } catch (err) {
-                        console.error('Erreur lors de la suppression du fichier:', filePath, err);
+        Object.values(files).forEach(fileArray => {
+            fileArray.forEach(file => {
+                if (file?.filename) {
+                    const filePath = path.join(__dirname, '../../uploads', file.filename);
+                    if (fs.existsSync(filePath)) {
+                        try {
+                            fs.unlinkSync(filePath);
+                        } catch (err) {
+                            console.error('Erreur lors de la suppression du fichier:', filePath, err);
+                        }
                     }
                 }
-            }
+            });
         });
     }
 
-    async addSessionToFormation(id_formation, sessionData, file) {
-        try {
-            // Validation
-            if (!id_formation) {
-                throw new Error("L'ID de formation est obligatoire");
-            }
-            
-            if (!sessionData.theme || !sessionData.id_formateur) {
-                throw new Error("Le thème et le formateur sont obligatoires");
-            }
-
-            const fileName = file ? file.filename : null;
-            return await formationAdminRepository.addSessionToFormation(
-                id_formation,
-                {
-                    ...sessionData,
-                    fiche_prg: fileName
-                }
-            );
-        } catch (error) {
-            // Nettoyage du fichier en cas d'erreur
-            if (file) {
-                this.cleanupFile(file);
-            }
-            throw error;
-        }
-    }
-
-    cleanupFiles(files) {
-        files.forEach(file => {
-            this.cleanupFile(file);
-        });
-    }
-
-    cleanupFile(file) {
-        try {
-            if (file?.filename) {
-                const filePath = path.join(__dirname, '../../uploads', file.filename);
-                if (fs.existsSync(filePath)) {
-                    fs.unlinkSync(filePath);
-                }
-            }
-        } catch (cleanupError) {
-            console.error('Error cleaning up file:', cleanupError);
-        }
-    }
-
-    async deleteSession(sessionId) {
+    async deleteSession(sessionId, formationId) {
         try {
             if (!sessionId || isNaN(sessionId)) {
                 throw new Error("ID de session invalide");
             }
     
-            const deleteResult = await formationAdminRepository.deleteSession(sessionId);
+            const deleteResult = await formationAdminRepository.deleteSession(sessionId, formationId);
     
             // Suppression physique du fichier
             if (deleteResult.fileName) {
@@ -171,7 +122,7 @@ class FormationAdminService {
     
             return {
                 success: true,
-                message: `Session ${sessionId} supprimée avec succès`,
+                message:` Session ${sessionId} supprimée avec succès`,
                 deletedCount: deleteResult.deletedCount
             };
         } catch (error) {
@@ -183,6 +134,40 @@ class FormationAdminService {
                     : "Erreur lors de la suppression de la session",
                 error: process.env.NODE_ENV === 'development' ? error.stack : undefined
             };
+        }
+    }
+    async updateSession(formationId, sessionId, sessionData, file) {
+        try {
+            console.log("Début updateSession - Données:", {
+                formationId,
+                sessionId,
+                sessionData,
+                file
+            });
+    
+            if (!formationId || !sessionId) {
+                throw new Error("IDs requis");
+            }
+    
+            const result = await formationAdminRepository.performUpdate(
+                sessionId,
+                formationId,
+                sessionData,
+                file
+            );
+    
+            console.log("Résultat de la mise à jour:", result);
+    
+            return {
+                success: true,
+                data: result
+            };
+        } catch (error) {
+            console.error("Erreur détaillée dans le service:", {
+                message: error.message,
+                stack: error.stack
+            });
+            throw error;
         }
     }
 }

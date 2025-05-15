@@ -1,4 +1,4 @@
- {/*const db = require('../../connect');
+ const db = require('../../connect');
 
    const calendrierFormation = async (req, res) => {
   try {
@@ -222,7 +222,6 @@ module.exports = {
   deletSessionFromCalendrier
 };
 
-*/}
 
 
 
@@ -237,6 +236,7 @@ module.exports = {
 
 
 
+{/*}
 const calendrierFormationService = require('../../services/admin/calendrierFormation');
 
 const calendrierFormation = async (req, res) => {
@@ -297,4 +297,4 @@ module.exports = {
   getDomainesWithSessions,
   getCalendarSessions,
   deletSessionFromCalendrier,
-};
+};*/}

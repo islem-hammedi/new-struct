@@ -6,7 +6,7 @@ class AvisFormateurRepository {
       const sql = `
         SELECT 
     s.id_session AS id, 
-    t.nom_theme AS nom, 
+    t.theme AS nom, 
     s.lieu, 
     s.type_session, 
     s.etat, 
@@ -14,7 +14,7 @@ class AvisFormateurRepository {
     fp.entreprise_beneficiaire, 
     COUNT(DISTINCT fpp.id_participant) AS nb_participants 
 FROM 
-    session_formation s 
+    session s 
 JOIN 
     formateur f ON s.id_formateur = f.id_formateur 
 JOIN 
@@ -26,7 +26,7 @@ LEFT JOIN
 WHERE 
     f.id_formateur = ?
 GROUP BY 
-    s.id_session, fp.id_presence, fp.entreprise_beneficiaire, t.nom_theme, s.lieu, s.type_session, s.etat
+    s.id_session, fp.id_presence, fp.entreprise_beneficiaire, t.theme, s.lieu, s.type_session, s.etat
 ORDER BY 
     s.id_session DESC;
       `;
@@ -51,8 +51,8 @@ ORDER BY
     p.nom_complet
 FROM feuille_presence fp
 LEFT JOIN feuille_presence_participants fpp ON fp.id_presence = fpp.id_presence
-LEFT JOIN session_formation s ON fpp.id_session = s.id_session
-LEFT JOIN participants p ON fpp.id_participant = p.id_participant
+LEFT JOIN session s ON fpp.id_session = s.id_session
+LEFT JOIN participant p ON fpp.id_participant = p.id_participant
 WHERE fp.id_presence = ?;
       `;
 
@@ -67,7 +67,7 @@ WHERE fp.id_presence = ?;
     return new Promise((resolve, reject) => {
       if (participantIds.length === 0) return resolve(true);
       
-      const query = `SELECT id_participant FROM participants WHERE id_participant IN (?)`;
+      const query = `SELECT id_participant FROM participant WHERE id_participant IN (?)`;
       db.query(query, [participantIds], (err, results) => {
         if (err) return reject(err);
         
@@ -75,7 +75,7 @@ WHERE fp.id_presence = ?;
         const missingIds = participantIds.filter(id => !existingIds.includes(id));
         
         if (missingIds.length > 0) {
-          reject(new Error(`Participants non trouvés: ${missingIds.join(', ')}`));
+          reject(new Error(`Participant non trouvés: ${missingIds.join(', ')}`));
         } else {
           resolve(true);
         }
@@ -86,11 +86,10 @@ WHERE fp.id_presence = ?;
     return new Promise((resolve, reject) => {
       const sql = `
         SELECT p.id_participant, p.nom_complet 
-        FROM participants p
+        FROM participant p
         JOIN feuille_presence_participants fpp ON p.id_participant = fpp.id_participant
         WHERE fpp.id_presence = ?
       `;
-
       db.query(sql, [id_presence], (err, results) => {
         if (err) return reject(err);
         resolve(results);
@@ -144,7 +143,7 @@ WHERE fp.id_presence = ?;
       ]);
 
       db.query(
-        `INSERT INTO avis_formateur_details 
+        `INSERT INTO avis_formateur 
          (id_avis, id_participant, connaissances_professionnelles, connaissances_equipements,
           comprehension_competences, aptitude_appliquer_infos, rapidite_execution, qualite_travaux,
           clarte_pertinence_resultats, perfectionnement_connaissances, respect_consignes_constructeur,

@@ -18,7 +18,7 @@ class ProfilParticipantUserRepository {
     e.email_entreprise AS email_entreprise,
     e.adr_entreprise AS adr_entreprise,
     e.matricule AS matricule
-FROM participants p 
+FROM participant p 
 LEFT JOIN entreprise e ON p.id_entreprise = e.id_entreprise 
 WHERE p.id_participant = ?`;
             
@@ -119,7 +119,7 @@ WHERE p.id_participant = ?`;
                     // Mise à jour participant avec le nouvel entrepriseId
                     const updateParticipant = await new Promise((resolve, reject) => {
                         db.query(
-                            `UPDATE participants SET
+                            `UPDATE participant SET
                                 nom_complet = ?,
                                 mail = ?,
                                 telephone = ?,

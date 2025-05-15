@@ -1,623 +1,257 @@
 import React, { useEffect, useState } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
 import axios from "axios";
 
-interface FormateurWithRank {
+interface Formateur {
   id_formateur: number;
   nom_complet: string;
-  rang: number;
+  rang?: number;
 }
 
 interface Session {
   id_theme: number;
   theme: string;
-  formateur: FormateurWithRank[];
+  formateurs: Formateur[];
 }
 
-interface Formateur {
-  id_formateur: number;
-  nom_complet: string;
-}
-
-interface Formation {
-  id_domaine: number;
+interface Domaine {
   domaine: string;
-  themes: Session[];
+  id_formation: number;
+  sessions: Session[];
 }
 
-interface UpdateFormationProps {
-  formation: Formation;
+interface EditThemesProps {
   domaineId: number;
-  onUpdate: () => void;
+  themeId: number;
   onClose: () => void;
+  onUpdate: () => void;
+  formation: Domaine;
 }
 
-const EditDomaine: React.FC<UpdateFormationProps> = ({
+const EditTheme: React.FC<EditThemesProps> = ({
+  domaineId,
+  themeId,
   onClose,
   onUpdate,
   formation,
-  domaineId,
 }) => {
-  const formationString = JSON.stringify(formation);
-
-  const defaultValues = React.useMemo(() => {
-    const currentFormation = JSON.parse(formationString);
-    return {
-      id_domaine: currentFormation?.id_domaine || 0,
-      domaine: currentFormation?.domaine || "",
-      themes:
-        currentFormation?.themes?.map((theme: Session) => ({
-          id_theme: theme.id_theme || 0,
-          theme: theme.theme || "",
-          formateur: theme.formateur || [],
-        })) || [],
-    };
-  }, [formationString]);
-
-  const { register, handleSubmit, control } = useForm<Formation>({
-    defaultValues,
-  });
-
-  const { fields: themeFields } = useFieldArray({
-    control,
-    name: "themes",
-  });
-
+  const [catalogueData, setCatalogueData] = useState<Domaine[]>([]);
   const [formateurs, setFormateurs] = useState<Formateur[]>([]);
-  const [selectedFormateurs, setSelectedFormateurs] = useState<
-    Record<string, FormateurWithRank[]>
-  >({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedTheme, setSelectedTheme] = useState<Session | null>(null);
+  const [selectedFormateurs, setSelectedFormateurs] = useState<Formateur[]>([]);
+  const [newFormateurId, setNewFormateurId] = useState<number | null>(null);
+  const [newFormateurRank, setNewFormateurRank] = useState<number | null>(null);
 
+  // Fetch catalogue data (domaines, themes, formateurs)
   useEffect(() => {
-    const fetchFormateurs = async () => {
-      try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_APP_API_URL}/apiAdmin/formateurs`
-        );
-        setFormateurs(response.data);
-      } catch (error) {
-        console.error("Erreur lors de la récupération des formateurs :", error);
-      }
-    };
+    axios
+      .get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/catalogue`)
+      .then((response) => {
+        setCatalogueData(response.data);
 
-    fetchFormateurs();
+        // Trouver le thème par défaut correspondant à themeId
+        const selected = response.data
+          .flatMap((domaine: Domaine) => domaine.sessions)
+          .find((session: Session) => session.id_theme === themeId);
+
+        if (selected) {
+          setSelectedTheme(selected);
+          setSelectedFormateurs(selected.formateurs || []);
+        }
+      })
+      .catch((error) =>
+        console.error("Erreur lors de la récupération du catalogue:", error)
+      );
+  }, [themeId]);
+
+  // Fetch all formateurs
+  useEffect(() => {
+    axios
+      .get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formateurs`)
+      .then((response) => {
+        setFormateurs(response.data);
+      })
+      .catch((error) =>
+        console.error("Erreur lors de la récupération des formateurs:", error)
+      );
   }, []);
 
-  
-  const fetchFormateurs = async (id_theme: number) => {
-    try {
-      const response = await axios.get(`/apiAdmin/catalogue/${id_theme}`);
-      if (response.data.success) {
-        setFormateurs(response.data.formateurs);
-      } else {
-        console.error('Erreur serveur:', response.data.error);
-        // Afficher un message à l'utilisateur
-      }
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 404) {
-          console.error('theme non trouvée:', id_theme);
-          // Afficher un message "Session non trouvée"
-        } else {
-          console.error('Erreur serveur:', error.response?.data?.error || error.message);
-          // Afficher un message d'erreur générique
-        }
-      } else {
-        console.error('Erreur inattendue:', error);
+  const handleAddFormateur = () => {
+    if (newFormateurId && newFormateurRank) {
+      const formateurToAdd = formateurs.find(
+        (formateur) => formateur.id_formateur === newFormateurId
+      );
+      if (formateurToAdd) {
+        setSelectedFormateurs([
+          ...selectedFormateurs,
+          { ...formateurToAdd, rang: newFormateurRank },
+        ]);
+        setNewFormateurId(null);
+        setNewFormateurRank(null);
       }
     }
   };
-  useEffect(() => {
-    const fetchExistingFormateursForSessions = async () => {
-      if (!formation?.themes) return;
-  
-      setIsLoading(true);
-      try {
-        const initialSelectedFormateurs: Record<string, FormateurWithRank[]> = {};
-  
-        await Promise.all(
-          formation.themes.map(async (theme, index) => {
-            try {
-              const response = await axios.get(
-                `${import.meta.env.VITE_APP_API_URL}/apiAdmin/catalogue/${theme.id_theme}`
-              );
-              
-              // Adapté à la structure de réponse { id_session, theme, formateurs }
-              initialSelectedFormateurs[`theme_${index}`] = 
-                response.data.formateurs?.map((f: any) => ({
-                  id_formateur: f.id_formateur,
-                  nom_complet: f.nom_complet,
-                  rang: f.rang || 1
-                })) || [];
-            } catch (error) {
-              console.error(`Erreur theme ${theme.id_theme}:`, error);
-              initialSelectedFormateurs[`theme_${index}`] = [];
-            }
-          })
-        );
-  
-        setSelectedFormateurs(initialSelectedFormateurs);
-      } catch (error) {
-        console.error("Erreur globale:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
-    fetchExistingFormateursForSessions();
-  }, [formation]);
 
-  const handleAddFormateur = (themeIndex: number, formateurId: number) => {
-    const themeKey = `theme_${themeIndex}`;
-    setSelectedFormateurs((prev) => {
-      const currentFormateurs = prev[themeKey] || [];
-
-      if (!currentFormateurs.some((f) => f.id_formateur === formateurId)) {
-        const formateurToAdd = formateurs.find(
-          (f) => f.id_formateur === formateurId
-        );
-        if (formateurToAdd) {
-          return {
-            ...prev,
-            [themeKey]: [
-              ...currentFormateurs,
-              {
-                id_formateur: formateurToAdd.id_formateur,
-                nom_complet: formateurToAdd.nom_complet,
-                rang:
-                  currentFormateurs.length > 0
-                    ? Math.max(...currentFormateurs.map((f) => f.rang)) + 1
-                    : 1,
-              },
-            ],
-          };
-        }
-      }
-      return prev;
-    });
+  const handleRemoveFormateur = (idFormateur: number) => {
+    setSelectedFormateurs(
+      selectedFormateurs.filter((f) => f.id_formateur !== idFormateur)
+    );
   };
 
-  const handleRemoveFormateur = (themeIndex: number, formateurId: number) => {
-    setSelectedFormateurs((prev) => {
-      const themeKey = `theme_${themeIndex}`;
-      if (!prev[themeKey]) return prev;
+  const handleSaveChanges = async () => {
+    if (!selectedTheme) return;
 
-      return {
-        ...prev,
-        [themeKey]: prev[themeKey].filter(
-          (f) => f.id_formateur !== formateurId
-        ),
-      };
-    });
-  };
-
-  const handleRankChange = (
-    themeIndex: number,
-    formateurId: number,
-    value: string
-  ) => {
-    const rang = parseInt(value) || 1;
-
-    setSelectedFormateurs((prev) => {
-      const themeKey = `theme_${themeIndex}`;
-      if (!prev[themeKey]) return prev;
-
-      return {
-        ...prev,
-        [themeKey]: prev[themeKey]
-          .map((f) =>
-            f.id_formateur === formateurId ? { ...f, rang } : f
+    try {
+      // Identifiez les formateurs à ajouter, à modifier et à supprimer
+      const formateursToAdd = selectedFormateurs.filter(
+        (f) =>
+          !selectedTheme.formateurs.some(
+            (original) => original.id_formateur === f.id_formateur
           )
-          .sort((a, b) => a.rang - b.rang),
-      };
-    });
-  };
+      );
 
-  const onSubmit = async (data: Session) => {
-    if (!domaineId || isNaN(domaineId)) {
-      console.error("ID de domaine invalide:", domaineId);
-      alert("Erreur: ID de domaine manquant ou invalide");
-      return;
-    }
-     if (!domaineId || isNaN(domaineId)) {
-      console.error("ID de domaine invalide:", domaineId);
-      alert("Erreur: ID de domaine manquant ou invalide");
-      return;
-    }
-    try {
-      const finalData = {
-        ...data,
-        themes: data.themes.map((theme, index) => ({
-          ...theme,
-          formateurs: selectedFormateurs[`theme_${index}`] || [],
-        })),
-      };
+      const formateursToUpdate = selectedFormateurs.filter((f) =>
+        selectedTheme.formateurs.some(
+          (original) =>
+            original.id_formateur === f.id_formateur &&
+            original.rang !== f.rang
+        )
+      );
 
-      const response = await axios.put(
-        `${import.meta.env.VITE_APP_API_URL}/apiAdmin/catalogue/updateDomain/${domaineId}`,
-        finalData,
+      const formateursToRemove = selectedTheme.formateurs
+        .filter(
+          (original) =>
+            !selectedFormateurs.some(
+              (updated) => updated.id_formateur === original.id_formateur
+            )
+        )
+        .map((f) => f.id_formateur);
+
+      // Envoi des données
+      const { data } = await axios.put(
+        `${import.meta.env.VITE_APP_API_URL}/apiAdmin/catalogue/themes/${selectedTheme.id_theme}/formateurs`,
         {
+          formateursToAdd: formateursToAdd.map((f) => ({
+            id_formateur: f.id_formateur,
+            rang: f.rang || 1,
+          })),
+          formateursToUpdate: formateursToUpdate.map((f) => ({
+            id_formateur: f.id_formateur,
+            rang: f.rang || 1,
+          })),
+          formateursToRemove,
+        },
+        {
+          timeout: 20000,
           headers: {
             "Content-Type": "application/json",
           },
         }
       );
 
-      if (response.status !== 200) {
-        throw new Error(`Erreur serveur: ${response.status}`);
+      if (!data.success) {
+        throw new Error(data.error || "Erreur lors de la mise à jour");
       }
 
-      onUpdate();
-      alert("Domaine et thèmes mis à jour avec succès !");
+      // Rafraîchissement et fermeture
+      await onUpdate();
+      alert("Les modifications ont été enregistrées avec succès");
+      onClose();
     } catch (error) {
-      let errorMessage = "Une erreur est survenue lors de la mise à jour";
+      let errorMessage = "Échec de l'enregistrement";
 
       if (axios.isAxiosError(error)) {
         errorMessage =
-          error.response?.data?.message ||
+          error.response?.data?.error ||
           error.message ||
-          "Erreur lors de la communication avec le serveur";
+          "Erreur de communication avec le serveur";
       } else if (error instanceof Error) {
         errorMessage = error.message;
       }
 
-      console.error("Erreur complète:", error);
-      alert(`Erreur: ${errorMessage}`);
+      alert(errorMessage);
+      console.error("Détails de l'erreur:", error);
     }
   };
-
-  if (isLoading) {
-    return <div className="text-center p-8">Chargement en cours...</div>;
-  }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 p-4">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-screen overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Modifier le Thème</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
-          >
-            ×
-          </button>
+    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
+      <h2 className="text-2xl font-semibold text-gray-800 mb-6">
+        Éditer un Thème
+      </h2>
+
+      {/* Affichage du thème sélectionné par défaut */}
+      {selectedTheme && (
+        <div className="mb-6">
+          <h3 className="text-lg font-medium text-gray-800 mb-2">Thème</h3>
+          <p className="text-gray-600">{selectedTheme.theme}</p>
         </div>
+      )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block mb-2">Nom du Domaine :</label>
-            <input
-              className="w-full p-2 border rounded"
-              {...register("domaine", { required: true })}
-            />
-          </div>
-
-          <h3 className="text-xl font-semibold mb-2">Thèmes :</h3>
-
-          {themeFields.map((theme, themeIndex) => (
-            <div key={theme.id} className="border p-4 rounded-lg bg-gray-50">
-              <div className="mb-4">
-                <label>Nom du Thème :</label>
-                <input
-                  className="w-full p-2 border rounded"
-                  {...register(`themes.${themeIndex}.theme`, {
-                    required: true,
-                  })}
-                />
-              </div>
-
-              <div className="mb-4">
-                <label>Ajouter un formateur :</label>
-                <div className="flex gap-2">
-                  <select
-                    className="flex-1 p-2 border rounded"
-                    onChange={(e) => {
-                      const formateurId = parseInt(e.target.value);
-                      if (formateurId) {
-                        handleAddFormateur(themeIndex, formateurId);
-                        e.target.value = "";
-                      }
-                    }}
-                  >
-                    <option value="">Sélectionnez un formateur</option>
-                    {formateurs
-                      .filter(
-                        (f) =>
-                          !selectedFormateurs[`theme_${themeIndex}`]?.some(
-                            (sf) => sf.id_formateur === f.id_formateur
-                          )
-                      )
-                      .map((formateur) => (
-                        <option
-                          key={formateur.id_formateur}
-                          value={formateur.id_formateur}
-                        >
-                          {formateur.nom_complet}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h4 className="font-medium">Formateurs affectés :</h4>
-                {selectedFormateurs[`theme_${themeIndex}`]?.length > 0 ? (
-                  selectedFormateurs[`theme_${themeIndex}`].map((formateur) => (
-                    <div
-                      key={formateur.id_formateur}
-                      className="flex items-center gap-3 p-2 bg-white border rounded"
-                    >
-                      <span className="flex-1">{formateur.nom_complet}</span>
-                      <input
-                        type="number"
-                        min="1"
-                        className="w-20 p-1 border rounded"
-                        value={formateur.rang}
-                        onChange={(e) =>
-                          handleRankChange(
-                            themeIndex,
-                            formateur.id_formateur,
-                            e.target.value
-                          )
-                        }
-                      />
-                      <button
-                        type="button"
-                        className="text-red-500 hover:text-red-700"
-                        onClick={() =>
-                          handleRemoveFormateur(themeIndex, formateur.id_formateur)
-                        }
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-gray-500 p-2">
-                    Aucun formateur affecté
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-
-          <div className="flex justify-end gap-2 pt-4">
-            <button
-              type="button"
-              className="bg-gray-500 text-white px-4 py-2 rounded"
-              onClick={onClose}
-            >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700"
-            >
-              Mettre à jour
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-export default EditDomaine;
-
-
-
-
-{/*}
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import axios from 'axios';
-
-interface Formateur {
-  id_formateur: number;
-  nom_complet: string;
-  themes_a_enseigner?: string;
-  rang?: number;
-}
-
-interface ThemeData {
-  id_theme?: number;
-  theme?: string;
-  formateurs?: Formateur[];
-}
-
-interface EditThemeProps {
-  themeData?: ThemeData; // Les données du thème à modifier
-  onClose: () => void; // Fonction pour fermer le modal
-  onUpdate: () => void; // Callback après mise à jour réussie
-}
-
-const EditTheme: React.FC<EditThemeProps> = ({ themeData, onClose, onUpdate }) => {
-  const { register, handleSubmit, setValue } = useForm<{ theme: string }>();
-  const [selectedFormateurs, setSelectedFormateurs] = useState<Formateur[]>([]);
-  const [allFormateurs, setAllFormateurs] = useState<Formateur[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Récupérer les formateurs déjà affectés au thème
-  useEffect(() => {
-    if (!themeData?.id_theme) {
-      setError("Aucun thème sélectionné");
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchThemeFormateurs = async () => {
-      try {
-        const response = await axios.get(`/apiAdmin/catalogue/${themeData.id_theme}`);
-        if (response.data.success) {
-          setSelectedFormateurs(response.data.formateurs || []);
-          setValue('theme', themeData.theme || '');
-        } else {
-          setError(response.data.error || 'Erreur lors de la récupération des formateurs');
-        }
-      } catch (error) {
-        console.error('Erreur:', error);
-        setError('Erreur lors de la récupération des formateurs du thème');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchThemeFormateurs();
-  }, [themeData?.id_theme, themeData?.theme, setValue]);
-
-  // Récupérer tous les formateurs disponibles
-  useEffect(() => {
-    const fetchAllFormateurs = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formateurs`);
-        setAllFormateurs(response.data || []);
-      } catch (error) {
-        console.error("Erreur lors de la récupération des formateurs :", error);
-        setError("Erreur lors de la récupération de la liste des formateurs");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAllFormateurs();
-  }, []);
-
-  const handleAddFormateur = async (formateurId: number) => {
-    const formateurToAdd = allFormateurs.find(f => f.id_formateur === formateurId);
-    if (!formateurToAdd) return;
-
-    try {
-      const response = await axios.post(`/apiAdmin/catalogue/${themeData?.id_theme}/formateurs`, {
-        id_formateur: formateurId,
-        rang: 1 // Rang par défaut
-      });
-
-      if (response.data.success) {
-        setSelectedFormateurs(prev => [...prev, { ...formateurToAdd, rang: 1 }]);
-      } else {
-        setError(response.data.error || "Erreur lors de l'ajout du formateur");
-      }
-    } catch (error) {
-      console.error("Erreur lors de l'ajout du formateur:", error);
-      setError("Erreur lors de l'ajout du formateur");
-    }
-  };
-
-  const handleRemoveFormateur = async (formateurId: number) => {
-    try {
-      const response = await axios.delete(`/apiAdmin/catalogue/${themeData?.id_theme}/formateurs/${formateurId}`);
-      if (response.data.success) {
-        setSelectedFormateurs(prev =>
-          prev.filter(f => f.id_formateur !== formateurId)
-        );
-      } else {
-        setError(response.data.error || "Erreur lors de la suppression du formateur");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la suppression du formateur:", error);
-      setError("Erreur lors de la suppression du formateur");
-    }
-  };
-
-  const handleRankChange = async (formateurId: number, newRank: number) => {
-    try {
-      const response = await axios.put(
-        `/apiAdmin/catalogue/${themeData?.id_theme}/formateurs/${formateurId}`,
-        { rang: newRank }
-      );
-
-      if (response.data.success) {
-        setSelectedFormateurs(prev =>
-          prev.map(f => f.id_formateur === formateurId ? { ...f, rang: newRank } : f)
-        );
-      } else {
-        setError(response.data.error || "Erreur lors de la mise à jour du rang");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour du rang:", error);
-      setError("Erreur lors de la mise à jour du rang");
-    }
-  };
-
-  const onSubmit = async (data: { theme: string }) => {
-    try {
-      const response = await axios.put(`/apiAdmin/catalogue/${themeData?.id_theme}`, {
-        theme: data.theme
-      });
-
-      if (response.data.success) {
-        onUpdate(); // Notifier le parent que la mise à jour est réussie
-        onClose(); // Fermer le modal
-      } else {
-        setError(response.data.error || "Erreur lors de la mise à jour du thème");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour du thème:", error);
-      setError("Erreur lors de la mise à jour du thème");
-    }
-  };
-
-  const availableFormateurs = allFormateurs.filter(
-    f => !selectedFormateurs.some(sf => sf.id_formateur === f.id_formateur)
-  );
-
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg">
-          <p>Chargement en cours...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 p-4">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-screen overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Modifier le Thème</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
-            type="button"
-          >
-            ×
-          </button>
-        </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block mb-2">Nom du Thème :</label>
-            <input
-              className="w-full p-2 border rounded"
-              {...register("theme", { required: true })}
-            />
-          </div>
-
-          <div>
-            <label>Ajouter un formateur :</label>
-            <div className="flex gap-2 mt-2">
-              <select
-                className="flex-1 p-2 border rounded"
-                onChange={(e) => {
-                  const formateurId = parseInt(e.target.value);
-                  if (formateurId) {
-                    handleAddFormateur(formateurId);
-                    e.target.value = "";
-                  }
-                }}
-                disabled={availableFormateurs.length === 0}
+      {/* Liste des formateurs déjà attribués */}
+      {selectedTheme && (
+        <div className="mb-6">
+          <h3 className="text-lg font-medium text-gray-800 mb-2">
+            Formateurs attribués
+          </h3>
+          {selectedFormateurs.length > 0 ? (
+            selectedFormateurs.map((formateur) => (
+              <div
+                key={formateur.id_formateur}
+                className="flex items-center p-2 mb-2 bg-gray-100 border rounded"
               >
-                <option value="">Sélectionnez un formateur</option>
-                {availableFormateurs.map((formateur) => (
+                <span className="flex-1">{formateur.nom_complet}</span>
+                <input
+                  type="number"
+                  min="1"
+                  className="w-20 p-1 border rounded mr-2"
+                  value={formateur.rang || ""}
+                  onChange={(e) =>
+                    setSelectedFormateurs(
+                      selectedFormateurs.map((f) =>
+                        f.id_formateur === formateur.id_formateur
+                          ? { ...f, rang: parseInt(e.target.value, 10) }
+                          : f
+                      )
+                    )
+                  }
+                />
+                <button
+                  className="text-red-500 hover:text-red-700"
+                  onClick={() => handleRemoveFormateur(formateur.id_formateur)}
+                >
+                  Supprimer
+                </button>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-500 italic">Aucun formateur attribué</p>
+          )}
+        </div>
+      )}
+
+      {/* Ajouter un nouveau formateur */}
+      {selectedTheme && (
+        <div className="mb-6">
+          <h3 className="text-lg font-medium text-gray-800 mb-2">
+            Ajouter un formateur
+          </h3>
+          <div className="flex items-center gap-2">
+            <select
+              className="flex-1 p-2 border rounded"
+              value={newFormateurId || ""}
+              onChange={(e) =>
+                setNewFormateurId(parseInt(e.target.value, 10) || null)
+              }
+            >
+              <option value="">-- Sélectionnez un formateur --</option>
+              {formateurs
+                .filter(
+                  (f) =>
+                    !selectedFormateurs.some(
+                      (sf) => sf.id_formateur === f.id_formateur
+                    )
+                )
+                .map((formateur) => (
                   <option
                     key={formateur.id_formateur}
                     value={formateur.id_formateur}
@@ -625,61 +259,184 @@ const EditTheme: React.FC<EditThemeProps> = ({ themeData, onClose, onUpdate }) =
                     {formateur.nom_complet}
                   </option>
                 ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="text-xl font-semibold">Formateurs affectés :</h3>
-            {selectedFormateurs.length > 0 ? (
-              selectedFormateurs.map((formateur) => (
-                <div
-                  key={formateur.id_formateur}
-                  className="flex items-center gap-3 p-2 bg-gray-50 border rounded"
-                >
-                  <span className="flex-1">{formateur.nom_complet}</span>
-                  <input
-                    type="number"
-                    min="1"
-                    className="w-20 p-1 border rounded"
-                    value={formateur.rang || 1}
-                    onChange={(e) =>
-                      handleRankChange(formateur.id_formateur, parseInt(e.target.value))
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="text-red-500 hover:text-red-700"
-                    onClick={() => handleRemoveFormateur(formateur.id_formateur)}
-                  >
-                    ×
-                  </button>
-                </div>
-              ))
-            ) : (
-              <div className="text-gray-500 p-2">Aucun formateur affecté</div>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4">
+            </select>
+            <input
+              type="number"
+              min="1"
+              className="w-20 p-2 border rounded"
+              placeholder="Rang"
+              value={newFormateurRank || ""}
+              onChange={(e) =>
+                setNewFormateurRank(parseInt(e.target.value, 10) || null)
+              }
+            />
             <button
-              type="button"
-              className="bg-gray-500 text-white px-4 py-2 rounded"
-              onClick={onClose}
+              className="px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
+              onClick={handleAddFormateur}
             >
-              Annuler
-            </button>
-            <button
-              type="submit"
-              className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700"
-            >
-              Mettre à jour
+              Ajouter
             </button>
           </div>
-        </form>
-      </div>
+        </div>
+      )}
+
+      {/* Bouton pour enregistrer les modifications */}
+      {selectedTheme && (
+        <div className="flex justify-end">
+          <button
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            onClick={handleSaveChanges}
+          >
+            Enregistrer les modifications
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
-export default EditTheme;*/}
+export default EditTheme;
+
+
+
+
+
+
+{/**********************BACK-END POUR MODIFIER RANG ET SUPPRIMER********************
+  const UpdateTheme = async (req, res) => {
+  const { id_theme } = req.params;
+  const { formateursToAdd, formateursToRemove } = req.body;
+
+  if (!Array.isArray(formateursToAdd) || !Array.isArray(formateursToRemove)) {
+    return res.status(400).json({ error: "Les données doivent être des tableaux" });
+  }
+
+  try {
+    // 1. Récupérer le nom du thème
+    const themeQuery = 'SELECT theme FROM theme WHERE id_theme = ?';
+    db.query(themeQuery, [id_theme], async (themeErr, themeResults) => {
+      if (themeErr) {
+        console.error("Erreur lors de la récupération du thème:", themeErr);
+        return res.status(500).json({ error: "Erreur serveur" });
+      }
+
+      if (!themeResults || themeResults.length === 0) {
+        return res.status(404).json({ error: "Thème non trouvé" });
+      }
+
+      const themeName = themeResults[0].theme;
+
+      // 2. Traitement des formateurs à supprimer
+      for (const id_formateur of formateursToRemove) {
+        await new Promise((resolve, reject) => {
+          db.query(
+            'SELECT themes_a_enseigner FROM formateur WHERE id_formateur = ?',
+            [id_formateur],
+            async (formateurErr, formateurResults) => {
+              if (formateurErr) {
+                console.error("Erreur lors de la récupération du formateur:", formateurErr);
+                return reject(formateurErr);
+              }
+
+              if (formateurResults && formateurResults.length > 0) {
+                const formateur = formateurResults[0];
+                let themes = {};
+                
+                try {
+                  themes = formateur.themes_a_enseigner 
+                    ? JSON.parse(formateur.themes_a_enseigner)
+                    : {};
+                } catch (e) {
+                  console.error("Erreur de parsing JSON:", e);
+                  return resolve();
+                }
+
+                if (themes[themeName]) {
+                  delete themes[themeName];
+                  
+                  // Mise à jour des domaines de compétences
+                  const domaines = Object.keys(themes);
+                  
+                  db.query(
+                    'UPDATE formateur SET themes_a_enseigner = ?, domaine_de_competences = ? WHERE id_formateur = ?',
+                    [JSON.stringify(themes), domaines.join(','), id_formateur],
+                    (updateErr) => {
+                      if (updateErr) {
+                        console.error("Erreur lors de la mise à jour:", updateErr);
+                        return reject(updateErr);
+                      }
+                      resolve();
+                    }
+                  );
+                } else {
+                  resolve();
+                }
+              } else {
+                resolve();
+              }
+            }
+          );
+        });
+      }
+
+      // 3. Traitement des formateurs à ajouter/modifier
+      for (const { id_formateur, rang } of formateursToAdd) {
+        await new Promise((resolve, reject) => {
+          db.query(
+            'SELECT themes_a_enseigner FROM formateur WHERE id_formateur = ?',
+            [id_formateur],
+            async (formateurErr, formateurResults) => {
+              if (formateurErr) {
+                console.error("Erreur lors de la récupération du formateur:", formateurErr);
+                return reject(formateurErr);
+              }
+
+              if (formateurResults && formateurResults.length > 0) {
+                const formateur = formateurResults[0];
+                let themes = {};
+                
+                try {
+                  themes = formateur.themes_a_enseigner 
+                    ? JSON.parse(formateur.themes_a_enseigner)
+                    : {};
+                } catch (e) {
+                  console.error("Erreur de parsing JSON:", e);
+                  return resolve();
+                }
+
+                themes[themeName] = rang;
+                const domaines = Object.keys(themes);
+                
+                db.query(
+                  'UPDATE formateur SET themes_a_enseigner = ?, domaine_de_competences = ? WHERE id_formateur = ?',
+                  [JSON.stringify(themes), domaines.join(','), id_formateur],
+                  (updateErr) => {
+                    if (updateErr) {
+                      console.error("Erreur lors de la mise à jour:", updateErr);
+                      return reject(updateErr);
+                    }
+                    resolve();
+                  }
+                );
+              } else {
+                resolve();
+              }
+            }
+          );
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        message: "Mise à jour des formateurs réussie" 
+      });
+    });
+
+  } catch (error) {
+    console.error("Erreur backend complète:", error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message || "Erreur serveur lors de la mise à jour" 
+    });
+  }
+}; */}

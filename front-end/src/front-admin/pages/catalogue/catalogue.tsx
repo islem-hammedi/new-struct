@@ -509,7 +509,7 @@ import { motion } from "framer-motion";
 import "react-toastify/dist/ReactToastify.css";
 import AddDomaine from "./AddDomain";
 import AddTheme from "./AddTheme.tsx";
-import EditDomaine from "../catalogue/UpdateCatalogue";
+import EditTheme from "../catalogue/UpdateCatalogue";
 import { useNavigate, useParams } from "react-router-dom";
 
 interface Session {
@@ -559,6 +559,9 @@ const CatalogueListAdmin: React.FC = () => {
   const [selectedFormateur, setSelectedFormateur] = useState<Formateur | null>(null);
   const [selectedDomaine, setSelectedDomaine] = useState<Catalogue | null>(null);
   const [selectedDomaineId, setSelectedDomaineId] = useState<number | null>(null);
+    const [selectedThemeId, setSelectedThemeId] = useState<number | null>(null);
+
+  
   const [showEditModal, setShowEditModal] = useState(false);
 
   const [showSearchBar, setShowSearchBar] = useState(false);
@@ -570,9 +573,10 @@ const CatalogueListAdmin: React.FC = () => {
 
   
   
-  const handleEditDomaine = (domaine: Catalogue, id_formation: number) => {
+  const handleEditDomaine = (domaine: Catalogue, id_formation: number, id_theme:number) => {
     setSelectedDomaine(domaine);
     setSelectedDomaineId(id_formation);
+    setSelectedThemeId(id_theme);
     setShowEditModal(true);
   };
 
@@ -766,7 +770,7 @@ const CatalogueListAdmin: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto p-4">
       {editingFormation ? (
-        <EditDomaine
+        <EditTheme
           domaineId={editingFormation?.id_formation}
           formation={editingFormation}
           onClose={() => setEditingFormation(null)}
@@ -905,18 +909,19 @@ const CatalogueListAdmin: React.FC = () => {
          {(user.nom_acces === "super_admin" || user.nom_acces === "editeur formation") && (
                           <div className="flex justify-end p-4">
                              <button 
-                              onClick={() => handleEditDomaine(formation, formation.id_formation)}
+                              onClick={() => handleEditDomaine(formation, formation.id_formation,session.id_theme)}
                               className="text-teal-700 mr-2"
                             >
                               éditer ✏️
                             </button>
 
-                            {showEditModal && selectedDomaine && selectedDomaineId && (
-                              <EditDomaine 
+                            {showEditModal && selectedDomaine && selectedDomaineId && selectedThemeId && (
+                              <EditTheme 
                                 domaineId={selectedDomaineId} 
                                 onClose={handleClose}
                                 onUpdate={refreshFormations}
                                 formation={selectedDomaine}
+                                themeId={selectedThemeId!}
                               />
                             )}
                         <button

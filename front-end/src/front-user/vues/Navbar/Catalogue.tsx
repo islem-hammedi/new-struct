@@ -6,22 +6,23 @@ import LoginMenu from "../LoginMenu";
 import { Viewer, Worker } from "@react-pdf-viewer/core";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import generateUniqueCartId from "../Dropdowns/DropdownCart";
+//import FormateurTheme from "./FormateurTheme";
 
-interface Session {
-  id_session: number;
+
+interface Theme {
+  id_theme: number;
   theme: string;
-  duree: number;
   code: string;
-  formateur: string;
-  idFichePrg: string | null;
-
 }
+
+
 
 interface Formation {
-  id_formation: number;
+  id_domaine: number;
   domaine: string;
-  sessions: Session[];
+  themes: Theme[];
 }
+
 
 const Catalogue: React.FC = () => {
   const [formations, setFormations] = useState<Formation[]>([]);
@@ -34,14 +35,14 @@ const Catalogue: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {user, isLoggedIn} = useAuth();
   const [showLoginMenu, setShowLoginMenu] = useState(false);
-  const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null); // Ajout de l'ID de session sélectionnée
-
+  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null); // État pour le thème sélectionné
+const [cart, setCart] = useState<any[]>([]);
   useEffect(() => {
     axios
       .get(`${import.meta.env.VITE_APP_API_URL}/apiUser/formations/Form`)
       .then((response) => {
         setFormations(response.data);
-        setFilteredFormations(response.data); // Initialiser filteredFormations avec toutes les formations
+        setFilteredFormations(response.data);
         setLoading(false);
       })
       .catch((err) => {
@@ -49,7 +50,13 @@ const Catalogue: React.FC = () => {
         setLoading(false);
       });
   }, []);
-
+  
+  const handleThemeClick = (theme: Theme) => {
+    setSelectedTheme(theme);
+  };
+  const handleBackToCatalogue = () => {
+    setSelectedTheme(null);
+  };
   if (loading) return <p className="text-center text-gray-600">Chargement...</p>;
   if (error) return <p className="text-center text-red-500">Erreur: {error}</p>;
 
@@ -62,63 +69,72 @@ const Catalogue: React.FC = () => {
       setFilteredFormations(formations);
       return;
     }
+  
     const filtered = formations.filter((formation) => {
-      const matchesDomaine = formation.domaine?.toLowerCase().includes(query) || false;
-      const matchesSession = formation.sessions.some((session) => {
-        return (
-          session.theme?.toLowerCase().includes(query) ||
-          session.code?.toLowerCase().includes(query)
-        );
-      });
-      return matchesDomaine || matchesSession;
+      const matchesDomaine = formation.domaine.toLowerCase().includes(query);
+      const matchesTheme = formation.themes.some((theme) =>
+        theme.theme.toLowerCase().includes(query) || theme.code.toLowerCase().includes(query)
+      );
+      return matchesDomaine || matchesTheme;
     });
+  
     setFilteredFormations(filtered);
   };
-  const handleAjout = (session: Session) => {
-    if (!isLoggedIn) {
-      setShowLoginMenu(true);
-      return;
-    }
-  
-    if (!user) return;
-  
-    try {
-      const cartKey = `cart_${user.id_participant}`;
-      const storedCart = localStorage.getItem(cartKey);
+  const handleAjout = (theme: Theme) => {
+    if (isLoggedIn) {
+      const storedCart = localStorage.getItem(`cart_${user.id}`); // Utilisation de user.id
       const cart = storedCart ? JSON.parse(storedCart) : [];
-      
+      const storedCartId = localStorage.getItem("currentCartId");
+      const cartId = storedCartId ? parseInt(storedCartId) : generateUniqueCartId(user.id);
+          const currentCart = storedCart ? JSON.parse(storedCart) : [];
+
+      localStorage.setItem("currentCartId", cartId.toString());
+  
       const newCartItem = {
-        cartId: Date.now(), 
+        cartId,
         action: "demander_devis",
         participant: {
-          id_participant: user.id_participant,
-          nom_participant: user.nom_complet || "",
-          email_participant: user.mail || "",
-          tel_participant: user.telephone || 0
+          id_participant: user.id, // Utilisation de user.id au lieu de user.id_participant
+          nom_participant: user?.nom_admin || "",
+          email_participant: user?.email || "",
         },
-        sessions: [{
-          id_session: session.id_session,
-          theme: session.theme || "",
-          formateur: session.formateur || "",
-          code: session.code || "",
-          date_debut: "", // Add these if needed
-          date_fin: ""
-        }]
+        themes: [theme],
       };
   
-      cart.push(newCartItem);
-      localStorage.setItem(cartKey, JSON.stringify(cart));
-      console.log("Session added to cart", newCartItem);
-    } catch (error) {
-      console.error("Error adding to cart:", error);
+      const existingCartItem = cart.find((item: any) => item.cartId === cartId);
+      if (existingCartItem) {
+        existingCartItem.themes.push(theme);
+      } else {
+        cart.push(newCartItem);
+      }
+      localStorage.setItem(`cart_${user.id}`, JSON.stringify(cart)); // Utilisation de user.id
+      console.log("Panier mis à jour", cart);
+    } else {
+      setShowLoginMenu(true);
     }
   };
+  
+  
+
   const handleSessionSearchChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setSessionSearchQuery(e.target.value);
 
   // Extraire les domaines uniques des formations filtrées
   const domainesUniques = Array.from(new Set(filteredFormations.map((f) => f.domaine)));
 
+  if (selectedTheme) {
+    return (
+      <div className="max-w-6xl mx-auto p-4">
+        <button 
+          onClick={handleBackToCatalogue}
+          className="mb-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded inline-flex items-center"
+        >
+          ← Retour au catalogue
+        </button>
+       {/* <FormateurTheme themeId={selectedTheme.id_theme} />*/}
+      </div>
+    );
+  }
   return (
     <div className="max-w-6xl mx-auto p-4">
       
@@ -164,24 +180,34 @@ const Catalogue: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {formationsDuDomaine.flatMap((formation) =>
-                        formation.sessions.filter((session) => session.theme.toLowerCase().includes(sessionSearchQuery.toLowerCase())).map((session) => (
-                          <tr key={session.id_session} className="hover:bg-gray-100">
-                            <td className="p-2 border">{session.theme}</td>
-                            <td className="p-2 border">{session.code}</td>
-                            <td className="p-2 border  text-right gap-3">
-                            <button
-                                onClick={() => handleAjout(session)}
-                                className="bg-teal-500/80 text-white py-1 px-3 rounded-md hover:bg-teal-600"
+  {formationsDuDomaine.flatMap((formation) =>
+    formation.themes
+      .filter((theme) =>
+        theme.theme.toLowerCase().includes(sessionSearchQuery.toLowerCase())
+      )
+      .map((theme) => (
+<tr 
+                              key={theme.id_theme} 
+                              className="hover:bg-gray-100"
+                              onClick={() => handleThemeClick(theme)}
+                              style={{ cursor: 'pointer' }}
+                            >          <td className="p-2 border">{theme.theme}</td>
+          <td className="p-2 border">{theme.code}</td>
+          <td className="p-2 border text-right gap-3">
+          <button
+onClick={() => handleAjout(theme)}
+className="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600"
                                 disabled={isSubmitting}
                               >
                                 {isSubmitting ? "En cours..." : "Ajouter au panier"}
                               </button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
+
+          </td>
+        </tr>
+      ))
+  )}
+</tbody>
+
                   </table>
                 </div>
 

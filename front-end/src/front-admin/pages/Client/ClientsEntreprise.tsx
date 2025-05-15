@@ -114,14 +114,14 @@ const ClientsEntreprise = () => {
         onChange={(e) => setSearchTerm(e.target.value)}
         className="w-full p-3 mb-6 text-base rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-400"
       />
-      <table className="dark:border-strokedark min-w-full bg-white border border-gray-300 shadow-md">
+      <table className="dark:border-strokedark min-w-full bg-gray-100 border border-gray-300 shadow-md">
         <thead>
           <tr>
-            <th className="py-2 px-4 border-b text-left">Nom Entreprise</th>
-            <th className="py-2 px-4 border-b text-left">Téléphone Entreprise</th>
-            <th className="py-2 px-4 border-b text-left">Email Entreprise</th>
-            <th className="py-2 px-4 border-b text-left">Adresse Entreprise</th>
-            <th className="py-2 px-4 border-b text-left">matricule Fiscale</th>
+            <th className="py-4 px-4 border-b text-l font-semibold text-teal-700 text-teal-700 text-left">Nom Entreprise</th>
+            <th className="py-4 px-4 border-b text-l font-semibold text-teal-700 text-left">Téléphone Entreprise</th>
+            <th className="py-4 px-4 border-b text-l font-semibold text-teal-700 text-left">Email Entreprise</th>
+            <th className="py-4 px-4 border-b text-l font-semibold text-teal-700 text-left">Adresse Entreprise</th>
+            <th className="py-4 px-4 border-b text-l font-semibold text-teal-700 text-left">matricule Fiscale</th>
           </tr>
         </thead>
         <tbody>

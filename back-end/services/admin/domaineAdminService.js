@@ -1,16 +1,19 @@
-const domaineAdminRepository = require('../../repositories/admin/domaineAdminRepository');
+const domaineAdminRepository = require('../../repositories/admin/domaineRepository');
 
 class DomaineAdminService {
-    async getAllDomaines() {
-        try {
-            const results = await domaineAdminRepository.getAllDomaines();
-            return results.map(row => row.domaine);
-        } catch (error) {
-            throw error;
-        }
-    }
+   async getAllDomaines() {
+  try {
+    const results = await domaineAdminRepository.getAllDomaines();
+    return results.map(row => ({
+      id_domaine: row.id_domaine,
+      domaine: row.domaine
+    }));
+  } catch (error) {
+    throw error;
+  }
+}
 
-    async getThemesByDomaine(id_domaine) {  // Renommez le paramètre
+    async getThemesByDomaine(id_domaine) {  
         try {
             if (!id_domaine) {
                 throw new Error('Paramètre "id_domaine" manquant');
@@ -21,7 +24,11 @@ class DomaineAdminService {
             
             const results = await domaineAdminRepository.getThemesByDomaine(id);
             return results.map(row => row.theme);
-        } catch (error) {
+            
+            
+        } 
+        
+        catch (error) {console.log('Repository Results:', results);
             throw error;
         }
     }

@@ -14,10 +14,11 @@ const ProfilFormateur: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
+  const [isUpdating, setIsUpdating] = useState(false); // Ajoutez cet état
 
   useEffect(() => {
     const checkAuthentication = () => {
-      const token = localStorage.getItem('token'); 
+      const token = localStorage.getItem('user'); 
 
       if (!token) {
         navigate('/'); 
@@ -29,12 +30,12 @@ const ProfilFormateur: React.FC = () => {
     const fetchFormateurDetails = async () => {
       try {
         const userData = JSON.parse(localStorage.getItem("user") || "{}");
-        if (!userData.id_formateur || !userData.token) {
+        if (!userData.id || !userData.token) {
           console.error("❌ ID formateur ou token non trouvés !");
           return;
         }
     
-        const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiUser/formateur/details/${userData.id_formateur}`, { 
+        const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiUser/formateur/details/${userData.id}`, { 
           headers: {
             Authorization: `Bearer ${userData.token}`,
           },
@@ -55,40 +56,60 @@ const ProfilFormateur: React.FC = () => {
   };
 
   const handlePasswordChange = async () => {
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Les mots de passe ne correspondent pas.');
-      return;
+  setPasswordError('');
+  setIsUpdating(true);
+
+  try {
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    
+    // Validation améliorée
+    if (!userData.id || !userData.token) {
+      throw new Error("Session invalide - Veuillez vous reconnecter");
     }
 
-    try {
-      const userData = JSON.parse(localStorage.getItem("user") || "{}");
-      if (!userData.id_formateur) {
-        console.error("ID formateur non trouvé !");
-        return;
-      }
+    if (newPassword.length < 8) {
+      throw new Error("Le mot de passe doit contenir au moins 8 caractères");
+    }
 
-      const response = await axios.put(
-        `${import.meta.env.VITE_APP_API_URL}/apiUser/formateur/details/${userData.id_formateur}`,
-        {
-          old_password: oldPassword,
-          new_password: newPassword,
+    const response = await axios.put(
+      `${import.meta.env.VITE_APP_API_URL}/apiUser/formateur/details/${userData.id}`,
+      {
+        oldPassword,
+        newPassword,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${userData.token}`,
+          'Content-Type': 'application/json'
         },
-        {
-          headers: {
-            Authorization: `Bearer ${userData.token}`,
-          },
-        }
-      );
+        timeout: 10000 // 10 secondes timeout
+      }
+    );
 
-      alert(response.data.message);  // Afficher un message de succès
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (error) {
-      console.error('Erreur lors de la mise à jour du mot de passe:', error);
-      setPasswordError('Une erreur est survenue lors de la mise à jour du mot de passe.');
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Échec de la mise à jour");
     }
-  };
+
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    alert("Mot de passe mis à jour avec succès");
+
+  } catch (error: any) {
+    console.error('Erreur complète:', error);
+    
+    if (error.code === 'ECONNABORTED') {
+      setPasswordError("Timeout - Le serveur ne répond pas");
+    } else if (error.response) {
+      setPasswordError(error.response.data?.message || "Erreur serveur");
+    } else {
+      setPasswordError(error.message || "Erreur inconnue");
+    }
+  } finally {
+    setIsUpdating(false);
+  }
+};
+  
 
   if (!formateur) {
     return <div>Chargement...</div>; 
@@ -231,11 +252,16 @@ const ProfilFormateur: React.FC = () => {
             />
             {passwordError && <p className="text-red-500">{passwordError}</p>}
             <button
-              onClick={handlePasswordChange}
-              className="px-4 py-2 bg-teal-500 text-white rounded hover:bg-teal-600"
-            >
-              Modifier le mot de passe
-            </button>
+  onClick={handlePasswordChange}
+  disabled={isUpdating}
+  className={`px-4 py-2 text-white rounded ${
+    isUpdating 
+      ? 'bg-gray-400 cursor-not-allowed' 
+      : 'bg-teal-500 hover:bg-teal-600'
+  }`}
+>
+  {isUpdating ? 'Modification en cours...' : 'Modifier le mot de passe'}
+</button>
           </div>
         </div>
 

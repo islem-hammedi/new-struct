@@ -47,7 +47,7 @@ class AdminService {
     }
 
     const admin = await adminRepository.getAdminById(id);
-    if (!admin) throw new Error('Administrateur non trouvé');
+    if (!admin) throw new Error('Service:Administrateur non trouvé');
 
     return adminRepository.updateAdmin(id, updateData);
   }

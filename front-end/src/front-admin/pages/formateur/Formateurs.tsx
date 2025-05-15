@@ -169,27 +169,27 @@ const Formateurs: React.FC = () => {
               </div>
 
               {(user.nom_acces === "super_admin"  || user.nom_acces === "editeur formateur")  && (
-                <button
-                  className="px-6 py-1 bg-teal-500/80 text-white rounded-lg hover:bg-tela-800 text-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleEditClick(formateur.id_formateur);
-                  }}
-                >
-                  Modifier
-                </button>
-              )}
-
-              {(user.nom_acces === "super_admin "  || user.nom_acces === "editeur formateur") && (
-                <button
-                  className="px-3 py-1 bg-gray-400 text-white rounded-lg hover:bg-red-600 text-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(formateur.id_formateur);
-                  }}
-                >
-                  Supprimer
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    className="px-6 py-1 bg-teal-500/80 text-white rounded-lg hover:bg-tela-800 text-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditClick(formateur.id_formateur);
+                    }}
+                  >
+                    Modifier
+                  </button>
+                
+                  <button
+                    className="px-3 py-1 bg-gray-400 text-white rounded-lg hover:bg-red-600 text-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(formateur.id_formateur);
+                    }}
+                  >
+                    Supprimer
+                  </button>
+                </div>
               )}
             </div>
           ))

@@ -1,4 +1,5 @@
-const express = require('express');
+{/*
+  const express = require('express');
 const router = express.Router();
 
 const {
@@ -13,4 +14,4 @@ router.get('/avis/sessions', getSessions);
 router.get('/stats/admins', getAdminStats);
 router.get('/stats/sessions', getSessionStats);
 
-module.exports = router;
+module.exports = router;*/}

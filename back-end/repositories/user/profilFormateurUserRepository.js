@@ -6,28 +6,7 @@ const fs = require('fs');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 class ProfilFormateurUserRepository {
-    constructor() {
-        this.initializeEventTable();
-    }
-
-    async initializeEventTable() {
-        try {
-            const createTableQuery = `
-                CREATE TABLE IF NOT EXISTS event (
-                    id_event INT AUTO_INCREMENT PRIMARY KEY,
-                    event VARCHAR(255) NOT NULL,
-                    date DATETIME NOT NULL,
-                    created_by VARCHAR(255) NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )`;
-            
-            await db.query(createTableQuery);
-            console.log('Table event initialisée ou vérifiée');
-        } catch (err) {
-            console.error('Erreur lors de l\'initialisation de la table event:', err);
-            throw err;
-        }
-    }
+   
 
     /*async getFormateurDetails(id_formateur) {
         try {
@@ -184,14 +163,14 @@ async getSessionsByStatus(id_formateur, status) {
         const query = `
             SELECT 
                 s.id_session, 
-                t.nom_theme, 
+                t.theme, 
                 t.code, 
-                d.nom_domaine, 
+                d.domaine, 
                 s.etat, 
                 s.type_session, 
                 s.fiche_prg  
-            FROM session_formation s
-            JOIN formations f ON s.id_formation = f.id_formation
+            FROM session s
+            JOIN formation f ON s.id_formation = f.id_formation
             JOIN formateur frm ON s.id_formateur = frm.id_formateur
             JOIN theme t ON s.id_theme = t.id_theme
             JOIN domaine d ON d.id_domaine = f.id_domaine
@@ -250,7 +229,7 @@ async updatePassword(id_formateur, hashedPassword) {
 
 async getAllEvents() {
     return new Promise((resolve, reject) => {
-      db.query('SELECT * FROM event', (err, results) => {
+      db.query('SELECT * FROM calendrier', (err, results) => {
         if (err) {
           console.error('Repository Error - getAllEvents:', err);
           return reject(new Error('Database error while fetching events'));
@@ -262,7 +241,7 @@ async getAllEvents() {
 
   async createEvent(event, date, created_by) {
     return new Promise((resolve, reject) => {
-      const query = 'INSERT INTO event (event, date, created_by) VALUES (?, ?, ?)';
+      const query = 'INSERT INTO calendrier (title, date, created_by) VALUES (?, ?, ?)';
       
       db.query(query, [event, date, created_by], (err, result) => {
         if (err) {
@@ -272,7 +251,7 @@ async getAllEvents() {
         
         resolve({
           id: result.insertId,
-          event,
+          title,
           date,
           created_by
         });
@@ -282,7 +261,7 @@ async getAllEvents() {
 
   async deleteEvent(id_event, created_by) {
     return new Promise((resolve, reject) => {
-      const query = 'DELETE FROM event WHERE id_event = ? AND created_by = ?';
+      const query = 'DELETE FROM calendrier WHERE id = ? AND created_by = ?';
       db.query(query, [id_event, created_by], (err, result) => {
         if (err) return reject(err);
         resolve(result.affectedRows > 0);

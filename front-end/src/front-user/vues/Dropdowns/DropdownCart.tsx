@@ -6,24 +6,21 @@ import { useAuth } from "../Hooks/useAuthUser";
 interface CartItem {
   cartId: number;
   action: "commander" | "demander_devis";
+  themes: {
+    id_theme: number;
+    theme: string;
+    code: string;
+  }[];
   participant: {
     id_participant: number;
     nom_participant: string;
     email_participant: string;
     tel_participant: number;
   };
-  sessions: {
-    id_session: number;
-    theme: string;
-    date_debut: string;
-    date_fin: string;
-    formateur: string;
-    code: string;
-  }[];  
 }
 
 const DropdownCart = ({ dropdownOpen }: { dropdownOpen: boolean }) => {
-  const [carts, setCarts] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -31,119 +28,132 @@ const DropdownCart = ({ dropdownOpen }: { dropdownOpen: boolean }) => {
   useEffect(() => {
     if (!user) return;
     
-    const storedCart = localStorage.getItem(`cart_${user.id_participant}`);
+    const storedCart = localStorage.getItem(`cart_${user.id}`);
     if (storedCart) {
       try {
         const parsedCart: CartItem[] = JSON.parse(storedCart);
-        setCarts(parsedCart);
+        if (parsedCart.length > 0) {
+          setCart(parsedCart[parsedCart.length - 1]); // Charger uniquement le dernier cart
+        }
       } catch (error) {
         console.error("Error parsing cart from localStorage", error);
-        setCarts([]);
+        setCart(null);
       }
     }
   }, [user]);
 
   const isProfileComplete = () => {
-    if (!user) return false;
+    if (!user) {
+      console.log("User not defined");
+      return false;
+    }
     
-    return (
-      user.id_participant &&
-      user.nom_complet &&
-      user.mail &&
-      user.telephone &&
-      user.adresse &&
-      user.nature_participant &&
-      (
-        user.nature_participant === "personne" || 
-        (user.nature_participant === "entreprise" && 
-          user.nom_entreprise &&
-          user.tel_entreprise &&
-          user.email_entreprise &&
-          user.adr_entreprise)
-      )
+    const fieldsToCheck = {
+      id_participant: user.id,
+      nom_complet: user.nom_complet,
+      mail: user.mail,
+      telephone: user.telephone,
+    };
+  
+    for (const [field, value] of Object.entries(fieldsToCheck)) {
+      if (!value || value.toString().trim() === '') {
+        console.log(`Missing or empty field: ${field}`);
+        return false;
+      }
+    }
+  
+    return true;
+  };
+  
+  const handleRemoveItem = (themeId: number) => {
+    if (!cart || !user) return;
+    
+    const updatedThemes = cart.themes.filter(theme => theme.id_theme !== themeId);
+    
+    if (updatedThemes.length === 0) {
+      setCart(null);
+      localStorage.setItem(`cart_${user.id}`, JSON.stringify([]));
+    } else {
+      const updatedCart = { ...cart, themes: updatedThemes };
+      setCart(updatedCart);
+      localStorage.setItem(`cart_${user.id}`, JSON.stringify([updatedCart]));
+    }
+  };
+  /*const handleRemoveItem = (themeId: number) => {
+    if (!cart) return;
+    const updatedthemes = cart.themes.filter(
+      (theme) => theme.id_theme !== themeId
     );
-  };
+    const updatedCart = { ...cart, themes: updatedthemes };
 
-  // Supprimer une session du panier
-  const handleRemoveItem = (sessionId: number) => {
-    if (!user) return;
-    
-    const updatedCarts = carts.map(cart => ({
-      ...cart,
-      sessions: cart.sessions.filter(session => session.id_session !== sessionId)
-    })).filter(cart => cart.sessions.length > 0);
+    setCart(updatedthemes.length > 0 ? updatedCart : null);
+    localStorage.setItem("cart_${user.id}", JSON.stringify(updatedthemes.length > 0 ? [updatedCart] : []));
+  };*/
 
-    setCarts(updatedCarts);
-    localStorage.setItem(`cart_${user.id_participant}`, JSON.stringify(updatedCarts));
-  };
-
-  // Mettre à jour globalCart dans localStorage
-  const updateGlobalCart = (cart: CartItem) => {
+  const updateGlobalCart = (updatedCart: CartItem) => {
     const storedGlobalCart = localStorage.getItem("globalCart");
     const globalCart: CartItem[] = storedGlobalCart ? JSON.parse(storedGlobalCart) : [];
     
-    globalCart.push(cart);
+    const newCartId = globalCart.length > 0 ? globalCart[globalCart.length - 1].cartId + 1 : 1;
+    updatedCart.cartId = newCartId;
+
+    globalCart.push(updatedCart);
     localStorage.setItem("globalCart", JSON.stringify(globalCart));
   };
 
-  // Passer la commande
   const handleOrder = () => {
-    if (!user || carts.length === 0) return;
+    if (!cart || !user || !cart.themes || cart.themes.length === 0) return;
     
     if (!isProfileComplete()) {
       navigate("/profil_participant");
       return;
     }
 
-    carts.forEach(cart => {
-      const cartToSave = {
-        ...cart,
-        action: "commander",
-        participant: {
-          id_participant: user.id_participant,
-          nom_participant: user.nom_complet,
-          email_participant: user.mail,
-          tel_participant: user.telephone
-        }
-      };
-      
-      updateGlobalCart(cartToSave);
-    });
+    const participantData = {
+      id_participant: user.id,
+      nom_participant: user.nom_complet,
+      email_participant: user.mail,
+      tel_participant: user.telephone,
+    };
 
-    localStorage.removeItem(`cart_${user.id_participant}`);
-    setCarts([]);
+    const updatedCart = {
+      ...cart,
+      action: "commander" as "commander",
+      participant: participantData,
+      cartId: cart.cartId || Date.now(),
+    };
+
+    updateGlobalCart(updatedCart);
+    setCart(null);
+    localStorage.removeItem(`cart_${user.id}`);
   };
 
-  // Demander un devis
   const handleQuoteRequest = () => {
-    if (!user || carts.length === 0) return;
+    if (!cart || !user || !cart.themes || cart.themes.length === 0) return;
 
     if (!isProfileComplete()) {
       navigate("/profil_participant");
       return;
     }
 
-    carts.forEach(cart => {
-      const cartToSave = {
-        ...cart,
-        action: "demander_devis",
-        participant: {
-          id_participant: user.id_participant,
-          nom_participant: user.nom_complet,
-          email_participant: user.mail,
-          tel_participant: user.telephone
-        }
-      };
-      
-      updateGlobalCart(cartToSave);
-    });
+    const participantData = {
+      id_participant: user.id,
+      nom_participant: user.nom_complet,
+      email_participant: user.mail,
+      tel_participant: user.telephone,
+    };
 
-    localStorage.removeItem(`cart_${user.id_participant}`);
-    setCarts([]);
+    const updatedCart = {
+      ...cart,
+      action: "demander_devis" as "demander_devis",
+      participant: participantData,
+      cartId: cart.cartId || Date.now(),
+    };
+
+    updateGlobalCart(updatedCart);
+    setCart(null);
+    localStorage.removeItem(`cart_${user.id}`);
   };
-
-  // Calculer le nombre total d'items dans le panier
-  const totalItems = carts.reduce((sum, cart) => sum + cart.sessions.length, 0);
 
   return (
     <div
@@ -151,7 +161,7 @@ const DropdownCart = ({ dropdownOpen }: { dropdownOpen: boolean }) => {
         transition-transform duration-200 ease-out transform ${dropdownOpen ? "opacity-100 scale-100 translate-y-2" : "opacity-0 scale-95 pointer-events-none"}`}
     >
       <div className="bg-white shadow-lg rounded-lg p-4 min-h-[200px] flex flex-col">
-        {totalItems === 0 ? (
+        {!cart || !cart.themes || cart.themes.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-gray-500 h-full">
             <ShoppingCart size={50} className="text-gray-300 mb-3" />
             <p className="text-sm">Votre panier est vide</p>
@@ -163,22 +173,20 @@ const DropdownCart = ({ dropdownOpen }: { dropdownOpen: boolean }) => {
           </div>
         ) : (
           <>
-            {carts.flatMap(cart =>
-              cart.sessions.map(session => (
-                <div key={session.id_session} className="flex justify-between items-center mb-3 border-b pb-2">
-                  <div>
-                    <p className="font-medium">{session.theme}</p>
-                    <p className="text-sm text-gray-500">{session.code}</p>
-                  </div>
-                  <button
-                    onClick={() => handleRemoveItem(session.id_session)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+            {cart.themes.map(theme => (
+              <div key={theme.id_theme} className="flex justify-between items-center mb-3 border-b pb-2">
+                <div>
+                  <p className="font-medium">{theme.theme}</p>
+                  <p className="text-sm text-gray-500">{theme.code}</p>
                 </div>
-              ))
-            )}
+                <button
+                  onClick={() => handleRemoveItem(theme.id_theme)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            ))}
             
             <div className="mt-4 flex flex-col gap-2">
               <button

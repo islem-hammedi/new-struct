@@ -26,14 +26,14 @@ class CatalogueUserRepository {
             await db.query(`
                 CREATE TABLE IF NOT EXISTS domaine (
                     id_domaine INT AUTO_INCREMENT PRIMARY KEY,
-                    nom_domaine VARCHAR(255) NOT NULL UNIQUE
+                    domaine VARCHAR(255) NOT NULL UNIQUE
                 )`);
             console.log('✅ Table domaine initialisée');
 
             await db.query(`
                 CREATE TABLE IF NOT EXISTS theme (
                     id_theme INT AUTO_INCREMENT PRIMARY KEY,
-                    nom_theme VARCHAR(255) NOT NULL,
+                    theme VARCHAR(255) NOT NULL,
                     code VARCHAR(50),
                     id_domaine INT,
                     FOREIGN KEY (id_domaine) REFERENCES domaine(id_domaine)
@@ -41,7 +41,7 @@ class CatalogueUserRepository {
             console.log('✅ Table theme initialisée');
 
             await db.query(`
-                CREATE TABLE IF NOT EXISTS formations (
+                CREATE TABLE IF NOT EXISTS formation (
     id_formation INT AUTO_INCREMENT PRIMARY KEY,
     id_domaine INT NOT NULL,
     FOREIGN KEY (id_domaine) REFERENCES domaine(id_domaine)
@@ -50,7 +50,7 @@ class CatalogueUserRepository {
             console.log('✅ Table formations initialisée');
 
             await db.query(`
-                CREATE TABLE IF NOT EXISTS session_formation (
+                CREATE TABLE IF NOT EXISTS session (
     id_session INT AUTO_INCREMENT PRIMARY KEY,
     date_debut DATETIME NOT NULL,
     date_fin DATETIME NOT NULL,
@@ -65,7 +65,7 @@ class CatalogueUserRepository {
     etat VARCHAR(50) NOT NULL DEFAULT 'planifiée',
     type_session VARCHAR(50) NOT NULL,
     nb_participant INT DEFAULT 0,
-    FOREIGN KEY (id_formation) REFERENCES formations(id_formation),
+    FOREIGN KEY (id_formation) REFERENCES formation(id_formation),
     FOREIGN KEY (id_formateur) REFERENCES formateur(id_formateur),
     FOREIGN KEY (id_theme) REFERENCES theme(id_theme)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -73,14 +73,14 @@ class CatalogueUserRepository {
             console.log('✅ Table session_formation  initialisée');
 
             await db.query(`
-                CREATE TABLE IF NOT EXISTS seance (
+                CREATE TABLE IF NOT EXISTS seance_session (
     id_seance INT AUTO_INCREMENT PRIMARY KEY,
     heure_debut TIME NOT NULL,
     heure_fin TIME NOT NULL,
     pause_debut TIME,
     pause_fin TIME,
     id_session INT NOT NULL,
-    FOREIGN KEY (id_session) REFERENCES session_formation(id_session)
+    FOREIGN KEY (id_session) REFERENCES session(id_session)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `);
             console.log('✅ Table seance initialisée');
@@ -94,7 +94,7 @@ class CatalogueUserRepository {
 
     async getDomains() {
         try {
-            const results = await db.query('SELECT DISTINCT nom_domaine FROM domaine');
+            const results = await db.query('SELECT DISTINCT domaine FROM domaine');
             return results.map(row => new Domaine({ nom_domaine: row.nom_domaine }));
         } catch (err) {
             console.error('Erreur de récupération des domaines:', err);
@@ -103,104 +103,72 @@ class CatalogueUserRepository {
     }
 
     async getFormations() {
-        try {
-            // Exécution de la requête
-            const queryResult = await db.query(`
+        return new Promise((resolve, reject) => {
+            const query = `
                 SELECT 
-                    d.nom_domaine AS domaine,
-                    f.id_formation,
-                    s.id_session,
-                    t.nom_theme AS theme,
+                    d.id_domaine,
+                    d.domaine AS domaine,
+                    t.id_theme,
+                    t.theme AS theme,
                     t.code
                 FROM 
-                    formations f
-                JOIN 
-                    domaine d ON f.id_domaine = d.id_domaine
+                    domaine d
                 LEFT JOIN 
-                    session_formation s ON f.id_formation = s.id_formation
-                LEFT JOIN 
-                    formateur fm ON s.id_formateur = fm.id_formateur
-                LEFT JOIN
-                    theme t ON s.id_theme = t.id_theme
+                    theme t ON t.id_domaine = d.id_domaine
+               
+                WHERE
+                    t.id_theme IS NOT NULL
+                GROUP BY
+                    d.id_domaine, t.id_theme
                 ORDER BY 
-                    d.nom_domaine, f.id_formation
-            `);
+                    d.domaine, t.theme
+            `;
     
-            // Debug: Affiche la structure complète du résultat
-            console.log('Query result structure:', {
-                type: typeof queryResult,
-                isArray: Array.isArray(queryResult),
-                keys: queryResult ? Object.keys(queryResult) : null,
-                sample: queryResult && Array.isArray(queryResult) ? queryResult[0] : queryResult
-            });
+            db.query(query, (error, results) => {
+                if (error) return reject(error);
     
-            // Extraction des résultats selon le format retourné
-            let results;
-            if (Array.isArray(queryResult)) {
-                // Cas 1: Résultat direct sous forme de tableau
-                results = queryResult;
-            } else if (queryResult && Array.isArray(queryResult.rows)) {
-                // Cas 2: Format { rows } (utilisé par certains drivers)
-                results = queryResult.rows;
-            } else if (queryResult && Array.isArray(queryResult[0])) {
-                // Cas 3: Format [rows, fields] (mysql2 avec connection.query)
-                results = queryResult[0];
-            } else if (queryResult && typeof queryResult === 'object') {
-                // Cas 4: Résultat unique sous forme d'objet
-                results = [queryResult];
-            } else {
-                throw new Error(`Format de résultat non supporté: ${typeof queryResult}`);
-            }
+                try {
+                    // Construire une structure Domaine → [Thèmes...]
+                    const domainesMap = new Map();
     
-            // Vérification finale
-            if (!Array.isArray(results)) {
-                throw new Error(`Les résultats ne sont pas dans un tableau: ${typeof results}`);
-            }
+                    results.forEach(row => {
+                        if (!domainesMap.has(row.id_domaine)) {
+                            domainesMap.set(row.id_domaine, {
+                                id_domaine: row.id_domaine,
+                                domaine: row.domaine,
+                                themes: []
+                            });
+                        }
     
-            console.log('Extracted results:', results);
+                        const domaine = domainesMap.get(row.id_domaine);
     
-            // Traitement des résultats
-            const formationsMap = new Map();
-            
-            for (const row of results) {
-                if (!row) continue;
-                
-                if (!formationsMap.has(row.id_formation)) {
-                    formationsMap.set(row.id_formation, {
-                        domaine: row.domaine,
-                        id_formation: row.id_formation,
-                        sessions: []
+                        domaine.themes.push({
+                            id_theme: row.id_theme,
+                            theme: row.theme,
+                            code: row.code
+                        });
                     });
+    
+                    resolve(Array.from(domainesMap.values()));
+                } catch (err) {
+                    reject(err);
                 }
-                
-                if (row.id_session) {
-                    formationsMap.get(row.id_formation).sessions.push({
-                        id_session: row.id_session,
-                        theme: row.theme,
-                        code: row.code
-                    });
-                }
-            }
-            
-            return Array.from(formationsMap.values());
-        } catch (err) {
-            console.error("Erreur dans getFormations:", {
-                message: err.message,
-                stack: err.stack,
-                query: err.sql || "Non disponible"
             });
-            throw new Error("Échec de récupération des formations");
-        }
+        });
     }
+    
     async getSessions() {
         try {
             const results = await db.query(`
                 SELECT 
-                    s.id_session, s.theme, s.code, s.etat,
-                    f.nom_complet AS formateur, fr.domaine, s.id_fiche_prg
+                    s.id_session, t.theme, t.code, s.etat,
+                    f.nom_complet AS formateur, d.domaine, s.fiche_prg
                 FROM session s
+                join theme t on s.id_theme=t.id_theme
                 JOIN formateur f ON s.id_formateur = f.id_formateur
                 JOIN formation fr ON s.id_formation = fr.id_formation
+                                JOIN domaine d ON d.id_domaine = fr.id_domaine
+
             `);
             
             if (!Array.isArray(results)) {
@@ -219,28 +187,7 @@ class CatalogueUserRepository {
         }
     }
 
-    async getFichePrg(id_fichePrg) {
-        try {
-            const results = await db.query(
-                'SELECT chemin FROM fiche_prg WHERE id_fichePrg = ?',
-                [id_fichePrg]
-            );
-            
-            if (!Array.isArray(results)) {
-                throw new Error('Les résultats de la requête ne sont pas un tableau');
-            }
-
-            if (results.length === 0) {
-                throw new Error("Fiche programme non trouvée");
-            }
-            return { 
-                chemin: `${process.env.BASE_URL || 'http://localhost:5000'}/uploads/${results[0].chemin}`
-            };
-        } catch (err) {
-            console.error("Erreur lors de la récupération de la fiche programme:", err);
-            throw err;
-        }
-    }
+    
 
     async sendEmail(subject, body, email) {
         try {
@@ -255,6 +202,49 @@ class CatalogueUserRepository {
             console.error("Erreur lors de l'envoi de l'email:", err);
             throw err;
         }
+    }
+
+    async getFormateursByTheme(id_theme) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                SELECT 
+                    f.id_formateur,
+                    f.nom_complet,
+                    f.cv,
+                    f.tarif_journalier,
+                    s.fiche_prg,
+                    s.cours_session,
+                    s.mode,
+                    s.duree
+                FROM 
+                    formateur f
+                JOIN 
+                    session s ON f.id_formateur = s.id_formateur
+                JOIN 
+                    theme t ON s.id_theme = t.id_theme
+                WHERE 
+                    t.id_theme = ? 
+                    AND (
+                        f.themes_a_enseigner LIKE CONCAT('%{"id_theme":', t.id_theme, '%')
+                        OR f.themes_a_enseigner LIKE CONCAT('%"id_theme":', t.id_theme, '%')
+                    )
+            `;
+            
+            db.query(query, [id_theme], (error, results) => {
+                if (error) {
+                    console.error('Erreur lors de la récupération des formateurs:', error);
+                    return reject(new Error('Erreur de base de données'));
+                }
+                
+                // Vérification que results est bien un tableau
+                if (!Array.isArray(results)) {
+                    console.error('Les résultats ne sont pas un tableau:', results);
+                    return reject(new Error('Format de données incorrect'));
+                }
+                
+                resolve(results);
+            });
+        });
     }
 }
 

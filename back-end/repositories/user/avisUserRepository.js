@@ -4,7 +4,7 @@ class AvisUserRepository {
     async createAvis(avisData) {
         try {
             const query = `
-                INSERT INTO avis_participant 
+                INSERT INTO avis 
         (id_participant, id_session, note, commentaire, adaptation_programme_vie_pro, 
         moyens_pedagogiques_utilises, convenance_horaires_formation, apports_niveau_professionnel, 
         qualite_documentation_distribuee, maitrise_globale_sujets_presentes, traitement_exemples_travail, 
@@ -45,12 +45,12 @@ class AvisUserRepository {
     async getSessionsByParticipant(id_participant) {
         return new Promise((resolve, reject) => {
             const query = `
-                SELECT s.id_session, t.nom_theme, t.code, s.id_formation, s.id_formateur
-                FROM session_formation s
+                SELECT s.id_session, t.theme, t.code, s.id_formation, s.id_formateur
+                FROM session s
                 JOIN theme t on t.id_theme = s.id_theme
                 
                 JOIN feuille_presence_participants fpp ON FIND_IN_SET(s.id_session, fpp.id_session) > 0
-                JOIN participants p on p.id_participant=fpp.id_participant 
+                JOIN participant p on p.id_participant=fpp.id_participant 
                 WHERE p.id_participant =?;
             `;
 

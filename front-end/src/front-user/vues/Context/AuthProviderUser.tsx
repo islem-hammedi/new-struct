@@ -6,6 +6,7 @@ interface User {
   token: string;
   nom_complet: string;
   mail: string;
+  badge?:string;
   isFormateur: boolean;
 }
 

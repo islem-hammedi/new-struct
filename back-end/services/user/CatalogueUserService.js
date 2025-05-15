@@ -1,4 +1,4 @@
-const CatalogueRepository = require('../../repositories/user/CatalogueUserRepository');
+const CatalogueRepository = require('../../repositories/User/CatalogueUserRepository');
 
 class CatalogueUserService {
     constructor() {
@@ -37,6 +37,17 @@ class CatalogueUserService {
             throw new Error('Subject, body et email sont requis');
         }
         return this.catalogueRepository.sendEmail(subject, body, email);
+    }
+
+    async getFormateursByTheme(id_theme) {
+        try {
+            if (!id_theme) {
+                throw new Error('ID du thème requis');
+            }
+            return await this.catalogueRepository.getFormateursByTheme(id_theme);
+        } catch (error) {
+            throw error;
+        }
     }
 }
 

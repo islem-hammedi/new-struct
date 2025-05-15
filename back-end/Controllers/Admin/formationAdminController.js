@@ -14,29 +14,45 @@ const formationAdminController = {
         }
     },
 
-    addFormation: async (req, res) => {
+    async addFormation(req, res) {
       try {
-          const { domaine } = req.body;
-          const sessions = JSON.parse(req.body.sessions);
-          const files = req.files;
+          // Vérifier que les fichiers sont bien reçus
+          if (!req.files) {
+              return res.status(400).json({
+                  success: false,
+                  message: "Aucun fichier reçu"
+              });
+          }
 
+          // Extraire les données
+          const { domaine, sessions } = req.body;
+          const parsedSessions = typeof sessions === 'string' ? JSON.parse(sessions) : sessions;
+
+          // Valider les données
+          if (!domaine || !parsedSessions || !Array.isArray(parsedSessions)) {
+              return res.status(400).json({
+                  success: false,
+                  message: "Données invalides"
+              });
+          }
+
+          // Appeler le service
           const result = await formationAdminService.createFormationWithSessions(
               domaine,
-              sessions,
-              files
+              parsedSessions,
+              req.files
           );
 
-          if (result.success) {
-              res.status(201).json(result);
-          } else {
-              res.status(400).json(result);
+          if (!result.success) {
+              return res.status(400).json(result);
           }
+
+          res.status(201).json(result);
       } catch (error) {
-          console.error("Erreur:", error);
-          res.status(500).json({ 
+          console.error("Erreur addFormation controller:", error);
+          res.status(500).json({
               success: false,
-              message: 'Erreur serveur',
-              error: process.env.NODE_ENV === 'development' ? error.stack : undefined
+              message: error.message || "Erreur serveur"
           });
       }
   },
@@ -70,16 +86,18 @@ const formationAdminController = {
   },
   async deleteSession(req, res) {
     try {
-        const { id } = req.params;
+      const { formationId, sessionId } = req.params;
         
-        if (!id || isNaN(id)) {
+        if (!sessionId || isNaN(sessionId)) {
             return res.status(400).json({
                 success: false,
                 message: "ID de session invalide"
             });
         }
 
-        const result = await formationAdminService.deleteSession(parseInt(id));
+
+
+        const result = await formationAdminService.deleteSession(sessionId, formationId);
 
         if (result.success) {
             res.status(200).json(result);
@@ -94,9 +112,45 @@ const formationAdminController = {
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
+},
+async updateSession(req, res) {
+  console.log("Requête reçue - Body:", req.body);
+  console.log("Requête reçue - Fichiers:", req.files); // Changé de req.file à req.files
+
+  try {
+    const { formationId, sessionId } = req.params;
+    
+    if (!formationId || !sessionId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "IDs manquants" 
+      });
+    }
+
+    const file = {
+      fiche_programme: req.files['fiche_programme']?.[0], // Correction ici
+      cours_session: req.files['cours_session']?.[0] // Correction ici
+    };
+
+    console.log("Fichiers traités:", file);
+
+    const result = await formationAdminService.updateSession(
+      formationId,
+      sessionId,
+      req.body,
+      file
+    );
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Erreur dans controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Erreur serveur"
+    });
+  }
 }
-};
- 
+}
 
 
 module.exports = formationAdminController;

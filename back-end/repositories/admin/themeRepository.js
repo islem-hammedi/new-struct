@@ -1,10 +1,10 @@
 const db = require('../../connect');
-const Theme = require('../../models/admin/theme');
+const Theme = require('../../models/admin/Theme');
 
 class ThemeRepository {
   async create(nom_theme, code, id_domaine) {
     const [result] = await db.query(
-      'INSERT INTO theme (nom_theme, code, id_domaine) VALUES (?, ?, ?)',
+      'INSERT INTO theme (theme, code, id_domaine) VALUES (?, ?, ?)',
       [nom_theme, code, id_domaine]
     );
     return new Theme({

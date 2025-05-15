@@ -268,8 +268,8 @@ class CatalogueRepository {
           return reject(new Error("Thème non trouvé"));
         }
 
-        const themeName = themeResults[0].theme;
-
+        const themeName = themeResults.theme;
+        console.log('themeName',themeName);
         try {
           // 2. Traitement des formateurs à supprimer
           for (const id_formateur of formateursToRemove) {
@@ -284,7 +284,7 @@ class CatalogueRepository {
                   }
 
                   if (formateurResults && formateurResults.length > 0) {
-                    const formateur = formateurResults[0];
+                    const formateur = formateurResults;
                     let themes = {};
 
                     try {
@@ -337,7 +337,7 @@ class CatalogueRepository {
                   }
 
                   if (formateurResults && formateurResults.length > 0) {
-                    const formateur = formateurResults[0];
+                    const formateur = formateurResults;
                     let themes = {};
 
                     try {
@@ -350,6 +350,7 @@ class CatalogueRepository {
                     }
 
                     themes[themeName] = rang;
+                    console.log('domaine,themeName à inserer:',JSON.stringify(themes), domaines.join(','));
                     const domaines = Object.keys(themes);
 
                     db.query(

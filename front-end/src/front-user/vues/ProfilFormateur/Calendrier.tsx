@@ -20,7 +20,7 @@ const Calendrier: React.FC = () => {
       headers: { Authorization: `Bearer ${userData.token}` }
     })
     .then(response => {
-      console.log("Données reçues de l'API :", response.data); // ➡️ Vérifie ici
+      console.log("Données reçues de l'API :", response.data); 
       const formattedEvents = response.data.map((event: any) => ({
         id: event.id,
         title: event.title,

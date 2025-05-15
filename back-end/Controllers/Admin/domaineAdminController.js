@@ -21,20 +21,20 @@ const db = require('../../connect');
 const domaineAdminService = require('../../services/admin/domaineAdminService');
 
 const domaineAdminController = {
-  getDomains: async (req, res) => {
-    try {
-        const domaines = await domaineAdminService.getAllDomaines();
-        
-        if (domaines.length > 0) {
-            const data = domaines.join('\n');
-            res.type('text/plain').send(data);
-        } else {
-            res.type('text/plain').send('Aucune donnée disponible !');
-        }
-    } catch (error) {
-        console.error('Erreur de récupération des données:', error);
-        res.status(500).send('Erreur de récupération des données');
+ getDomains: async (req, res) => {
+  try {
+    const domaines = await domaineAdminService.getAllDomaines();
+
+    if (domaines.length > 0) {
+      // Renvoie les données sous forme de JSON structuré
+      res.status(200).json(domaines);
+    } else {
+      res.status(200).json([]); // Renvoie un tableau vide si aucune donnée
     }
+  } catch (error) {
+    console.error('Erreur de récupération des données:', error);
+    res.status(500).json({ message: 'Erreur de récupération des données' });
+  }
 },
 
 getThemesByDomaine: async (req, res) => {

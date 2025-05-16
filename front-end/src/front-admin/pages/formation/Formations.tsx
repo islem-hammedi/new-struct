@@ -95,9 +95,6 @@ const FormationsList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredFormations, setFilteredFormations] = useState<Formation[]>([]);
   const [expandedDomains, setExpandedDomains] = useState<Record<string, boolean>>({});
-
-
-  
   const [isAvispOpen, setIsAvispOpen] = useState(false);
   const [isAvisfOpen, setIsAvisfOpen] = useState(false);
 
@@ -337,7 +334,7 @@ const FormationsList: React.FC = () => {
   
       {!editingFormation && (
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-teal-700">Gestion des Formations</h1>
+          <h1 className="text-3xl font-bold text-teal-700">Formations</h1>
           <div className="flex items-center space-x-4">
             <div className="relative">
               <input
@@ -351,9 +348,9 @@ const FormationsList: React.FC = () => {
             </div>
             <button
               onClick={() => setShowAddFormation(true)}
-              className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg flex items-center"
+              className="bg-teal-600 hover:bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center"
             >
-              <span className="mr-2">+</span> Nouvelle Formation
+              <span className="mr-2">+</span> Planifier Formation
             </button>
           </div>
         </div>

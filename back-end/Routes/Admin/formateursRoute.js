@@ -28,8 +28,8 @@ const uploads = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // Limite de 10MB par fichier
 }).fields([
   { name: "cv", maxCount: 1 },         // 1 seul CV
-  { name: "fichePrg", maxCount: 10 }, 
-  { name: "coursSession", maxCount: 10 }
+  { name: "fiche_programme", maxCount: 10 }, 
+  { name: "cours_session", maxCount: 10 }
 ]);
 
 

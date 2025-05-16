@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
-
+const fs = require('fs');
+const multer = require('multer');
 const router = express.Router();
 const { 
     getFormationsARealiser, 
@@ -29,7 +30,7 @@ const upload = multer({
 }).fields([
   { name: "photo", maxCount: 1 },    
   { name: "cv", maxCount: 1 },       
-  { name: "fichePrg", maxCount: 10 },
+  { name: "fiche_programme", maxCount: 10 },
   { name: "ficheAvis", maxCount: 20}  
 ]);
 

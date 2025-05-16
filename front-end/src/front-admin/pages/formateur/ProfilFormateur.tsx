@@ -6,16 +6,12 @@ interface DomaineTheme {
   domaine: string;
   theme: string[];
 }
-interface FichePrg {
-  id_fichePrg: number;
-  chemin: string;
-  id_formateur: number;
-}
 
-interface CoursSession {
-  id_cours: number;
-  chemin: string;
-  id_formateur: number;
+
+interface fichierFormateur {
+  cours_session: string;
+  fiche_programme: string;
+  id_session: number;
 }
 interface Formateur {
   id_formateur: number;
@@ -34,8 +30,8 @@ interface Formateur {
   RIB:string;
   domaine_assistance:string;
   cv: string | null;
- fichePrg: FichePrg[];
-  coursSession: CoursSession[];
+ fichePrg: fichierFormateur[];
+  coursSession: fichierFormateur[];
   retour_sacConsulting: string;
 }
 
@@ -49,10 +45,10 @@ const ProfilFormateur: React.FC = () => {
   const [isEditing, setIsEditing] = useState(new URLSearchParams(location.search).get("mode") === "edit");
   const [updatedFormateur, setUpdatedFormateur] = useState<Formateur | null>(null);
   const [cvFile, setCvFile] = useState<File | null>(null);
-  const [coursSessionFiles, setCoursSessionFiles] = useState<File[]>([]);
+  {/*const [coursSessionFiles, setCoursSessionFiles] = useState<File[]>([]);
   const [fichePrgFiles, setFichePrgFiles] = useState<File[]>([]);
   const [fichePrgToDelete, setFichePrgToDelete] = useState<string[]>([]); 
-  const [coursSessionToDelete, setCoursSessionToDelete] = useState<string[]>([]); // Pour stocker les fiches sélectionnées à supprimer
+  const [coursSessionToDelete, setCoursSessionToDelete] = useState<string[]>([]); // Pour stocker les fiches sélectionnées à supprimer*/}
   const [error, setError] = useState<string | null>(null);
   const [isLoading] = useState(false);
   const { user } = useAuth(); 
@@ -65,16 +61,19 @@ const ProfilFormateur: React.FC = () => {
     const files = e.target.files ? Array.from(e.target.files) : [];
   
     if (type === "cv" && files.length > 0) {
-      setCvFile(files[0]); // On prend seulement le premier fichier pour le CV
-    } else if (type === "fichePrg" && files.length > 0) {
+      setCvFile(files[0]); 
+    } 
+    
+    {/*else if (type === "fichePrg" && files.length > 0) {
       setFichePrgFiles((prevFiles) => [...prevFiles, ...files]);
     } else if (type === "coursSession" && files.length > 0) {
       setCoursSessionFiles((prevFiles) => {
         const newFiles = [...prevFiles, ...files];
         console.log('Fichiers coursSession après ajout :', newFiles);
         return newFiles;
-      });
-    }
+      });}
+      */}
+    
   };
   
 
@@ -120,22 +119,7 @@ const ProfilFormateur: React.FC = () => {
     }
   };
   
-  const handleFichePrgDelete = (fiche: FichePrg) => {
-    setFichePrgToDelete((prev) => {
-      if (prev.includes(fiche.chemin)) {
-        return prev.filter((item) => item !== fiche.chemin); // Retirer la fiche de la suppression si elle est déjà sélectionnée
-      }
-      return [...prev, fiche.chemin]; // Ajouter la fiche à la liste des fiches à supprimer
-    });
-  };
-  const handleCoursSessionDelete = (cours: CoursSession) => {
-    setCoursSessionToDelete((prev) => {
-      if (prev.includes(cours.chemin)) {
-        return prev.filter((item) => item !== cours.chemin); // Retirer la fiche de la suppression si elle est déjà sélectionnée
-      }
-      return [...prev, cours.chemin]; // Ajouter la fiche à la liste des fiches à supprimer
-    });
-  };
+ 
   const handleSave = async () => {
     const formData = new FormData();
   
@@ -160,43 +144,14 @@ const ProfilFormateur: React.FC = () => {
       }
     });
     
-    // Ajouter les fichiers (photo, CV, fiches de programme)
     if (cvFile) formData.append("cv", cvFile);
   
-    fichePrgFiles.forEach((file) => {
-      formData.append("fichePrg", file); // Utilisez un tableau de noms génériques
-    });
-    coursSessionFiles.forEach((file) => {
-      formData.append("coursSession", file);
-
-    });
-    fichePrgToDelete.forEach((fiche) => {
-      formData.append("fichePrgToDelete", fiche);
-    });
-    coursSessionToDelete.forEach((cours) => {
-      formData.append("coursSessionToDelete", cours);
-    });
+   
     // Afficher le contenu de FormData pour débogage
     for (let [key, value] of formData.entries()) {
       console.log(key, value);
     }
   
-    // Demander à l'utilisateur s'il veut supprimer les anciennes fiches
-    if (fichePrgToDelete.length > 0) {
-      const deleteFiches = window.confirm("Souhaitez-vous supprimer les anciennes fiches de programme ?");
-      if (deleteFiches) {
-        formData.append("deleteFiches", "true");
-      }
-    }
-    if (coursSessionToDelete.length > 0) {
-      const deleteCours = window.confirm("Souhaitez-vous supprimer les anciens cours de session ?");
-      if (deleteCours) {
-        formData.append("deleteCours", "true");
-      }
-    }
-    for (let [key, value] of formData.entries()) {
-      console.log(key, value);
-    }
     // Envoyer la requête PUT au serveur
     try {
       await axios.put(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formateurs/${id}`, formData, {
@@ -207,10 +162,7 @@ const ProfilFormateur: React.FC = () => {
       
       setIsEditing(false);
     setError(null);
-    setFichePrgFiles([]);
-    setCoursSessionFiles([]);
-    setFichePrgToDelete([]);
-    setCoursSessionToDelete([]);
+   
 
       const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formateurs/${id}`);
       setFormateur(response.data);
@@ -229,10 +181,10 @@ const ProfilFormateur: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto mt-12 bg-white shadow-lg p-6 rounded-lg">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">Fiche du Formateur</h2>
+      <h2 className="text-2xl font-bold text-gray-800 mb-4">{formateur.nom_complet}</h2>
 
      
-      <div className="grid grid-cols-2 gap-4 bg-gray-200 marge-10  p-6 w-full mb-6">
+      <div className="grid grid-cols-2 gap-4 bg-gray-100 marge-10  p-6 w-full mb-6">
         <p className="font-semibold">CV:</p>
         {formateur.cv ? (
           <a 
@@ -256,19 +208,15 @@ const ProfilFormateur: React.FC = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 bg-gray-200 marge-10  p-6 w-full mb-6">
+      <div className="grid grid-cols-2 gap-4 bg-gray-100 marge-10  p-6 w-full mb-6">
         <p className="font-semibold">Fiches programme :</p>
         {formateur.fichePrg && formateur.fichePrg.length > 0 ? (
           <ul className="mt-2">
             {formateur.fichePrg.map((fiche, index) => (
               <div key={index}>
-                <input
-                  type="checkbox"
-                  onChange={() => handleFichePrgDelete(fiche)}
-                  checked={fichePrgToDelete.includes(fiche.chemin)}
-                />
+               
                 <span>{`Fiche ${index + 1}: `}</span>
-                <a href={`${import.meta.env.VITE_APP_API_URL}/uploads/${fiche.chemin}`} 
+                <a href={`${import.meta.env.VITE_APP_API_URL}/uploads/${fiche.fiche_programme}`} 
                 target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
                 Télécharger la fiche {index + 1}
                 </a>
@@ -282,19 +230,14 @@ const ProfilFormateur: React.FC = () => {
         
       </div>
 
-      <div className="grid grid-cols-2 gap-4 bg-gray-200 marge-10  p-6 w-full mb-6">
+      <div className="grid grid-cols-2 gap-4 bg-gray-100 marge-10  p-6 w-full mb-6">
         <p className="font-semibold">Cours de session:</p>
         {formateur.coursSession && formateur.coursSession.length > 0 ? (
           <ul className="mt-2">
             {formateur.coursSession.map((cours, index) => (
               <div key={index}>
-                <input
-                  type="checkbox"
-                  onChange={() => handleCoursSessionDelete(cours)}
-                  checked={coursSessionToDelete.includes(cours.chemin)}
-                />
                 <span>{`Fiche ${index + 1}: `}</span>
-                <a href={`${import.meta.env.VITE_APP_API_URL}/uploads/${cours.chemin}`}
+                <a href={`${import.meta.env.VITE_APP_API_URL}/uploads/${cours.cours_session}`}
                  target="_blank" 
                  rel="noopener noreferrer" 
                  className="text-blue-600 underline">
@@ -312,7 +255,7 @@ const ProfilFormateur: React.FC = () => {
 
 
       {/* Formulaire */}
-      <div className="grid grid-cols-2 gap-4  bg-gray-200 marge-10  p-6 w-full mb-6">
+      <div className="grid grid-cols-2 gap-4  bg-white marge-10  p-6 w-full mb-6">
         <div className=" grid bg-gray-100 marge-6  p-6 w-full mb-10">
           <p className="font-semibold">Nom complet:</p>
           {isEditing ? (

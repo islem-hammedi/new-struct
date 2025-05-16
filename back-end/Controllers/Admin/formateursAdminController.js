@@ -1,6 +1,6 @@
-const db = require('../../connect');
+{/*const db = require('../../connect');
 const path = require('path');
-const fs = require('fs');  // Assure-toi d'avoir ce module
+const fs = require('fs'); 
 const bcrypt = require('bcrypt');
 const pdf2json = require("pdf2json");
 const multer = require('multer');
@@ -35,13 +35,11 @@ const getFormateurs = (req, res) => {
             return res.status(500).json({ error: err.message });
           }
 
-          // Ajout des fiches programme et des sessions de cours au formateur
           formateur.fichePrg = ficheResults;
-          formateur.coursSession = coursResults; // Ajout des cours sessions
+          formateur.coursSession = coursResults; 
           formateursWithFichesAndCours.push(formateur);
           processedFormateurs++;
 
-          // Si tous les formateurs ont été traités, renvoyer la réponse
           if (processedFormateurs === results.length) {
             return res.json(formateursWithFichesAndCours);
           }
@@ -66,7 +64,7 @@ const getFormateurById = (req, res) => {
     }
 
     const formateur = result[0];
-    console.log(formateur.cv); // Voir si 'cv' est bien un objet et contient un chemin
+    console.log(formateur.cv); 
 
     // Requête pour obtenir les fiches programme et les sessions de cours liées à ce formateur
     const fichePrgQuery = 'SELECT fiche_prg FROM session WHERE id_formateur = ?';
@@ -88,7 +86,7 @@ const getFormateurById = (req, res) => {
 
         // Ajouter les fiches programme et les sessions de cours au formateur
         formateur.fichePrg = ficheResults;
-        formateur.coursSession = coursResults; // Ajouter les sessions de cours
+        formateur.coursSession = coursResults; 
 
         return res.json(formateur);
       });
@@ -166,17 +164,6 @@ const updateFormateur = (req, res) => {
         console.error('Erreur lors de la mise à jour du formateur:', err);
         return res.status(500).json({ error: err.message });
       }
-
-      // Mettre à jour les fiches programme si nécessaire
-      if (deleteFiches === "true" && fichePrg.length > 0) {
-        updateFichesProgramme(id, fichePrg);
-      }
-
-      // Mettre à jour les cours session si nécessaire
-      if (deleteFiches === "true" && coursSession.length > 0) {
-        updateCoursSession(id, coursSession);
-      }
-
       return res.json({ message: 'Formateur mis à jour avec succès' });
     });
   });
@@ -233,7 +220,6 @@ const addFormateur = (req, res) => {
     tarif_journalier, nb_formations, tel, cv, mdp_formateur, niveau_etude, 
     nb_experience, horraire_jour, nom_banque, RIB, domaine_assistance, retour_sacConsulting 
   } = req.body;
-  // Validation des champs obligatoires
   if (!nom_complet || !mail || !mdp_formateur) {
     return res.status(400).json({ error: "Les champs 'nom_complet', 'mail' et 'mdp_formateur' sont obligatoires." });
   }
@@ -317,53 +303,107 @@ module.exports = {
   getDomaineThemes
  
 };
+*/}
 
 
 
-{/*}
 
-const formateurService = require('../../services/admin/formateur');
 
-exports.getAllFormateurs = async (req, res) => {
+
+
+
+
+
+
+
+const FormateurService = require('../../services/admin/formateur');
+
+const getFormateurs = async (req, res) => {
   try {
-    const formateurs = await formateurService.getAllFormateurs();
-    res.json(formateurs); // Retourne directement le tableau trié
-  } catch (error) {
-    console.error('Error in getAllFormateurs:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Erreur serveur lors de la récupération des formateurs'
-    });
+    const formateurs = await FormateurService.getAllFormateurs();
+    return res.json(formateurs);
+  } catch (err) {
+    console.error("Error fetching formateurs:", err);
+    return res.status(500).json({ error: err.message });
   }
 };
 
-exports.extractPdfContent = async (req, res) => {
+const getFormateurById = async (req, res) => {
+  const { id } = req.params;
   try {
-    const { formateurId, searchTerm } = req.body;
-    const result = await formateurService.extractPdfContent(formateurId, searchTerm);
-    res.json({
-      success: true,
-      content: result.content
-    });
-  } catch (error) {
-    console.error('Error in extractPdfContent:', error);
-    res.status(500).json({
-      success: false,
-      message: "Erreur lors de l'extraction du contenu PDF"
-    });
+    const formateur = await FormateurService.getFormateurById(id);
+    return res.json(formateur);
+  } catch (err) {
+    console.error("Error fetching formateur:", err);
+    if (err.message === 'Formateur not found') {
+      return res.status(404).json({ message: err.message });
+    }
+    return res.status(500).json({ error: err.message });
   }
 };
 
-exports.deleteFormateur = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await formateurService.deleteFormateur(id);
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error in deleteFormateur:', error);
-    res.status(500).json({
-      success: false,
-      message: "Erreur lors de la suppression du formateur"
-    });
+const updateFormateur = async (req, res) => {
+  const id = req.params.id;
+  const updates = req.body; 
+  let cv = null;
+
+  if (req.files?.cv) {
+    cv = req.files.cv[0].filename;
   }
-};*/}
+
+  try {
+    const result = await FormateurService.updateFormateur(id, updates, cv);
+    res.json(result);
+    console.log('updates',updates);
+  } catch (err) {
+    console.error('Erreur lors de la mise à jour du formateur:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const deleteFormateur = async (req, res) => {
+  const id = req.params.id;
+  try {
+    const result = await FormateurService.deleteFormateur(id);
+    res.json(result);
+  } catch (err) {
+    console.error('Erreur lors de la suppression du formateur:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const addFormateur = async (req, res) => {
+  const data = req.body;
+  const cv = req.files?.cv ? req.files.cv[0].filename : undefined;
+
+  if (!data.nom_complet || !data.mail || !data.mdp_formateur) {
+    return res
+      .status(400)
+      .json({ error: "Les champs 'nom_complet', 'mail' et 'mdp_formateur' sont obligatoires." });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(data.mdp_formateur, 10);
+    const result = await FormateurService.addFormateur(data, cv, hashedPassword);
+    res.status(201).json(result);
+  } catch (err) {
+    console.error('Erreur lors de l\'ajout du formateur:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const getDomaineThemes = async (req, res) => {
+  try {
+    const domainesThemes = await FormateurService.getDomaineThemes();
+    res.json(domainesThemes);
+  } catch (err) {
+    console.error('Erreur lors de la récupération des domaines et thèmes:', err);
+    res.status(500).send('Erreur lors de la récupération des domaines et thèmes');
+  }
+};
+
+
+module.exports = {
+  getFormateurs,
+  getFormateurById,getDomaineThemes,addFormateur,updateFormateur,deleteFormateur
+};

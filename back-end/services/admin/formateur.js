@@ -1,264 +1,121 @@
-{/*
-const Formateur = require('../../models/admin/formateur');
-const formateurRepository = require('../../repositories/admin/formateur');
-const bcrypt = require('bcrypt');
-const fs = require('fs');
-const path = require('path');
-const pdfParse = require('pdf-parse');
+const FormateurRepository = require('../../repositories/admin/formateur');
 
-const getAllFormateurs = (callback) => {
-  formateurRepository.findAllFormateurs((error, formateursData) => {
-    if (error) return callback(error);
-    
-    const formateursWithFiles = [];
-    let processed = 0;
-    
-    if (formateursData.length === 0) return callback(null, []);
-    
-    formateursData.forEach(formateur => {
-      formateurRepository.getFormateurFiles(formateur.id_formateur, (err, files) => {
-        if (err) return callback(err);
-        
-        const formateurObj = new Formateur({
-          ...formateur,
-          fichePrg: files.fiches,
-          coursSession: files.cours
-        });
-        
-        formateursWithFiles.push(formateurObj);
-        processed++;
-        
-        if (processed === formateursData.length) {
-          callback(null, formateursWithFiles);
-        }
+class FormateurService {
+  async getAllFormateurs() {
+    try {
+      const formateurs = await FormateurRepository.getAllFormateurs();
+      const formateursWithDetails = await Promise.all(
+        formateurs.map(async (formateur) => {
+          const fichePrg = await FormateurRepository.getFichePrgByFormateurId(formateur.id_formateur);
+          const coursSession = await FormateurRepository.getCoursSessionByFormateurId(formateur.id_formateur);
+          return { ...formateur, fichePrg, coursSession };
+        })
+      );
+      return formateursWithDetails;
+    } catch (err) {
+      throw new Error(err.message);
+    }
+  }
+
+  async getFormateurById(idFormateur) {
+    try {
+      const formateur = await FormateurRepository.getFormateurById(idFormateur);
+      if (formateur.length === 0) {
+        throw new Error('Formateur not found');
+      }
+      const fichePrg = await FormateurRepository.getFichePrgByFormateurId(idFormateur);
+      const coursSession = await FormateurRepository.getCoursSessionByFormateurId(idFormateur);
+      return { ...formateur[0], fichePrg, coursSession };
+    } catch (err) {
+      throw new Error(err.message);
+    }
+  }
+
+  async updateFormateur(id, updates, cv) {
+    // Récupérer le formateur actuel pour vérifier l'existence et le CV actuel
+    const currentFormateur = await FormateurRepository.getFormateurById(id);
+    if (currentFormateur.length === 0) {
+      throw new Error('Formateur non trouvé');
+    }
+
+    // Si aucun CV n'est fourni lors de la mise à jour, garder l'ancien CV
+    if (!cv) {
+      cv = currentFormateur[0].cv;
+    } else {
+      updates.cv = cv; // Ajoute le nouveau CV si présent
+    }
+
+    // Liste des seuls champs valides pour la table `formateur`
+    const validFields = [
+      'nom_complet', 'mail', 'adr', 'domaine_de_competences',
+      'themes_a_enseigner', 'tarif_journalier', 'nb_formations',
+      'tel', 'cv', 'mdp_formateur', 'niveau_etude',
+      'nb_experience', 'horraire_jour', 'nom_banque',
+      'RIB', 'domaine_assistance', 'retour_sacConsulting'
+    ];
+
+    // Filtrer l'objet `updates` pour ne garder que les champs valides
+    updates = Object.keys(updates)
+      .filter((key) => validFields.includes(key) && updates[key] !== undefined)
+      .reduce((obj, key) => {
+        obj[key] = updates[key];
+        return obj;
+      }, {});
+
+    // Construction dynamique des champs et des valeurs pour la mise à jour
+    const fields = Object.keys(updates)
+      .map((key) => `${key} = ?`)
+      .join(', ');
+
+    if (!fields) {
+      throw new Error('Aucun champ valide à mettre à jour');
+    }
+
+    const values = Object.values(updates);
+    await FormateurRepository.updateFormateur(fields, values, id);
+
+    return { message: 'Formateur mis à jour avec succès' };
+  }
+
+  async deleteFormateur(id) {
+    const formateur = await FormateurRepository.getFormateurById(id);
+    if (formateur.length === 0) {
+      throw new Error('Formateur non trouvé');
+    }
+
+    if (formateur[0].cv) {
+      const cvPath = path.join(__dirname, '../..', 'uploads', formateur[0].cv);
+      fs.unlink(cvPath, (err) => {
+        if (err) console.error("Erreur de suppression du CV:", err);
       });
-    });
-  });
-};
+    }
 
-const getFormateurById = (id, callback) => {
-  formateurRepository.findFormateurById(id, (error, formateurData) => {
-    if (error) return callback(error);
-    if (!formateurData) return callback(null, null);
-    
-    formateurRepository.getFormateurFiles(id, (err, files) => {
-      if (err) return callback(err);
-      
-      const formateur = new Formateur({
-        ...formateurData,
-        fichePrg: files.fiches,
-        coursSession: files.cours
-      });
-      
-      callback(null, formateur);
-    });
-  });
-};
-
-const createFormateur = (formateurData, files, callback) => {
-  // Validation des champs obligatoires
-  if (!formateurData.nom_complet || !formateurData.mail || !formateurData.mdp_formateur) {
-    return callback(new Error("Les champs 'nom_complet', 'mail' et 'mdp_formateur' sont obligatoires"));
+    await FormateurRepository.deleteFormateur(id);
+    return { message: 'Formateur et fichiers associés supprimés avec succès' };
   }
 
-  bcrypt.hash(formateurData.mdp_formateur, 10, (err, hashedPassword) => {
-    if (err) return callback(err);
-    
-    formateurData.mdp_formateur = hashedPassword;
-    formateurData.cv = files?.cv?.[0]?.filename;
-    
-    formateurRepository.createFormateur(formateurData, (error, formateurId) => {
-      if (error) return callback(error);
-      
-      // Gestion des fichiers
-      const fichePrgPath = files?.fichePrg?.[0]?.filename;
-      const coursPath = files?.coursSession?.[0]?.filename;
-      
-      const insertions = [];
-      
-      if (fichePrgPath) {
-        insertions.push((cb) => {
-          formateurRepository.addFicheProgramme(formateurId, fichePrgPath, cb);
-        });
+  async addFormateur(data, cv, hashedPassword) {
+    const insertData = [
+      data.nom_complet, data.mail, data.adr, data.domaine_de_competences, data.themes_a_enseigner,
+      data.tarif_journalier, data.nb_formations, data.tel, cv, hashedPassword, data.niveau_etude,
+      data.nb_experience, data.horraire_jour, data.nom_banque, data.RIB, data.domaine_assistance,
+      data.retour_sacConsulting,
+    ];
+
+    const result = await FormateurRepository.addFormateur(insertData);
+    return { message: 'Formateur ajouté avec succès', id: result.insertId };
+  }
+
+  async getDomaineThemes() {
+    const results = await FormateurRepository.getDomaineThemes();
+    const domainesThemes = results.reduce((acc, item) => {
+      if (!acc[item.domaine]) {
+        acc[item.domaine] = [];
       }
-      
-      if (coursPath) {
-        insertions.push((cb) => {
-          formateurRepository.addCoursSession(formateurId, coursPath, cb);
-        });
-      }
-      
-      if (insertions.length === 0) {
-        return callback(null, { id: formateurId });
-      }
-      
-      // Exécuter toutes les insertions en série
-      const executeInsertions = (index) => {
-        if (index >= insertions.length) {
-          return callback(null, { id: formateurId });
-        }
-        
-        insertions[index]((err) => {
-          if (err) return callback(err);
-          executeInsertions(index + 1);
-        });
-      };
-      
-      executeInsertions(0);
-    });
-  });
-};
+      acc[item.domaine].push(item.theme);
+      return acc;
+    }, {});
 
-
-const updateFormateur = async (id, formateurData, files) => {
-  try {
-    // Gestion des fichiers
-    if (files?.cv) {
-      formateurData.cv = files.cv[0].filename;
-    }
-    if (files?.fichePrg) {
-      await formateurRepository.updateFichesProgramme(id, files.fichePrg.map(f => f.filename));
-    }
-    if (files?.coursSession) {
-      await formateurRepository.updateCoursSession(id, files.coursSession.map(f => f.filename));
-    }
-
-    // Mise à jour du formateur
-    await formateurRepository.updateFormateur(id, formateurData);
-    return { id };
-  } catch (error) {
-    throw { message: error.message || "Erreur lors de la mise à jour du formateur", details: error, statusCode: error.statusCode || 500 };
-  }
-};
-
-const deleteFormateur = async (id) => {
-  try {
-    // Récupération des fichiers à supprimer
-    const formateurFiles = await formateurRepository.getFormateurFiles(id);
-    
-    // Suppression physique des fichiers
-    if (formateurFiles.cv) {
-      const cvPath = path.join(__dirname, '../../../uploads', formateurFiles.cv);
-      fs.unlinkSync(cvPath);
-    }
-
-    // Suppression en base de données
-    await formateurRepository.deleteFormateur(id);
-  } catch (error) {
-    throw { message: error.message || "Erreur lors de la suppression du formateur", details: error, statusCode: error.statusCode || 500 };
-  }
-};
-
-const extractPDFContent = async (formateurId, searchTerm) => {
-  try {
-    if (!formateurId || !searchTerm) {
-      throw { message: "ID du formateur et terme de recherche requis", statusCode: 400 };
-    }
-
-    const pdfPaths = await formateurRepository.getFormateurPDFPaths(formateurId);
-    if (!pdfPaths.length) {
-      throw { message: "Aucun fichier PDF trouvé pour ce formateur", statusCode: 404 };
-    }
-
-    const texts = await Promise.all(
-      pdfPaths.map(async (filePath) => {
-        try {
-          const dataBuffer = fs.readFileSync(filePath);
-          const pdfData = await pdfParse(dataBuffer);
-          return pdfData.text;
-        } catch (err) {
-          console.error(`Erreur lors du traitement du fichier PDF: ${filePath}`, err);
-          return '';
-        }
-      })
-    );
-
-    const combinedText = texts.join(" ").toLowerCase();
-    const searchTermNormalized = searchTerm.toLowerCase();
-    const contentMatch = combinedText.includes(searchTermNormalized);
-
-    return {
-      message: contentMatch ? "Mot-clé trouvé dans le PDF" : "Mot-clé non trouvé dans le PDF",
-      content: contentMatch ? combinedText : undefined
-    };
-  } catch (error) {
-    throw { message: error.message || "Erreur lors de l'extraction du contenu PDF", details: error, statusCode: error.statusCode || 500 };
-  }
-};
-
-const getDomaineThemes = async () => {
-  try {
-    return await formateurRepository.getDomaineThemes();
-  } catch (error) {
-    throw { message: "Erreur lors de la récupération des domaines et thèmes", details: error, statusCode: 500 };
-  }
-};
-
-module.exports = {
-  getAllFormateurs,
-  getFormateurById,
-  createFormateur,
-  updateFormateur,
-  deleteFormateur,
-  extractPDFContent,
-  getDomaineThemes
-};*/}
-const Formateur = require('../../models/admin/formateur');
-const formateurRepository = require('../../repositories/admin/formateur');
-const fs = require('fs');
-const path = require('path');
-const pdfParse = require('pdf-parse');
-
-exports.getAllFormateurs = async () => {
-  try {
-    const formateurs = await formateurRepository.findAllFormateurs();
-    // Tri par id décroissant comme dans le frontend
-    return formateurs.sort((a, b) => b.id_formateur - a.id_formateur);
-  } catch (error) {
-    console.error('Error in getAllFormateurs service:', error);
-    throw error;
-  }
-};
-
-exports.extractPdfContent = async (formateurId, searchTerm) => {
-  try {
-    const pdfPaths = await formateurRepository.getFormateurPdfPaths(formateurId);
-    
-    let combinedText = "";
-    for (const filePath of pdfPaths) {
-      try {
-        const dataBuffer = fs.readFileSync(filePath);
-        const pdfData = await pdfParse(dataBuffer);
-        combinedText += pdfData.text + " ";
-      } catch (err) {
-        console.error(`Error processing PDF: ${filePath}`, err);
-      }
-    }
-
-    return {
-      content: combinedText.toLowerCase().includes(searchTerm.toLowerCase()) 
-        ? combinedText 
-        : ""
-    };
-  } catch (error) {
-    console.error('Error in extractPdfContent service:', error);
-    throw error;
-  }
-};
-
-exports.deleteFormateur = async (id) => {
-  try {
-    // Suppression des fichiers associés
-    const files = await formateurRepository.getFormateurFiles(id);
-    if (files.cv) {
-      const cvPath = path.join(__dirname, '../../../uploads', files.cv);
-      fs.unlinkSync(cvPath);
-    }
-    
-    // Suppression en base
-    await formateurRepository.deleteFormateur(id);
-  } catch (error) {
-    console.error('Error in deleteFormateur service:', error);
-    throw error;
-  }
-};
+    return domainesThemes;
+  }}
+module.exports = new FormateurService();

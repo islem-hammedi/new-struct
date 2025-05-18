@@ -98,23 +98,21 @@ class FormationAdminRepository {
                         `INSERT INTO session (
                             id_theme, etat, mode, lieu, id_formation,
                             id_formateur, fiche_prg, cours_session, type_session,
-                            nb_participant, genre, date_debut, date_fin, duree, createdAt
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                            nb_participant, genre, createdAt
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                         [
                             id_theme,
                             session.etat || 'planifiée',
-                            session.mode || 'inter-entreprise',
+                            session.mode ,
                             session.lieu || null,
                             id_formation,
                             session.id_formateur,
                             ficheProgrammeFile?.filename || null,
                             coursSessionFile?.filename || null,
-                             session.type_session || 'Présentiel',
+                             session.type_session ,
                             session.nb_participants || 0,
-                            session.genre || 'normal',
-                            session.date_debut || new Date(),
-                            session.date_fin || new Date(),
-                            session.duree || 0,
+                            session.genre,
+                           
                             new Date()
                         ]
                     );

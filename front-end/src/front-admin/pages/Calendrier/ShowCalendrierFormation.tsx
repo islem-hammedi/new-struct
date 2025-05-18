@@ -90,7 +90,6 @@ useEffect(() => {
       
       console.log("sessions publiées:", response.data);
       
-      // Créer un objet temporaire pour organiser les sessions par mois
       const sessionsByMonth: Record<number, CalendarSession[]> = {};
       
       response.data.forEach((domaine: any) => {

@@ -87,7 +87,7 @@ app.use('/apiUser',authRoute);
 app.use('/apiUser', AvisParticipantRoute);
 app.use('/apiUser', AvisFormateurRoute);
 app.use('/apiUser/demanderFormation',demanderFormationRoute);
-//app.use('/apiUser/calendrierFormation',CalendrierFormationRoute);
+app.use('/apiUser/calendrierFormation',CalendrierFormationRoute);
 app.use('/apiUser/formateur-candidatures', formateurCandidatureRoutes);
 
 

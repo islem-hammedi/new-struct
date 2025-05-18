@@ -123,9 +123,9 @@ const AddFormation: React.FC<AddFormationProps> = ({ onClose, onFormationAdded }
             type_session: session.type_session,
             lieu: session.lieu || null,
             id_formateur: session.id_formateur,
-            mode: session.mode || 'inter-entreprise',
+            mode: session.mode ,
             nb_participants: session.nb_participants || 0,
-            genre: session.genre || 'normal',
+            genre: session.genre ,
            
 
              }));
@@ -310,7 +310,7 @@ return (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Type */}
                     <div>
-                      <label className="block mb-1 text-sm">Type :</label>
+                      <label className="block mb-1 text-sm">Mode :</label>
                       <select 
                         className="w-full p-2 border rounded text-sm"
                         {...register(`sessions.${index}.type_session`, { required: true })} 
@@ -320,14 +320,14 @@ return (
                         }}
                       >
                         <option value="">Sélectionnez</option>
-                        <option value="Présentiel">Présentiel</option>
-                        <option value="En ligne">En ligne</option>
+                        <option value="prssentiel">Présentiel</option>
+                        <option value="en ligne">En ligne</option>
                       </select>
                     </div>
 
                     {/* Mode */}
                     <div>
-                      <label className="block mb-1 text-sm">Mode :</label>
+                      <label className="block mb-1 text-sm">Type :</label>
                       <select 
                         className="w-full p-2 border rounded text-sm"
                         {...register(`sessions.${index}.mode`)} 
@@ -345,7 +345,7 @@ return (
                         {...register(`sessions.${index}.genre`)} 
                       >
                         <option value="normal">normal</option>
-                        <option value="profetionnel">professionnel</option>
+                        <option value="professionnel">professionnel</option>
                       </select>
                     </div>
                   </div>

@@ -12,6 +12,28 @@ const Calendrier: React.FC = () => {
     useEffect(() => {
       fetchEvents();
     }, []);
+    const sendEventNotification = (newEvent: any) => {
+  // Récupérer les notifications existantes
+  const existingNotifications = JSON.parse(localStorage.getItem('eventNotifications') || '[]');
+  
+  // Créer la nouvelle notification
+  const notification = {
+    id_event: newEvent.id,
+    title: newEvent.title,
+    date: newEvent.start,
+    created_by: newEvent.extendedProps.created_by,
+    isNew: true
+  };
+
+  // Ajouter la nouvelle notification
+  const updatedNotifications = [notification, ...existingNotifications];
+  
+  // Sauvegarder dans localStorage
+  localStorage.setItem('eventNotifications', JSON.stringify(updatedNotifications));
+  
+  // Déclencher un événement pour notifier les autres onglets
+  window.dispatchEvent(new Event('storage'));
+};
 
   // Récupérer les informations de l'utilisateur depuis le localStorage et les événements
   const fetchEvents = () => {
@@ -75,6 +97,7 @@ const Calendrier: React.FC = () => {
             },
           };
           setEvents((prevEvents) => [...prevEvents, newEvent]);  // Ajoute l'événement à la liste existante
+          sendEventNotification(newEvent);
         })
         .catch((error) => {
           console.error("Erreur lors de la création de l'événement :", error);

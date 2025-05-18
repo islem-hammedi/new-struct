@@ -762,7 +762,9 @@ const CatalogueListAdmin: React.FC = () => {
     refreshFormations();
   };
 
-
+ const handleRowClick = (id: number) => {
+    navigate(`/Admin/formateur/${id}`);
+  };
  
   if (loading) return <p className="text-center text-gray-600">Chargement...</p>;
   if (error) return <p className="text-center text-red-500">Erreur: {error}</p>;
@@ -964,9 +966,9 @@ const CatalogueListAdmin: React.FC = () => {
                         <div
                           key={formateur.id_formateur}
                           className="text-teal-600 hover:text-teal-800 cursor-pointer underline"
-                          onClick={(e) => {
-                            e.stopPropagation(); // Empêche la propagation de l'événement
-                            handleShowFormateurDetails(formateur);
+                          onClick={(e) => {handleRowClick(formateur.id_formateur)
+                           /* e.stopPropagation(); // Empêche la propagation de l'événement
+                            handleShowFormateurDetails(formateur);*/
                           }}
                         >
                           {formateur.rang}: {formateur.nom_complet}

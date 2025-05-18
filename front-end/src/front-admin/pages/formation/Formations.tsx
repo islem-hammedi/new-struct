@@ -333,7 +333,7 @@ const FormationsList: React.FC = () => {
 )}
   
       {!editingFormation && (
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-8 ">
           <h1 className="text-3xl font-bold text-teal-700">Formations</h1>
           <div className="flex items-center space-x-4">
             <div className="relative">
@@ -348,7 +348,7 @@ const FormationsList: React.FC = () => {
             </div>
             <button
               onClick={() => setShowAddFormation(true)}
-              className="bg-teal-600 hover:bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center"
+              className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center"
             >
               <span className="mr-2">+</span> Planifier Formation
             </button>
@@ -380,7 +380,7 @@ const FormationsList: React.FC = () => {
           {Array.from(new Set(filteredFormations.map(f => f.domaine))).map(domaine => (
             <div key={domaine} className="bg-white rounded-lg shadow-md overflow-hidden">
               <div 
-                className="flex justify-between items-center p-4 bg-teal-50 cursor-pointer"
+                className="flex justify-between items-center p-10 bg-gray-100 hover:bg-gray-50 cursor-pointer"
                 onClick={() => toggleDomain(domaine)}
               >
                 <h2 className="text-xl font-semibold text-teal-700">{domaine}</h2>

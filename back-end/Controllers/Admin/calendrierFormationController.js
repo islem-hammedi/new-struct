@@ -1,4 +1,5 @@
- const db = require('../../connect');
+ const { Model } = require('sequelize');
+const db = require('../../connect');
 
    const calendrierFormation = async (req, res) => {
   try {
@@ -113,11 +114,15 @@ const getCalendarSessions = async (req, res) => {
       t.id_theme,
       t.theme,
       t.code,
-      s.createdAt,
-      s.id_session,s.date_debut,s.date_fin,s.duree
+      s.createdAt,s.fiche_prg,
+      s.id_session,s.date_debut,s.date_fin,s.duree,
+      s.type_session,s.mode,s.genre,s.lieu,
+      fm.nom_complet,
+      fm.cv
     FROM formation f
     JOIN domaine d ON f.id_domaine = d.id_domaine
     JOIN session s ON f.id_formation = s.id_formation
+    JOIN formateur fm ON s.id_formateur= fm.id_formateur
     JOIN theme t ON t.id_theme = s.id_theme
     where s.duree is not NULL and s.date_fin is not NULL and s.date_debut is not null;`
   db.query(query, (err, results) => {
@@ -150,7 +155,14 @@ const getCalendarSessions = async (req, res) => {
             id_session: row.id_session,
             date_debut: row.date_debut,
             date_fin: row.date_fin,
-            duree: row.duree
+            duree: row.duree,
+            nom_complet: row.nom_complet,
+            cv: row.cv,
+            fiche_prg: row.fiche_prg,
+            type_session: row.type_session,
+            mode: row.mode,
+            genre: row.genre,
+            lieu: row.lieu
 
            
           };

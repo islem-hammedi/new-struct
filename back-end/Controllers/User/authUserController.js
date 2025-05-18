@@ -11,7 +11,6 @@ class AuthController {
             pwd,
             telephone,
             adresse,
-            badge,
             id_entreprise
           });
     

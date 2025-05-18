@@ -10,7 +10,7 @@ class ProfilParticipantUserRepository {
     p.nom_complet AS nom_complet,
     p.mail AS mail,
     p.telephone AS telephone,
-    p.adresse AS adresse, 
+    p.adresse AS adresse, p.badge,
     p.CIN AS CIN,
     p.id_entreprise AS id_entreprise,
     e.nom_entreprise AS nom_entreprise,

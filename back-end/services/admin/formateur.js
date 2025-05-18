@@ -54,7 +54,6 @@ class FormateurService {
       'RIB', 'domaine_assistance', 'retour_sacConsulting'
     ];
 
-    // Filtrer l'objet `updates` pour ne garder que les champs valides
     updates = Object.keys(updates)
       .filter((key) => validFields.includes(key) && updates[key] !== undefined)
       .reduce((obj, key) => {
@@ -62,7 +61,6 @@ class FormateurService {
         return obj;
       }, {});
 
-    // Construction dynamique des champs et des valeurs pour la mise à jour
     const fields = Object.keys(updates)
       .map((key) => `${key} = ?`)
       .join(', ');

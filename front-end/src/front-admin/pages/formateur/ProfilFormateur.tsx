@@ -181,7 +181,7 @@ const ProfilFormateur: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto mt-12 bg-white shadow-lg p-6 rounded-lg">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">{formateur.nom_complet}</h2>
+      <h2 className="text-2xl text-center font-bold text-gray-800 mb-4">{formateur.nom_complet}</h2>
 
      
       <div className="grid grid-cols-2 gap-4 bg-gray-100 marge-10  p-6 w-full mb-6">

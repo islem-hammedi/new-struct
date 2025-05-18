@@ -39,7 +39,7 @@ class AuthRepository {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
-      console.log('✅ Table formateur initialisée');
+     // console.log('✅ Table formateur initialisée');
         await db.query( `
             CREATE TABLE IF NOT EXISTS entreprise (
               id_entreprise INT PRIMARY KEY AUTO_INCREMENT,
@@ -50,7 +50,7 @@ class AuthRepository {
               matricule VARCHAR(50) UNIQUE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
           `);
-          console.log('✅ Table entreprise initialisée');
+          //console.log('✅ Table entreprise initialisée');
 
     } catch (error) {
       console.error('❌ Erreur initialisation tables:', error);

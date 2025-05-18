@@ -39,7 +39,8 @@ const fetchDomainesWithSessions = async () => {
           theme: row.theme,
           code: row.code,
           createdAt: row.createdAt,
-          id_session: row.id_session
+          id_session: row.id_session,
+         
         };
         catalogue.sessions.push(session);
       }
@@ -74,7 +75,10 @@ const fetchCalendarSessions = async () => {
           id_session: row.id_session,
           date_debut: row.date_debut,
           date_fin: row.date_fin,
-          duree: row.duree
+          duree: row.duree,
+           nom_complet: row.nom_complet,
+          cv: row.cv,
+          id_formateur: row.id_formateur
         };
         catalogue.sessions.push(session);
       }

@@ -51,10 +51,16 @@ const AddDomaine: React.FC<AddFormationProps> = ({ onClose, onFormationAdded }) 
   const [formateurs, setFormateurs] = useState<Formateur[]>([]);
   const [selectedFormateurs, setSelectedFormateurs] = useState<Record<string, FormateurWithRank[]>>({});
 
-  const generateThemeCode = (index: number) => {
+  {/*const generateThemeCode = (index: number) => {
     const themeCode = `${abbreviation}${index + 1}`;
     setValue(`themes.${index}.code`, themeCode);
-  };
+  };*/}
+
+  const generateThemeCode = (index: number) => {
+    const paddedIndex = (index + 1).toString().padStart(3, '0');
+    const themeCode = `${abbreviation}${paddedIndex}`;
+    setValue(`themes.${index}.code`, themeCode);
+};
 
   useEffect(() => {
     axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formateurs`)

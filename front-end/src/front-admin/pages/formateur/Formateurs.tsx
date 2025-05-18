@@ -126,7 +126,7 @@ const Formateurs: React.FC = () => {
 
   return (
     <>
-                <h1 className="text-2xl font-bold text-teal-700 text-center flex-grow">Formateurs</h1>
+  <h1 className="text-2xl font-bold text-teal-700 text-center flex-grow">Formateurs</h1>
 
 
     <div className="container mx-auto p-6 mt-12">

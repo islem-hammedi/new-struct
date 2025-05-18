@@ -20,10 +20,14 @@ const getDomainesWithSessions = async () => {
       t.theme,
       t.code,
       s.createdAt,
-      s.id_session
+      s.id_session,
+      s.id_formateur,
+      fm.nom_complet,
+      fm.cv
     FROM formation f
     JOIN domaine d ON f.id_domaine = d.id_domaine
     JOIN session s ON f.id_formation = s.id_formation
+    JOIN formateur fm ON s.id_formateur= fm.id_formateur
     JOIN theme t ON t.id_theme = s.id_theme;
   `;
   return db.query(query);

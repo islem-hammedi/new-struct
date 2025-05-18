@@ -7,7 +7,7 @@ import { Viewer, Worker } from "@react-pdf-viewer/core";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import generateUniqueCartId from "../Dropdowns/DropdownCart";
 //import FormateurTheme from "./FormateurTheme";
-
+import ThemeComments from "../Comments/ThemeComments"; 
 
 interface Theme {
   id_theme: number;
@@ -36,7 +36,7 @@ const Catalogue: React.FC = () => {
   const {user, isLoggedIn} = useAuth();
   const [showLoginMenu, setShowLoginMenu] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null); // État pour le thème sélectionné
-const [cart, setCart] = useState<any[]>([]);
+
   useEffect(() => {
     axios
       .get(`${import.meta.env.VITE_APP_API_URL}/apiUser/formations/Form`)
@@ -85,9 +85,7 @@ const [cart, setCart] = useState<any[]>([]);
       const storedCart = localStorage.getItem(`cart_${user.id}`); // Utilisation de user.id
       const cart = storedCart ? JSON.parse(storedCart) : [];
       const storedCartId = localStorage.getItem("currentCartId");
-      const cartId = storedCartId ? parseInt(storedCartId) : generateUniqueCartId(user.id);
-          const currentCart = storedCart ? JSON.parse(storedCart) : [];
-
+      const cartId = storedCartId ? parseInt(storedCartId) : generateUniqueCartId();
       localStorage.setItem("currentCartId", cartId.toString());
   
       const newCartItem = {
@@ -107,6 +105,7 @@ const [cart, setCart] = useState<any[]>([]);
       } else {
         cart.push(newCartItem);
       }
+  
       localStorage.setItem(`cart_${user.id}`, JSON.stringify(cart)); // Utilisation de user.id
       console.log("Panier mis à jour", cart);
     } else {
@@ -131,7 +130,7 @@ const [cart, setCart] = useState<any[]>([]);
         >
           ← Retour au catalogue
         </button>
-       {/* <FormateurTheme themeId={selectedTheme.id_theme} />*/}
+        <ThemeComments themeId={selectedTheme.id_theme} themeName={selectedTheme.theme} />
       </div>
     );
   }
@@ -166,10 +165,8 @@ const [cart, setCart] = useState<any[]>([]);
             const formationsDuDomaine = filteredFormations.filter((f) => f.domaine === domaine);
             return (
               <div key={domaine} className="bg-gray-100 text-black rounded-1xl p-6 shadow-lg transform hover:scale-10 hover:shadow-2xl transition-all cursor-pointer">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-1l font-semibold text-teal-600">Domaine: {domaine}</h3>
-                </div>
-
+                {/* ... (votre code existant pour l'en-tête de domaine) */}
+                
                 <div className="mt-4">
                   <table className="w-full border-collapse">
                     <thead>
@@ -180,45 +177,46 @@ const [cart, setCart] = useState<any[]>([]);
                       </tr>
                     </thead>
                     <tbody>
-  {formationsDuDomaine.flatMap((formation) =>
-    formation.themes
-      .filter((theme) =>
-        theme.theme.toLowerCase().includes(sessionSearchQuery.toLowerCase())
-      )
-      .map((theme) => (
-<tr 
+                      {formationsDuDomaine.flatMap((formation) =>
+                        formation.themes
+                          .filter((theme) =>
+                            theme.theme.toLowerCase().includes(sessionSearchQuery.toLowerCase())
+                          )
+                          .map((theme) => (
+                            <tr 
                               key={theme.id_theme} 
                               className="hover:bg-gray-100"
                               onClick={() => handleThemeClick(theme)}
                               style={{ cursor: 'pointer' }}
-                            >          <td className="p-2 border">{theme.theme}</td>
-          <td className="p-2 border">{theme.code}</td>
-          <td className="p-2 border text-right gap-3">
-          <button
-onClick={() => handleAjout(theme)}
-className="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600"
-                                disabled={isSubmitting}
-                              >
-                                {isSubmitting ? "En cours..." : "Ajouter au panier"}
-                              </button>
-
-          </td>
-        </tr>
-      ))
-  )}
-</tbody>
-
+                            >
+                              <td className="p-2 border">{theme.theme}</td>
+                              <td className="p-2 border">{theme.code}</td>
+                              <td className="p-2 border text-right gap-3">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Empêche le déclenchement du click sur la ligne
+                                    handleAjout(theme);
+                                  }}
+                                  className="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600"
+                                  disabled={isSubmitting}
+                                >
+                                  {isSubmitting ? "En cours..." : "Ajouter au panier"}
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                      )}
+                    </tbody>
                   </table>
                 </div>
-
               </div>
             );
           })}
-          
         </div>
       )}
     </div>
   );
 };
+
 
 export default Catalogue;

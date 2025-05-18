@@ -1,4 +1,4 @@
-const CalendrierUserService = require('../../services/user/CalendrierUserService');
+const CalendrierUserService = require('../../services/User/CalendrierUserService');
 
 class CalendrierUserController {
     constructor() {

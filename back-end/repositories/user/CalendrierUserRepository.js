@@ -10,7 +10,7 @@ class CalendrierUserRepository {
                     f.nom_complet AS formateur,
                     t.theme AS theme,
                     t.code,
-                    DATEDIFF(s.date_fin, s.date_debut) + 1 AS nbj,
+                    s.duree AS nbj,
                     DATE_FORMAT(s.date_debut, '%M') AS mois,
                     s.date_debut,
                     s.date_fin,
@@ -30,7 +30,6 @@ class CalendrierUserRepository {
                 AND s.date_fin IS NOT NULL
                 ORDER BY s.date_debut
             `;
-            
             // Exécution de la requête sans destructuration
             const queryResult = await db.query(query);
             

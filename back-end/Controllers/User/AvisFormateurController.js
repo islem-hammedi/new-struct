@@ -3,7 +3,7 @@ const AvisFormateurService = require('../../services/user/AvisFormateurService')
 class AvisFormateurController {
   async getThemesByFormateur(req, res) {
     try {
-      const formateurId = req.user.id; // Récupéré du middleware d'authentification
+      const formateurId = req.user.id; 
       const sessions = await AvisFormateurService.getThemesByFormateur(formateurId);
       res.json(sessions);
     } catch (error) {

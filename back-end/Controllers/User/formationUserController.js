@@ -11,15 +11,13 @@ const getDomains = (req, res) => {
     db.query(sql, (err, results) => {
         if (err) {
             console.error('Erreur de récupération des données:', err);
-            return res.status(500).send('Erreur de récupération des données');  // Renvoi d'un message d'erreur en texte brut
-        }
+            return res.status(500).send('Erreur de récupération des données');   }
 
         if (results.length > 0) {
-            // Conversion des résultats en texte brut
-            const data = results.map(row => row.domaine).join('\n');  // Utilise \n pour séparer les domaines par ligne
-            res.type('text/plain').send(data);  // Envoie les données en format texte
+            const data = results.map(row => row.domaine).join('\n');  
+            res.type('text/plain').send(data);
         } else {
-            res.type('text/plain').send('Aucune donnée disponible !');  // Message d'absence de données
+            res.type('text/plain').send('Aucune donnée disponible !'); 
         }
     });
 };
@@ -90,13 +88,11 @@ JOIN formateur ON session.id_formateur = formateur.id_formateur
 JOIN formation ON session.id_formation = formation.id_formation;
 `;
 
-  // Exécuter la requête SQL
   db.query(sqlQuery, (err, results) => {
     if (err) {
       console.error('Erreur lors de la récupération des sessions: ', err);
       return res.status(500).json({ message: 'Erreur lors de la récupération des sessions' });
     }
-    // Retourner les résultats de la requête sous forme de JSON
     res.json(results);
   });
 };
@@ -112,7 +108,6 @@ const getfichePrg = async (req, res) => {
     if (results.length === 0) {
       return res.status(404).json({ message: "Fiche programme non trouvée" });
     }
-    // Renvoie l'URL complète du fichier
     const fileUrl = `http://localhost:5000/uploads/${results[0].chemin}`;
     res.json({ chemin: fileUrl });
   });
@@ -123,7 +118,7 @@ const nodemailer = require('nodemailer');
 
 const sendMail = async (req, res) => {
     const { subject, body, email } = req.body;
-    console.log("Données reçues : ", req.body); // Ajoute ceci pour vérifier les données
+    console.log("Données reçues : ", req.body);
 
     if (!subject || !body || !email) {
       console.error("Erreur : paramètre manquant");
@@ -132,17 +127,17 @@ const sendMail = async (req, res) => {
 
     const transporter = nodemailer.createTransport({
       service: 'gmail',
-        host: 'smtp.gmail.com',  // Adresse du serveur SMTP de Gmail
+        host: 'smtp.gmail.com', 
         port: 587,   
-        secure: false,            // Port pour une connexion non sécurisée (STARTTLS)
+        secure: false,        
         auth: {
-            user: 'khadijabenabdelkader1206@gmail.com',  // Ton email (doit être une variable d'environnement)
+            user: 'khadijabenabdelkader1206@gmail.com', 
             pass: 'qqij aava gtxv hpdz', 
         }
     });
 
     const mailOptions = {
-      from: 'khadijabenabdelkader1206@gmail.com',  // Ton adresse email
+      from: 'khadijabenabdelkader1206@gmail.com',
       to: email,
       subject: subject,
       text: body

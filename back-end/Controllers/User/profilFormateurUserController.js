@@ -5,87 +5,11 @@ class ProfilFormateurUserController {
         this.service = new ProfilFormateurUserService();
     }
 
-    /*async getFormateurDetails(req, res) {
-      try {
-          // Extraction correcte de l'ID depuis les paramètres de route
-          const { id_formateur } = req.params;
-          
-          if (!id_formateur) {
-              return res.status(400).json({ error: 'ID formateur requis' });
-          }
   
-          const formateur = await this.service.getFormateurDetails(id_formateur);
-          res.json(formateur);
-  
-      } catch (error) {
-          console.error('Controller Error - getFormateurDetails:', error);
-          
-          if (error.message.includes('non trouvé')) {
-              res.status(404).json({ error: error.message });
-          } else {
-              res.status(500).json({ error: 'Erreur serveur' });
-          }
-      }
-  }
-
-    async getFormationsARealiser(req, res) {
-        try {
-            const { id_formateur } = req.params.id;
-            const sessions = await this.service.getFormationsARealiser(id_formateur);
-            
-            res.json(sessions);
-
-        } catch (error) {
-            console.error('Controller Error - getFormationsARealiser:', error);
-            
-            if (error.message.includes('Aucune formation')) {
-                res.status(404).json({ error: error.message });
-            } else {
-                res.status(500).json({ error: 'Erreur serveur' });
-            }
-        }
-    }
-
-    async getHistoriqueFormations(req, res) {
-        try {
-            const { id_formateur } = req.params.id;
-            const sessions = await this.service.getHistoriqueFormations(id_formateur);
-            
-            res.json(sessions);
-
-        } catch (error) {
-            console.error('Controller Error - getHistoriqueFormations:', error);
-            
-            if (error.message.includes('Aucune formation')) {
-                res.status(404).json({ error: error.message });
-            } else {
-                res.status(500).json({ error: 'Erreur serveur' });
-            }
-        }
-    }
-
-    async updatePassword(req, res) {
-        try {
-            const { id_formateur } = req.params.id;
-            const { old_password, new_password } = req.body;
-            
-            const result = await this.service.updatePassword(id_formateur, old_password, new_password);
-            res.json(result);
-
-        } catch (error) {
-            console.error('Controller Error - updatePassword:', error);
-            
-            if (error.message.includes('incorrect')) {
-                res.status(400).json({ error: error.message });
-            } else {
-                res.status(500).json({ error: 'Erreur serveur' });
-            }
-        }
-    }*/
 
         async getProfile(req, res) {
             try {
-                const { id_formateur } = req.params; // Assuming auth middleware adds user info
+                const { id_formateur } = req.params;
                 const formateur = await this.service.getFormateurDetails(id_formateur);
                 res.json(formateur);
             } catch (err) {

@@ -6,7 +6,7 @@ const getFormateurs = (req, res) => {
     const query = 'SELECT * FROM formateur';
     db.query(query, (err, results) => {
       if (err) {
-        console.error("Error fetching formateurs:", err);  // Log l'erreur pour aider au débogage
+        console.error("Error fetching formateurs:", err);  
         return res.status(500).json({ error: err.message });
       }
       return res.json(results);

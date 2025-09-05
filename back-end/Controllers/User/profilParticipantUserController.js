@@ -52,7 +52,6 @@ class ProfilParticipantUserController {
             const { id } = req.params;
             const updateData = req.body;
     
-            // Validation basique
             if (!id || isNaN(Number(id))) {
                 return res.status(400).json({
                     success: false,

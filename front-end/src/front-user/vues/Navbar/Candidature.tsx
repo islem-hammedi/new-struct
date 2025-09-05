@@ -1,149 +1,9 @@
-{/*import React, { useState, ChangeEvent, FormEvent } from "react";
-
-interface FormData {
-  nom_complet: string;
-  mail: string;
-  tel: string;
-  adr: string;
-  domaines_competence: string;
-  cv: File | null;
-}
-
-const FormateurCandidatureForm: React.FC = () => {
-  const [formData, setFormData] = useState<FormData>({
-    nom_complet: "",
-    mail: "",
-    tel: "",
-    adr: "",
-    domaines_competence: "",
-    cv: null,
-  });
-
-  const [success, setSuccess] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFormData((prev) => ({ ...prev, cv: e.target.files![0] }));
-    }
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setSuccess(null);
-    setError(null);
-
-    const form = new FormData();
-    form.append("nom_complet", formData.nom_complet);
-    form.append("mail", formData.mail);
-    form.append("tel", formData.tel);
-    form.append("adr", formData.adr);
-    form.append("domaines_competence", formData.domaines_competence);
-    if (formData.cv) form.append("cv", formData.cv);
-
-    try {
-      const res = await fetch("/apiUser/formateur-candidatures", {
-        method: "POST",
-        body: form,
-      });
-      if (res.ok) {
-        setSuccess("Votre candidature a été envoyée avec succès.");
-        setFormData({
-          nom_complet: "",
-          mail: "",
-          tel: "",
-          adr: "",
-          domaines_competence: "",
-          cv: null,
-        });
-        (document.getElementById("cv") as HTMLInputElement).value = "";
-      } else {
-        setError("Erreur lors de l'envoi du formulaire.");
-      }
-    } catch {
-      setError("Erreur de connexion avec le serveur.");
-    }
-  };
-
-  return (
-    <div className="max-w mx-auto p-10 bg-gray-200 rounded-lg shadow">
-      <h2 className="text-2xl text-teal-600 font-bold mb-6 text-center">Postulez pour devenir formateur</h2>
-      <form onSubmit={handleSubmit} className="space-y-4" encType="multipart/form-data">
-       <div className="flex flex-row gap-4">
-  <input
-    type="text"
-    name="nom_complet"
-    placeholder="Nom complet"
-    required
-    value={formData.nom_complet}
-    onChange={handleChange}
-    className="w-full flex-1 p-4 border rounded"
-  />
-  <input
-    type="email"
-    name="mail"
-    placeholder="Email"
-    required
-    value={formData.mail}
-    onChange={handleChange}
-    className="w-full flex-1 p-4 border rounded"
-  />
-</div>
-<div className="flex flex-row gap-4 mt-4">
-  <input
-    type="tel"
-    name="tel"
-    placeholder="Téléphone"
-    required
-    value={formData.tel}
-    onChange={handleChange}
-    className="w-full flex-1 p-4 border rounded"
-  />
-  <input
-    type="text"
-    name="adr"
-    placeholder="Adresse"
-    required
-    value={formData.adr}
-    onChange={handleChange}
-    className="w-full flex-1 p-4 border rounded"
-  />
-</div><textarea name="domaines_competence" placeholder="Domaines de compétences" required value={formData.domaines_competence} onChange={handleChange} className="w-full p-6 border rounded" />
-        <input type="file" id="cv" name="cv" accept="application/pdf" required onChange={handleFileChange} className="w-full p-4 border rounded" />
-        <button type="submit" className="w-full bg-teal-600 text-white py-2 rounded hover:bg-teal-700 transition">Envoyer</button>
-        {success && <p className="text-green-600">{success}</p>}
-        {error && <p className="text-red-600">{error}</p>}
-      </form>
-    </div>
-  );
-};
-
-export default FormateurCandidatureForm;*/}
-
-
-
-
-
-
-
-
-
-
-
 
 
 import axios from "axios";
 import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useInView } from "react-intersection-observer";
 
-// Définition du composant AnimatedText qui manquait
 interface AnimatedTextProps {
   children: React.ReactNode;
   delay?: number;
@@ -185,7 +45,6 @@ interface FormData {
 }
 
 const SoumettreCandidature: React.FC = () => {
-  // État pour le formulaire de formateur
   const [formData, setFormData] = useState<FormData>({
     nom: '',
     telephone: '',
@@ -209,7 +68,6 @@ const SoumettreCandidature: React.FC = () => {
     e.preventDefault();
     
     try {
-        // Vérification des champs
         if (!formData.nom || !formData.telephone || !formData.email || 
             !formData.domaine || !formData.themes || !formData.motivation || !formData.cv) {
             alert('Veuillez remplir tous les champs obligatoires');
@@ -229,7 +87,6 @@ const SoumettreCandidature: React.FC = () => {
             formDataToSend.append('certificats', formData.certificats);
         }
 
-        // Correction de l'appel Axios
         const response = await axios.post(
             `${import.meta.env.VITE_APP_API_URL}/apiUser/formateur-candidatures`,
             formDataToSend,
@@ -239,8 +96,6 @@ const SoumettreCandidature: React.FC = () => {
                 },
             }
         );
-
-        // Réinitialisation et feedback
         setFormData({
             nom: '',
             telephone: '',
@@ -257,7 +112,6 @@ const SoumettreCandidature: React.FC = () => {
     } catch (error) {
         console.error('Erreur:', error);
         if (axios.isAxiosError(error)) {
-            // Gestion spécifique des erreurs Axios
             const errorMessage = error.response?.data?.message || error.message;
             alert(`Erreur: ${errorMessage}`);
         } else {
@@ -278,7 +132,6 @@ const SoumettreCandidature: React.FC = () => {
         </h2>
         
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Description à gauche */}
           <div className="md:w-1/2">
             <AnimatedText delay={0}>
               <div className="bg-emerald-50/50 p-6 rounded-lg">
@@ -304,7 +157,6 @@ const SoumettreCandidature: React.FC = () => {
             </AnimatedText>
           </div>
           
-          {/* Formulaire à droite */}
           <div className="md:w-1/2">
             <AnimatedText delay={0.5}>
               <form onSubmit={handleSubmit} className="space-y-4">

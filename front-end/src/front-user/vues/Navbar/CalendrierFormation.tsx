@@ -173,8 +173,7 @@ const [sendingEmail, setSendingEmail] = useState(false);
     );
   };
 /////////////////////////////////////////////////////
-const userData = JSON.parse(localStorage.getItem("user") || '{}');
-    const token = userData.token;
+
 const handleParticiper = async () => {
   if (!participant) {
     setMessage("Vous devez vous connecter pour participer.");
@@ -206,16 +205,7 @@ const handleParticiper = async () => {
     saveParticipation(newp);
     setMessage("Participation enregistrée !");
 
-    try {
-      
-     
-
-     
-      
-    } catch (notificationError) {
-      console.error('❌ Erreur notification:', notificationError);
-      setMessage("✅ Participation enregistrée ! (Notification échouée)");
-    }
+  
   } catch (error) {
     console.error("Erreur lors de la participation:", error);
     setMessage("Erreur lors de l'enregistrement.");

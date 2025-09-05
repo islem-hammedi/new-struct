@@ -1,22 +1,5 @@
 const db = require('../../connect');  
 
-{/*const getDomains = (req, res) => {
-    const sql = 'SELECT DISTINCT domaine FROM formation;'
-
-    db.query(sql, (err, results) => {
-        if (err) {
-            console.error('Erreur de récupération des données:', err);
-            return res.status(500).send('Erreur de récupération des données');  // Renvoi d'un message d'erreur en texte brut
-        }
-
-        if (results.length > 0) {
-            const data = results.map(row => row.domaine).join('\n');  
-            res.type('text/plain').send(data); 
-        } else {
-            res.type('text/plain').send('Aucune donnée disponible !');  
-        }
-    });
-};*/}
 
 const domaineAdminService = require('../../services/admin/domaineAdminService');
 

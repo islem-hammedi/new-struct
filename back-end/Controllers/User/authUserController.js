@@ -27,39 +27,7 @@ class AuthController {
         }
       }
     
-      /*async login(req, res) {
-        try {
-            const { nom_complet, pwd } = req.body;
-            console.log('Données reçues:', { nom_complet, pwd });
-    
-            if (!nom_complet || !pwd) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Nom d\'utilisateur et mot de passe requis'
-                });
-            }
-    
-            const { token, user } = await authService.login(nom_complet, pwd);
-    
-            res.cookie('token', token, {
-                httpOnly: true,
-                sameSite: 'strict',
-                maxAge: 3600000
-            });
-    
-            return res.status(200).json({
-                message: 'Connexion réussie',
-                token,
-                user
-            });
-    
-        } catch (error) {
-            console.error('Erreur authController.login:', error);
-            return res.status(401).json({
-                message: error.message || 'Authentification échouée'
-            });
-        }
-    }*/
+     
         async login(req, res) {
           const { nom_complet, pwd } = req.body;
       

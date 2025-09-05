@@ -2,8 +2,8 @@ const adminRepository = require('../../repositories/admin/adminRepository');
 
 class AdminService {
   async validateAccessLevel(acces) {
-    if (![1, 2, 3, 4].includes(Number(acces))) {
-      throw new Error('Accès invalide');
+    if (![4].includes(Number(acces))) {
+      throw new Error('Accès invalide(adminService)');
     }
   }
 

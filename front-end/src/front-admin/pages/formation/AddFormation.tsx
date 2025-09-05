@@ -41,7 +41,7 @@ const AddFormation: React.FC<AddFormationProps> = ({ onClose, onFormationAdded }
     defaultValues: {
       id_domaine: undefined,
       domaine: "",
-      sessions: [{ theme: "", nb_participants: 0, type_session: "", lieu: '', id_formateur: 0 }],
+      sessions: [{ theme: "", nb_participants: 0, type_session: "", lieu: '', id_formateur: 0 , mode:"", genre:""}],
     },
   });
 
@@ -60,17 +60,13 @@ const AddFormation: React.FC<AddFormationProps> = ({ onClose, onFormationAdded }
   const selectedDomaineValue = watch("domaine");
   
   useEffect(() => {
-    // Charger les formateurs
     axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formateurs`)
       .then(response => setFormateurs(response.data))
       .catch(error => console.error("Erreur formateurs:", error));
-
-    // Charger les domaines avec leurs IDs
     axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/domaine/Domains`)
     .then(response => {
       if (Array.isArray(response.data)) {
-        // Utilisez directement les données si elles sont dans un tableau structuré
-        setFormations(response.data); // Exemple [{ id_domaine: 1, domaine: "Informatique" }]
+        setFormations(response.data); 
         console.log("Domaines récupérés :", response.data);
       } else {
         console.error("Format inattendu pour les domaines :", response.data);
@@ -89,7 +85,6 @@ const AddFormation: React.FC<AddFormationProps> = ({ onClose, onFormationAdded }
         params: { id_domaine: selectedDomaineId }
       })
       .then(response => {
-        // Gestion robuste des différents formats de réponse
         const themesData = response.data?.themes || 
                          (Array.isArray(response.data) ? response.data : []);
         setThemes(themesData);
@@ -114,10 +109,8 @@ const AddFormation: React.FC<AddFormationProps> = ({ onClose, onFormationAdded }
     try {
         const formData = new FormData();
         
-        // Ajouter les données de base
         formData.append("domaine", data.domaine);
         
-        // Préparer et ajouter les sessions
         const sessionsToSend = data.sessions.map((session, index) => ({
             theme: session.theme,
             type_session: session.type_session,
@@ -132,13 +125,12 @@ const AddFormation: React.FC<AddFormationProps> = ({ onClose, onFormationAdded }
         
         formData.append("sessions", JSON.stringify(sessionsToSend));
 
-        // Ajouter les fichiers
         data.sessions.forEach((session, index) => {
           if (session.fiche_programme && session.fiche_programme instanceof File) {
-              formData.append("fiche_programme" , session.fiche_programme); // Même nom pour tous
+              formData.append("fiche_programme" , session.fiche_programme); 
           }
           if (session.cours_session && session.cours_session instanceof File) {
-              formData.append("cours_session", session.cours_session); // Même nom pour tous
+              formData.append("cours_session", session.cours_session); 
           }
       });
 
@@ -176,18 +168,17 @@ const AddFormation: React.FC<AddFormationProps> = ({ onClose, onFormationAdded }
 return (
   <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 p-4 z-50 overflow-y-auto">
     <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
-      {/* Header */}
       <div className="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">
-        <h2 className="text-xl font-bold">Planifier une Formation</h2>
+       <br/><br/><br/><br/><br/>
+        <h2 className="text-xl text-teal-500 font-bold">Planifier une Formation</h2>
         <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">
           &times;
         </button>
       </div>
 
-      {/* Contenu défilable */}
       <div className="overflow-y-auto p-4 flex-1">
         <form id="hook-form" onSubmit={handleSubmit(onSubmit)}  className="space-y-4">
-          {/* Section Domaine */}
+        
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="font-medium mb-3">Informations sur le domaine</h3>
             <div className="space-y-3">
@@ -240,9 +231,9 @@ return (
                   type_session: "",
                   lieu: "",
                   id_formateur: 0,
-                  mode: "inter-entreprise",
+                  mode: "presentiel",
                   nb_participants: 0,
-                  genre: "normal",
+                  genre: "intra-entreprise",
                   fiche_programme: "",
                   cours_session:"",
                 })}
@@ -274,7 +265,7 @@ return (
                 
                 <div className="p-4 hidden peer-checked:block space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Thème */}
+                  
                     <div>
                       <label className="block mb-1 text-sm">Thème :</label>
                       <select 
@@ -289,8 +280,6 @@ return (
                         ))}
                       </select>
                     </div>
-
-                    {/* Formateur */}
                     <div>
                       <label className="block mb-1 text-sm">Formateur :</label>
                       <select 
@@ -308,50 +297,21 @@ return (
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Type */}
                     <div>
                       <label className="block mb-1 text-sm">Mode :</label>
                       <select 
                         className="w-full p-2 border rounded text-sm"
-                        {...register(`sessions.${index}.type_session`, { required: true })} 
+                        {...register(`sessions.${index}.mode`, { required: true })} 
                         onChange={(e) => {
                           handleTypeChange(e);
-                          setValue(`sessions.${index}.type_session`, e.target.value);
+                          setValue(`sessions.${index}.mode`, e.target.value);
                         }}
                       >
                         <option value="">Sélectionnez</option>
                         <option value="prssentiel">Présentiel</option>
                         <option value="en ligne">En ligne</option>
                       </select>
-                    </div>
-
-                    {/* Mode */}
-                    <div>
-                      <label className="block mb-1 text-sm">Type :</label>
-                      <select 
-                        className="w-full p-2 border rounded text-sm"
-                        {...register(`sessions.${index}.mode`)} 
-                      >
-                        <option value="inter-entreprise">Inter-entreprise</option>
-                        <option value="intra-entreprise">Intra-entreprise</option>
-                      </select>
-                    </div>
-
-                    {/* Genre */}
-                    <div>
-                      <label className="block mb-1 text-sm">Genre :</label>
-                      <select 
-                        className="w-full p-2 border rounded text-sm"
-                        {...register(`sessions.${index}.genre`)} 
-                      >
-                        <option value="normal">normal</option>
-                        <option value="professionnel">professionnel</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Lieu (conditionnel) */}
-                  {watch(`sessions.${index}.type_session`) === 'Présentiel' && (
+                        {watch(`sessions.${index}.mode`) === 'Présentiel' && (
                     <div>
                       <label className="block mb-1 text-sm">Lieu :</label>
                       <input 
@@ -361,9 +321,31 @@ return (
                       />
                     </div>
                   )}
+                    </div>
 
+                  
+                    <div>
+                      <label className="block mb-1 text-sm">Type :</label>
+                      <select 
+                        className="w-full p-2 border rounded text-sm"
+                        {...register(`sessions.${index}.type_session`)} 
+                      >
+                        <option value="inter-entreprise">Normale</option>
+                        <option value="intra-entreprise">Professionelle</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-sm">Genre :</label>
+                      <select 
+                        className="w-full p-2 border rounded text-sm"
+                        {...register(`sessions.${index}.genre`)} 
+                      >
+                        <option value="normal">intra-entreprise</option>
+                        <option value="professionnel">inter-entreprise</option>
+                      </select>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    {/* Participants */}
                     <div>
                       <label className="block mb-1 text-sm">Participants :</label>
                       <input 
@@ -375,14 +357,7 @@ return (
                         })} 
                         min="0"
                       />
-                    </div>
-
-                    
-
-                    
-
-                    
-                  </div>
+                    </div> </div>
 
                   {/* Fichier */}
                   <div>
@@ -404,15 +379,12 @@ return (
                     />
                   </div>
 
-                  {/* Bouton supprimer */}
                   <div className="flex justify-between items-center pt-2">
                     <button
                       type="button"
                       onClick={() => remove(index)}
                       className="text-red-500 hover:text-red-700 text-sm"
-                    >
-                      Supprimer cette session
-                    </button>
+                    >  Supprimer cette session </button>
                     
                     {index > 0 && (
                       <span className="text-xs text-gray-500">
@@ -433,7 +405,7 @@ return (
           <button 
             type="button" 
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50"
+            className="px-4 py-2 border border-gray-200 rounded text-sm hover:bg-gray-50"
           >
             Annuler
           </button>

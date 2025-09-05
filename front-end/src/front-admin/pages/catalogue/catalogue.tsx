@@ -519,7 +519,6 @@ interface Session {
     
     formateurs: Formateur[];
   }
-
 interface Catalogue {
   id_formation: number;
   domaine: string;
@@ -821,6 +820,7 @@ const CatalogueListAdmin: React.FC = () => {
               return (
                 <div key={domaine} className="mb-6">
                   <div className="flex justify-between items-center mb-2">
+
                     <h3 className="text-xl font-semibold text-teal-700">{domaine}</h3>
                     <div className="flex justify-end p-4">
                       <button
@@ -857,45 +857,6 @@ const CatalogueListAdmin: React.FC = () => {
                       />
                     </motion.div>
                   )}
-
-
-                                            <div className="max-w-4xl mx-auto p-4">
-                                              {selectedFormateur && (
-                                                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                                                  <div className="bg-white p-6 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-                                                    <h2 className="text-xl font-bold mb-4">Détails du formateur</h2>
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                      <div>
-                                                        <p><span className="font-semibold">Nom:</span> {selectedFormateur.nom_complet}</p>
-                                                        <p><span className="font-semibold">Email:</span> {selectedFormateur.mail}</p>
-                                                        <p><span className="font-semibold">Téléphone:</span> {selectedFormateur.tel}</p>
-                                                        <p><span className="font-semibold">Adresse:</span> {selectedFormateur.adr}</p>
-                                                        
-                    
-                                                      </div>
-                                                      <div>
-                                                        <p><span className="font-semibold">Domaine de compétences:</span> {selectedFormateur.domaine_de_competences}</p>
-                                                        <p><span className="font-semibold">Thèmes enseignés:</span> {selectedFormateur.themes_a_enseigner ? Object.keys(selectedFormateur.themes_a_enseigner).join(', ') : 'N/A'}</p>
-                                                        <p><span className="font-semibold">Tarif journalier:</span> {selectedFormateur.tarif_journalier}</p>
-                                                        <p><span className="font-semibold">Niveau d'étude:</span> {selectedFormateur.niveau_etude}</p>
-                                                        <p><span className="font-semibold">fiche programme:</span> {selectedFormateur.fiche_prg}</p>
-                                                        <p><span className="font-semibold">cours session:</span> {selectedFormateur.cours}</p>
-                                                        <p><span className="font-semibold">cv formateur:</span> {selectedFormateur.cv}</p>
-                    
-                                                      </div>
-                                                    </div>
-                                                    <button 
-                                                      onClick={handleCloseFormateurDetails}
-                                                      className="mt-4 bg-teal-500 text-white px-4 py-2 rounded-lg"
-                                                    >
-                                                      Fermer
-                                                    </button>
-                                                  </div>
-                                                </div>
-                                              )}
-                                            </div>
-
-
 <div className="space-y-4">
   {formationsDuDomaine.map((formation) =>
     formation.sessions.map((session) => (
@@ -924,6 +885,7 @@ const CatalogueListAdmin: React.FC = () => {
                                 onUpdate={refreshFormations}
                                 formation={selectedDomaine}
                                 themeId={selectedThemeId!}
+                                onFormationAdded={refreshFormations}
                               />
                             )}
                         <button
@@ -979,15 +941,12 @@ const CatalogueListAdmin: React.FC = () => {
                     )}
                   </td>
                   <td className="border border-gray-300 px-4 py-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation(); // Empêche la propagation de l'événement
-                        handleEditFormation(formation);
-                      }}
-                      className="text-teal-500"
-                    >
-                      éditer ✏️
-                    </button>
+                     <button 
+                              onClick={() => handleEditDomaine(formation, formation.id_formation,session.id_theme)}
+                              className="text-teal-700 mr-2"
+                            >
+                              éditer ✏️
+                            </button>
                   </td>
                 </tr>
               </tbody>

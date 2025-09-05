@@ -8,6 +8,7 @@ interface User {
   mail: string;
   badge?:string;
   isFormateur: boolean;
+  photo_profil?: string;
 }
 
 export const AuthContext = createContext<any | null>(null);

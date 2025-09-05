@@ -82,8 +82,7 @@ const ProfilFormateur: React.FC = () => {
       .get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formateurs/${id}`)
       .then((response) => {
         const formateurData = response.data;
-
-      // S'assurer que domaine_de_competences est un tableau
+console.log('FF0',response.data);
       
       setFormateur({
         ...formateurData,
@@ -111,7 +110,7 @@ const ProfilFormateur: React.FC = () => {
       .filter(option => option.selected)
       .map(option => option.value);
   
-    setUpdatedFormateur({ ...updatedFormateur, [name]: selectedValues });
+    setUpdatedFormateur(prev => prev ? { ...prev, [name]: selectedValues } : prev);
   };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     if (updatedFormateur) {
@@ -123,23 +122,29 @@ const ProfilFormateur: React.FC = () => {
   const handleSave = async () => {
     const formData = new FormData();
   
-    Object.keys(updatedFormateur).forEach(key => {
+    if (!updatedFormateur) return;
+
+    (Object.keys(updatedFormateur) as (keyof Formateur)[]).forEach((key) => {
       const value = updatedFormateur[key];
-    
+
       // Check if value is null or undefined
       if (value == null) {
         return; // Skip this iteration if the value is null or undefined
       }
-    
-      if (value.length === 0 && (key === 'domaine_de_competences' || key === 'themes_a_enseigner')) {
-        formData.append(key, JSON.stringify(value)); 
+
+      if (
+        Array.isArray(value) &&
+        value.length === 0 &&
+        (key === "domaine_de_competences" || key === "themes_a_enseigner")
+      ) {
+        formData.append(key as string, JSON.stringify(value));
       } else {
         if (Array.isArray(value)) {
           value.forEach((item) => {
-            formData.append(`${key}[]`, item);
+            formData.append(`${key as string}[]`, typeof item === "string" ? item : JSON.stringify(item));
           });
         } else {
-          formData.append(key, value);
+          formData.append(key as string, value as any);
         }
       }
     });

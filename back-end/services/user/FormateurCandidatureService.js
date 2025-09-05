@@ -1,4 +1,4 @@
-const FormateurCandidatureRepository = require('../../repositories/user/FormateurCandidatureRepository');
+const FormateurCandidatureRepository = require('../../repositories/User/FormateurCandidatureRepository');
 const nodemailer = require('nodemailer');
 
 class FormateurCandidatureService {

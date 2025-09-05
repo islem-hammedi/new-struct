@@ -1,3 +1,4 @@
+
 const db = require('../../connect');
 
 class AvisFormateurRepository {
@@ -9,27 +10,34 @@ class AvisFormateurRepository {
     t.theme AS nom, 
     s.lieu, 
     s.type_session, 
-    s.etat, 
+    s.etat, s.mode, s.genre, s.date_debut, s.date_fin, 
+    p.nom_complet, 
+    e.nom_entreprise,
     fp.id_presence, 
     fp.entreprise_beneficiaire, 
     COUNT(DISTINCT fpp.id_participant) AS nb_participants 
 FROM 
-    session s 
+    session s
 JOIN 
-    formateur f ON s.id_formateur = f.id_formateur 
+    formateur f ON s.id_formateur = f.id_formateur
 JOIN 
     theme t ON t.id_theme = s.id_theme
+JOIN 
+    entreprise e
+JOIN 
+    participant p ON p.id_entreprise = e.id_entreprise
 LEFT JOIN 
     feuille_presence_participants fpp ON s.id_session = fpp.id_session
 LEFT JOIN 
     feuille_presence fp ON fpp.id_presence = fp.id_presence
 WHERE 
-    f.id_formateur = ?
+    f.id_formateur = 102
 GROUP BY 
-    s.id_session, fp.id_presence, fp.entreprise_beneficiaire, t.theme, s.lieu, s.type_session, s.etat
+    s.id_session, t.theme, s.lieu, s.type_session, s.etat, 
+    p.nom_complet, e.nom_entreprise, fp.id_presence, fp.entreprise_beneficiaire
 ORDER BY 
-    s.id_session DESC;
-      `;
+    s.id_session DESC 
+LIMIT 0, 25;`;
 
       db.query(sql, [idFormateur], (err, results) => {
         if (err) return reject(err);
@@ -38,127 +46,66 @@ ORDER BY
     });
   }
 
-  async getFeuillePresence(id_presence) {
+  async insertAvisFormateur(id_formateur, id_presence, id_participant, evaluations) {
     return new Promise((resolve, reject) => {
       const sql = `
-        SELECT 
-    fp.id_presence, 
-    fp.entreprise_beneficiaire, 
-    DATE_FORMAT(s.date_debut, '%d/%m/%Y') AS date_debut, 
-    DATE_FORMAT(s.date_fin, '%d/%m/%Y') AS date_fin,
-    s.id_session,
-    p.id_participant,
-    p.nom_complet
-FROM feuille_presence fp
-LEFT JOIN feuille_presence_participants fpp ON fp.id_presence = fpp.id_presence
-LEFT JOIN session s ON fpp.id_session = s.id_session
-LEFT JOIN participant p ON fpp.id_participant = p.id_participant
-WHERE fp.id_presence = ?;
+        INSERT INTO avis_formateur (
+          connaissances_professionnelles,
+          connaissances_equipements,
+          comprehension_competences,
+          aptitude_appliquer_infos,
+          rapidite_execution,
+          qualite_travaux,
+          clarte_pertinence_resultats,
+          perfectionnement_connaissances,
+          respect_consignes_constructeur,
+          respect_normes_securite,
+          autonomie_travail,
+          participation,
+          assiduite_ponctualite,
+          initiative,
+          esprit_groupe,
+          observation,
+          id_session,
+          id_participant,
+          id_formateur
+        ) VALUES (
+          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?, ?, ?
+        )
       `;
 
-      db.query(sql, [id_presence], (err, results) => {
+      const values = [
+        evaluations.connaissances_professionnelles,
+        evaluations.connaissances_equipements,
+        evaluations.comprehension_competences,
+        evaluations.aptitude_appliquer_infos,
+        evaluations.rapidite_execution,
+        evaluations.qualite_travaux,
+        evaluations.clarte_pertinence_resultats,
+        evaluations.perfectionnement_connaissances,
+        evaluations.respect_consignes_constructeur,
+        evaluations.respect_normes_securite,
+        evaluations.autonomie_travail,
+        evaluations.participation,
+        evaluations.assiduite_ponctualite,
+        evaluations.initiative,
+        evaluations.esprit_groupe,
+        evaluations.observation || '',
+        evaluations.id_session,
+        id_participant,
+        id_formateur
+      ];
+
+      db.query(sql, values, (err, result) => {
         if (err) return reject(err);
-        resolve(results);
+        resolve({
+          id: result.insertId,
+          message: 'Évaluation enregistrée avec succès'
+        });
       });
     });
   }
-
-   async verifyParticipantsExist(participantIds) {
-    return new Promise((resolve, reject) => {
-      if (participantIds.length === 0) return resolve(true);
-      
-      const query = `SELECT id_participant FROM participant WHERE id_participant IN (?)`;
-      db.query(query, [participantIds], (err, results) => {
-        if (err) return reject(err);
-        
-        const existingIds = results.map(r => r.id_participant);
-        const missingIds = participantIds.filter(id => !existingIds.includes(id));
-        
-        if (missingIds.length > 0) {
-          reject(new Error(`Participant non trouvés: ${missingIds.join(', ')}`));
-        } else {
-          resolve(true);
-        }
-      });
-    });
-  }
-  async getParticipantsByPresence(id_presence) {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        SELECT p.id_participant, p.nom_complet 
-        FROM participant p
-        JOIN feuille_presence_participants fpp ON p.id_participant = fpp.id_participant
-        WHERE fpp.id_presence = ?
-      `;
-      db.query(sql, [id_presence], (err, results) => {
-        if (err) return reject(err);
-        resolve(results);
-      });
-    });
-  }
-
-  async insertAvisFormateur(id_formateur, id_presence, organisme_formation) {
-    return new Promise((resolve, reject) => {
-      db.query(
-        `INSERT INTO avis_formateur 
-         (id_formateur, id_presence, organisme_formation) 
-         VALUES (?, ?, ?)`,
-        [id_formateur, id_presence, organisme_formation],
-        (err, result) => {
-          if (err) return reject(err);
-          resolve(result);
-        }
-      );
-    });
-  }
-
-  async insertAvisDetails(avisDetails) {
-    const participantIds = avisDetails.map(d => d.id_participant);
-  
-  // Vérification d'abord
-  await this.verifyParticipantsExist(participantIds);
-  
-    return new Promise((resolve, reject) => {
-      
-
-      const values = avisDetails.map(detail => [
-        detail.id_avis,
-        detail.id_participant,
-        detail.connaissances_professionnelles,
-        detail.connaissances_equipements,
-        detail.comprehension_competences,
-        detail.aptitude_appliquer_infos,
-        detail.rapidite_execution,
-        detail.qualite_travaux,
-        detail.clarte_pertinence_resultats,
-        detail.perfectionnement_connaissances,
-        detail.respect_consignes_constructeur,
-        detail.respect_normes_securite,
-        detail.autonomie_travail,
-        detail.participation,
-        detail.assiduite_ponctualite,
-        detail.initiative,
-        detail.esprit_groupe,
-        detail.observation
-      ]);
-
-      db.query(
-        `INSERT INTO avis_formateur 
-         (id_avis, id_participant, connaissances_professionnelles, connaissances_equipements,
-          comprehension_competences, aptitude_appliquer_infos, rapidite_execution, qualite_travaux,
-          clarte_pertinence_resultats, perfectionnement_connaissances, respect_consignes_constructeur,
-          respect_normes_securite, autonomie_travail, participation, assiduite_ponctualite,
-          initiative, esprit_groupe, observation)
-         VALUES ?`,
-        [values],
-        (err, result) => {
-          if (err) return reject(err);
-          resolve(result);
-        }
-      );
-    });
-  }
-
 }
 
-module.exports = AvisFormateurRepository;
+module.exports = new AvisFormateurRepository();

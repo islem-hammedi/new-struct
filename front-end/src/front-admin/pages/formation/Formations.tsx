@@ -4,10 +4,9 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import "react-toastify/dist/ReactToastify.css";
 import AddFormation from "./AddFormation";
-import UpdateFormation from "./UpdateFormation";
+import UpdateFormation from "../formation/UpdateFormation";
 import Avis from "../avisParticipant";
 import AvisFormateur from "../avisFormateur";
-import AvisParticipant from "../avisParticipant";
 import { useNavigate, useParams } from "react-router-dom";
 import { FaFilePdf, FaDownload, FaEdit, FaTrash, FaSearch, FaChevronDown, FaChevronUp } from "react-icons/fa";
 
@@ -15,20 +14,19 @@ interface Session {
   id_session: number;
   theme: string;
   code: string;
-  nb_participants: number;
+  nb_participants:string; 
   etat: string;
   type_session: string;
-  lieu: string;
+  lieu:string;
   formateur: string;
-  fiche_prg: string | null;
-  cours_session: string | null;
+  fiche_prg: string;
+  cours_session: string;
   id_formateur: number;
-  date_debut: string;
-  date_fin: string;
+  mode:string;
   genre: string;
-  mode: string;
-  duree: number;
-  createdAt: string;
+  duree: string;
+  date_debut: Date;
+  date_fin: Date;
 }
 
 interface Formation {
@@ -60,18 +58,18 @@ interface Avis {
   duree_formation: number;
 }
 interface AvisFormateur {
-  id_avis: number; // Identifiant unique de l'avis
-  date_creation: string; // Date de création de l'avis
-  nom_formateur: string; // Nom du formateur
-  nom_participant: string; // Nom du participant
-  observation: string; // Observation ou commentaire
+  id_avis: number;
+  date_creation: string; 
+  nom_formateur: string;
+  nom_participant: string;
+  observation: string; 
   connaissances_professionnelles: number;
   connaissances_equipements: number; 
-  comprehension_competences: number; // Note pour la compréhension des compétences
-  aptitude_appliquer_infos: number; // Note pour l'aptitude à appliquer les informations
-  rapidite_execution: number; // Note pour la rapidité d'exécution
-  qualite_travaux: number; // Note pour la qualité des travaux
-  clarte_pertinence_resultats: number; // Note pour la clarté et pertinence des résultats
+  comprehension_competences: number; 
+  aptitude_appliquer_infos: number;
+  rapidite_execution: number; 
+  qualite_travaux: number;
+  clarte_pertinence_resultats: number; 
   perfectionnement_connaissances: number; // Note pour le perfectionnement des connaissances
   respect_consignes_constructeur: number; // Note pour le respect des consignes du constructeur
   respect_normes_securite: number; // Note pour le respect des normes de sécurité
@@ -83,104 +81,104 @@ interface AvisFormateur {
 }
 
 const FormationsList: React.FC = () => {
+  const navigate = useNavigate();
   const [formations, setFormations] = useState<Formation[]>([]);
   const [formateurs, setFormateurs] = useState<Formateur[]>([]);
   const [error, setError] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [selectedFormationId, setSelectedFormationId] = useState<number | null>(null);
   const [showAddFormation, setShowAddFormation] = useState(false);
+
   const [editingFormation, setEditingFormation] = useState<Formation | null>(null);
   const { user } = useAuth();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const [showSearchBar, setShowSearchBar] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sessionSearchQuery, setSessionSearchQuery] = useState("");
+  const [showSessionSearch, setShowSessionSearch] = useState<{ [key: string]: boolean }>({});
   const [filteredFormations, setFilteredFormations] = useState<Formation[]>([]);
-  const [expandedDomains, setExpandedDomains] = useState<Record<string, boolean>>({});
+  //const [avisList, setAvisList] = useState<Avis[]>([]);
+  //const [avisListf, setAvisListf] = useState<AvisFormateur[]>([]);
+
   const [isAvispOpen, setIsAvispOpen] = useState(false);
   const [isAvisfOpen, setIsAvisfOpen] = useState(false);
 
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
-  const [sessionId, setSessionId] = useState<number>();
+  const [sessionId, setSessionId] = useState<number>(1);
   
-  const [avisP, setAvisP] = useState<any[]>([]);  // Etat pour stocker les avis récupérés
+  const [avisP, setAvisP] = useState<any[]>([]);  
   const [avisF,setAvisF]= useState<any[]>([]);
-  // Fonction pour formater la date
-  const formatDate = (dateString: string) => {
-    if (!dateString || dateString === "0000-00-00 00:00:00") return "Non défini";
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR');
-  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [formationsRes, formateursRes] = await Promise.all([
-          axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formations/Form`),
-          axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formateurs`)
-        ]);
-        
-        setFormations(formationsRes.data);
-        setFilteredFormations(formationsRes.data);
-        setFormateurs(formateursRes.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Une erreur est survenue");
-      } finally {
+    axios
+    .get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formations/Form`)
+      .then((response) => {
+        setFilteredFormations(response.data);
+        setFormations(response.data);
         setLoading(false);
-      }
-    };
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
 
-    fetchData();
+    axios
+    .get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formateurs`)
+      .then((response) => {
+        setFormateurs(response.data);
+        console.log("Formateurs récupérés :", response.data);
+      })
+      .catch((err) => console.error("Erreur lors de la récupération des formateurs", err));
   }, []);
-  useEffect(() => {
-    console.log("État editingFormation a changé:", editingFormation);
-  }, [editingFormation]);
 
-  const refreshFormations = async () => {
-    try {
-      const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formations/Form`);
-      setFormations(response.data);
-      setFilteredFormations(response.data);
-    } catch (err) {
-      console.error("Erreur lors de la mise à jour des formations", err);
-    }
+  const refreshFormations = () => {
+    axios
+    .get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formations/Form`)
+      .then((response) => setFilteredFormations(response.data))
+      .catch((err) => console.error("Erreur lors de la mise à jour des formations", err));
   };
+
+  const domainesUniques = Array.from(new Set(filteredFormations.map((f) => f.domaine)));
+  const domainesFiltres = domainesUniques.filter((domaine) =>
+    (domaine ? domaine.toLowerCase() : ''));
+
+  const handleSearchToggle = () => setShowSearchBar(!showSearchBar);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value.toLowerCase();
     setSearchQuery(query);
-
     if (query === "") {
       setFilteredFormations(formations);
       return;
-    };
+    }
+    const filtered = filteredFormations.filter((formation) => {
+      const matchesDomaine =formation.domaine ? formation.domaine.toLowerCase().includes(query):false;
+      console.log("Formation:", formation.domaine, "Matches Domaine:", matchesDomaine);
+      const matchesSession = formation.sessions.some((session) => {
+        return (
+          (session.theme?session.theme.toLowerCase().includes(query):false) ||
+          (session.code?session.code.toLowerCase().includes(query):false) ||
+          (session.type_session ? session.type_session.toLowerCase().includes(query):false) ||
+          (session.formateur ? session.formateur.toLowerCase().includes(query):false) ||
+          (session.mode ? session.mode.toLowerCase().includes(query):false) ||
+          (session.genre ? session.genre.toLowerCase().includes(query):false) ||
+          (session.etat? session.etat.toLowerCase().includes(query):false) 
 
-    const filtered = formations.filter((formation) => {
-      const matchesDomaine = formation.domaine?.toLowerCase().includes(query);
-      const matchesSession = formation.sessions.some((session) => (
-        session.theme?.toLowerCase().includes(query) ||
-        (session.code?.toLowerCase().includes(query)) ||
-        (session.type_session?.toLowerCase().includes(query)) ||
-        (session.formateur?.toLowerCase().includes(query)) ||
-        (session.etat?.toLowerCase().includes(query))
-      ));
+         );
+      });
+      console.log("Formations:", filteredFormations);
+      console.log("Search Query:", query);
+      console.log("Query:", query);
       return matchesDomaine || matchesSession;
     });
-
+  
     setFilteredFormations(filtered);
-  };
+    console.log("Filtered Formations:", filtered);
 
-  const toggleDomain = (domaine: string) => {
-    setExpandedDomains(prev => ({
-      ...prev,
-      [domaine]: !prev[domaine]
-    }));
   };
-
-  const getFormateurName = (id_formateur: number) => {
-    const formateur = formateurs.find(f => f.id_formateur === id_formateur);
-    return formateur?.nom_complet || "Inconnu";
-  };
-
-  const renderFileLink = (filename: string | null, label: string) => {
+    const renderFileLink = (filename: string | null, label: string) => {
     if (!filename) return <span className="text-gray-400">Non disponible</span>;
     
     return (
@@ -197,82 +195,73 @@ const FormationsList: React.FC = () => {
       </a>
     );
   };
+  const handleSessionSearchChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setSessionSearchQuery(e.target.value);
 
-  const handleDeleteSession = async (formationId: number, sessionId: number) => {
-    // Vérification des permissions
-    if (user.nom_acces !== "super_admin" && user.nom_acces !== "editeur formation") {
-      setErrorMessage("Vous n'avez pas les permissions nécessaires pour supprimer une session.");
+  const toggleSessionSearch = (domaine: string) => {
+    setShowSessionSearch((prevState) => ({
+      ...prevState,
+      [domaine]: !prevState[domaine],
+    }));
+  };
+
+  const handleDeleteFormation = async (id_formation: number) => {
+    if (user.nom_acces !== "super_admin") {
+      setErrorMessage("Vous n'avez pas l'accès pour supprimer une formation.");
       return;
     }
-  
-  
-    try {
-      // Appel API pour supprimer la session
-      const response = await axios.delete(
-       ` ${import.meta.env.VITE_APP_API_URL}/apiAdmin/formations/Form/${formationId}/sessions/${sessionId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('user')}`
-          }
-        }
-      );
-      if (response.data.success) {
-        // Mise à jour locale de l'état sans recharger toute la page
-        console.log("idformation=", formationId);
-        console.log("idsession", sessionId);
-        setFormations(prevFormations =>
-          prevFormations.map(formation =>
-            formation.id_formation === formationId
-              ? {
-                  ...formation,
-                  sessions: formation.sessions.filter(session => session.id_session !== sessionId)
-                }
-              : formation
-          )
-        );
-        setFilteredFormations(prevFormations =>
-          prevFormations.map(formation =>
-            formation.id_formation === formationId
-              ? {
-                  ...formation,
-                  sessions: formation.sessions.filter(session => session.id_session !== sessionId)
-                }
-              : formation
-          )
-        );
-  
-        // Notification de succès
-        alert('Session supprimée avec succès !');
-      } else {
-        throw new Error(response.data.message || "Erreur lors de la suppression");
-      }
-    } catch (error) {
-      console.error("Erreur lors de la suppression de la session:", error);
-      
-      // Gestion des erreurs avec des messages utilisateur-friendly
-      let errorMessage = "Une erreur est survenue lors de la suppression";
-      if (axios.isAxiosError(error)) {
-        errorMessage = error.response?.data?.message || error.message;
-      }
-  
-      setErrorMessage(errorMessage);
-      alert(errorMessage);
+    if (!window.confirm("Voulez-vous vraiment supprimer cette formation ?")) {
+      return;
     }
+
+    try {
+      const response = await axios.delete(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formations/DEL/${id_formation}`);
+      console.log("Suppression réussie:", response.data);
+
+      setFilteredFormations((prevFormations) =>
+        prevFormations.filter((filteredFormations) => filteredFormations.id_formation !== id_formation)
+      );
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error("Erreur lors de la suppression de la formation:", error.response?.data || error.message);
+      } else {
+        console.error("Erreur lors de la suppression de la formation:", error);
+      }
+    }
+    refreshFormations();
+  };
+
+  const handleDeleteSession = async (formationId: number, sessionId: number) => {
+    if (user.nom_acces !== "super_admin" && user.nom_acces !== "gestionnaire formation") {
+      setErrorMessage("Vous n'avez pas l'accès pour supprimer une session.");
+      return;
+    }
+    if (!window.confirm("Voulez-vous vraiment supprimer cette session ?")) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formations/${formationId}/sessions/${sessionId}`);
+      setFilteredFormations((prevFormations) =>
+        prevFormations.map((formation) =>
+          formation.id_formation === formationId
+            ? { ...formation, sessions: formation.sessions.filter((session) => session.id_session !== sessionId) }
+            : formation
+        )
+      );
+    } catch (error) {
+      console.error("Erreur suppression session:", axios.isAxiosError(error) ? error.response?.data || error.message : error);
+    }
+    refreshFormations();
   };
 
   const handleEditFormation = (formation: Formation) => {
-    console.log("Formation sélectionnée pour édition:", formation);
-    if (!formation || !formation.id_formation) {
-      console.error("Formation invalide");
-      return;
-    }
-    setEditingFormation({...formation}); // Crée une nouvelle référence
+    setEditingFormation(formation);
   };
-  
+
   const handleUpdateFormation = () => {
-    console.log("Mise à jour terminée, fermeture de l'éditeur");
     setEditingFormation(null);
-    refreshFormations().catch(e => console.error("Erreur rafraîchissement:", e));
+    refreshFormations();
   };
 
   const fetchAvis = async (sessionId: number) => {
@@ -315,190 +304,162 @@ const FormationsList: React.FC = () => {
   };
   
 
-  if (loading) return <div className="text-center py-8">Chargement en cours...</div>;
-  if (error) return <div className="text-center text-red-500 py-8">{error}</div>;
 
+
+  const getFormateurName = (session: Session) => {
+    
+    if (!formateurs.length) {
+      return "Chargement formateur...";
+    }
+    if (session.id_formateur === undefined) {
+      console.error("id_formateur est undefined pour la session :", session);
+      return "Inconnu";
+    }
+    console.log(`Session ID: ${session.id_session}, Formateur ID: ${session.id_formateur}`);
+    const formateur = formateurs.find((f) => f.id_formateur === Number(session.id_formateur));
+    console.log(`Formateur trouvé: ${formateur ? formateur.nom_complet : "Aucun"}`);
+    return formateur?.nom_complet ? formateur.nom_complet : "Inconnu";
+  };
+
+  if (loading) return <p className="text-center text-gray-600">Chargement...</p>;
+  if (error) return <p className="text-center text-red-500">Erreur: {error}</p>;
 
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      {editingFormation && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <UpdateFormation 
-      formation={editingFormation} 
-      onUpdate={handleUpdateFormation}
-      onCancel={() => setEditingFormation(null)}
-    />
-  </div>
-)}
-  
-      {!editingFormation && (
-        <div className="flex justify-between items-center mb-8 ">
-          <h1 className="text-3xl font-bold text-teal-700">Formations</h1>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
+      {editingFormation ? (
+        <UpdateFormation
+          formation={editingFormation}
+          onUpdate={handleUpdateFormation}
+          onCancel={() => setEditingFormation(null)}
+        />
+      ) : (
+        <>
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-2xl font-bold text-teal-700 text-center flex-grow">Formations</h1>
+            <button onClick={handleSearchToggle} className="bg-white text-[#82b89a] p-2 rounded-full shadow hover:text-black">
+              🔍
+            </button>
+           
+          </div>
+          
+          {showSearchBar && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mb-5">
               <input
                 type="text"
-                placeholder="Rechercher..."
+                placeholder="Rechercher une formation ou un thème..."
                 value={searchQuery}
                 onChange={handleSearchChange}
-                className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full h-10 p-2 border border-black rounded-lg bg-white text-[#82b89a]"
               />
-              <FaSearch className="absolute left-3 top-3 text-gray-400" />
+            </motion.div>
+            
+          )}
+      {loading && <p className="text-center text-gray-500">Chargement...</p>}
+      {error && <p className="text-center text-red-600 font-bold">{error}</p>}
+
+            <div className="flex justify-end p-4">
+              <button
+                onClick={() => setShowAddFormation(true)}
+                className="bg-teal-500 text-white px-4 py-2 rounded-lg"
+               >
+                + Planifier Formation ?
+              </button>
             </div>
-            <button
-              onClick={() => setShowAddFormation(true)}
-              className="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg flex items-center"
-            >
-              <span className="mr-2">+</span> Planifier Formation
-            </button>
-          </div>
-        </div>
-      )}
-  
-      {showAddFormation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <AddFormation 
-              onFormationAdded={() => {
-                refreshFormations();
-                setShowAddFormation(false);
-              }} 
-              onClose={() => setShowAddFormation(false)} 
-            />
-          </div>
-        </div>
-      )}
+            {showAddFormation && (
+              <AddFormation onFormationAdded={refreshFormations} onClose={() => setShowAddFormation(false)}  />)
+            }
 
+            
 
-      {filteredFormations.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-xl text-gray-500">Aucune formation trouvée</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {Array.from(new Set(filteredFormations.map(f => f.domaine))).map(domaine => (
-            <div key={domaine} className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div 
-                className="flex justify-between items-center p-10 bg-gray-100 hover:bg-gray-50 cursor-pointer"
-                onClick={() => toggleDomain(domaine)}
-              >
-                <h2 className="text-xl font-semibold text-teal-700">{domaine}</h2>
-                {expandedDomains[domaine] ? <FaChevronUp /> : <FaChevronDown />}
-              </div>
+          {filteredFormations.length === 0 ? (
+            <p className="text-center text-gray-500 px-4 py-2">Aucune formation trouvée.</p>
+          ) : (
 
-              {expandedDomains[domaine] && (
-                <div className="divide-y divide-gray-200">
-                  {filteredFormations
-                    .filter(f => f.domaine === domaine)
-                    .map(formation => (
-                      <div key={formation.id_formation} className="p-4">
-                        <div className="flex justify-between items-center mb-3">
-                          <h3 className="text-lg font-medium">
-                          </h3>
-                          
+                Array.from(new Set(filteredFormations.map((f) => f.domaine))).map((domaine) => {
+                const formationsDuDomaine = filteredFormations.filter((f) => f.domaine === domaine && f.sessions.length > 0);
+                return (
+                  
+                <div key={domaine} className="mb-6">
+                  <div className="flex justify-between items-center mb-2">
+                   <h3 className="text-xl font-semibold text-teal-700">{domaine}</h3>
+                  </div>
+                 
+                  <div className="space-y-4">
+                    {formationsDuDomaine.map((formation) => (
+                      <div 
+                        key={formation.id_formation} 
+                        className="bg-gray-100 shadow-md rounded-lg p-12 border border-gray-200 cursor-pointer hover:bg-gray-100"
+                        onClick={() => setSelectedFormationId(selectedFormationId === formation.id_formation ? null : formation.id_formation)}
+                      >
+                        <div className="space-y-3">
+                          {formation.sessions.map((session) => (
+                            <div key={session.id_session} className="flex justify-between items-center">
+                              <h5 className="font-medium flex-grow">{session.theme}</h5>
+                              <div className="flex space-x-2 ml-4">
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation(); 
+                                    handleEditFormation(formation);
+                                  }} 
+                                  className="text-teal-500 hover:text-teal-700 whitespace-nowrap">
+                                  éditer ✏️
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteSession(formation.id_formation, session.id_session);
+                                  }}
+                                  className="text-red-500 hover:text-red-700 whitespace-nowrap">
+                                  supprimer 🗑️
+                                </button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
+                         {selectedFormationId === formation.id_formation && (
+                          <>
+                            {formation.sessions.length > 0 ? (
+                              
+                             <div className="overflow-x-auto">
 
-                        {formation.sessions.length > 0 ? (
-  <div className="overflow-x-auto">
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-50">
-        <tr>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thème/Code</th>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Formateur</th>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mode</th>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Détails</th>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Documents</th>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Participants</th>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avis</th>
-          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-        </tr>
-      </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
-        {formation.sessions.map(session => (
-          <tr key={session.id_session} className="hover:bg-gray-50">
-            {/* Colonne Thème/Code */}
-            <td className="px-4 py-4">
-              <div className="font-medium text-gray-900">{session.theme}</div>
-              <div className="text-sm text-gray-500">{session.code}</div>
-            </td>
-            
-            {/* Colonne Dates */}
-            <td className="px-4 py-4 whitespace-nowrap">
-              <div className="text-sm">
-                <span className="font-semibold">Début:</span> {formatDate(session.date_debut)}
-              </div>
-              <div className="text-sm">
-                <span className="font-semibold">Fin:</span> {formatDate(session.date_fin)}
-              </div>
-              <div className="text-sm text-gray-500">
-                Durée: {session.duree}h
-              </div>
-            </td>
-            
-            {/* Colonne Formateur */}
-            <td className="px-4 py-4">
-              <div className="text-sm font-medium text-gray-900">
-                {getFormateurName(session.id_formateur)}
-              </div>
-            </td>
-            
-            {/* Colonne Type/Mode */}
-            <td className="px-4 py-4">
-              
-              <div className="text-sm">
-                <span className="font-semibold">Mode:</span> {session.mode}
-              </div>
-              
-            </td>
-            
-            {/* Colonne Détails */}
-            <td className="px-4 py-4">
-            <div className="text-sm">
-                <span className="font-semibold">Type:</span> {session.type_session}
-              </div>
-              {session.lieu && (
-                <div className="text-sm">
-                  <span className="font-semibold">Lieu:</span> {session.lieu}
-                </div>
-              )}
-              <div className="text-sm">
-                <span className="font-semibold">Genre:</span> {session.genre}
-              </div>
-              
-            </td>
-            
-            {/* Colonne Documents */}
-            <td className="px-4 py-4">
-              <div className="space-y-2">
-                {renderFileLink(session.fiche_prg, "Programme")}
-                {renderFileLink(session.cours_session, "Support")}
-              </div>
-            </td>
-            
-            {/* Colonne Statut/Participants */}
-            <td className="px-4 py-4">
-              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                session.etat === 'A Réalisé' ? 'bg-green-100 text-green-800' :
-                session.etat === 'planifiée' ? 'bg-blue-100 text-blue-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {session.etat}
-              </span>
-              
-            </td>
-            <td>
-            <div className="mt-1 text-sm">
-                Participants: {session.nb_participants || 0}
-              </div>
-            </td>
-            
-            <td>
-            {session.etat === "Déja Réalisé" && (
+                              <table className="w-full mt-4 border-collapse min-w-[1100px] border border-gray-300">
+                                <thead>
+                                  <tr className="bg-gray-100">
+                                    <th className="border border-gray-300 px-4 py-2">Thème/Code</th>
+                                    <th className="border border-gray-300 px-4 py-2">Formateur</th>
+                                    <th className="border border-gray-300 px-4 py-2">Fichiers</th>
+
+                                    <th className="border border-gray-300 px-4 py-2">etat</th>
+                                    <th className="border border-gray-300 px-4 py-2">Type</th>
+                                    <th className="border border-gray-300 px-4 py-2">nombre de participants</th>
+                                    <th className="border border-gray-300 px-4 py-2">Mode</th>
+                                    <th className="border border-gray-300 px-4 py-2">Genre</th>
+                                    <th className="border border-gray-300 px-4 py-2">Dates/Durée</th>
+                                    <th className="border border-gray-300 px-4 py-2">Avis</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {formation.sessions
+                                  .map((session) => (
+                                    <tr key={session.id_session} className="hover:bg-gray-50">
+                                    <td className="border border-gray-300 px-4 py-2">{session.theme}/{session.code}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{getFormateurName(session)}</td>
+                                    <td className="border border-gray-300 px-4 py-2"><div className="space-y-2">
+                                    {renderFileLink(session.fiche_prg, "Programme")}
+                                    {renderFileLink(session.cours_session, "Support")}</div></td>
+
+                                    <td className="border border-gray-300 px-4 py-2">{session.etat}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{session.type_session} à {session.lieu} </td>
+                                    <td className="border border-gray-300 px-4 py-2">{session.nb_participants}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{session.mode}</td>
+                                    <td className="border border-gray-300 px-4 py-2">{session.genre}</td>
+                                    <td className="border border-gray-300 px-4 py-2"> début: {session.date_debut ? new Date(session.date_debut).toLocaleDateString() : ''} Fin: {session.date_fin ? new Date(session.date_fin).toLocaleDateString() : ''} durée:{session.duree}</td>
+
+                                    <td className="border border-gray-300 px-4 py-2">
+                                        {session.etat === "déjà réalisé" && (
                                           <>
-                                              <button onClick={() => handleViewAvisParticipants(session.id_session)}  className="text-teal-500">
+                                              <button onClick={() => handleViewAvisParticipants(1)}  className="text-teal-500">
                                                 avis participants 🌟 </button>
                                               {isAvispOpen && loading && <p>Chargement...</p>} 
                                               {isAvispOpen && error && <p>{error}</p>}
@@ -506,7 +467,7 @@ const FormationsList: React.FC = () => {
                                               <Avis avisList={avisP}  loading={loading}  error={error}  onClose={() => setIsAvispOpen(false)} />
                                               )}
                                          
-                                           <button onClick={() => handleViewAvisFormateurs(session.id_session)} className="text-teal-500">
+                                           <button onClick={() => handleViewAvisFormateurs(1)} className="text-teal-500">
                                              avis Formateur 🌟 </button>
                                            {isAvisfOpen && loading && <p>Chargement...</p>} 
                                            {isAvisfOpen && error && <p>{error}</p>}
@@ -515,56 +476,29 @@ const FormationsList: React.FC = () => {
                                            )}
                                        </>
                                         )}
-            </td>
-            {/* Colonne Actions */}
-            <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-              {(user.nom_acces === "super_admin" || user.nom_acces === "editeur formation") && (
-                <div className="flex space-x-2 justify-end">
-                  <button
-onClick={(e) => {
-  e.preventDefault();
-  e.stopPropagation();
-  console.log("Clic capturé - ID Formation:", formation.id_formation);
-  handleEditFormation(formation);
-}}                    className="text-teal-600 hover:text-teal-800 p-1"
-                    title="Modifier"
-                  >
-                    <FaEdit />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteSession(formation.id_formation, session.id_session);
-                    }}
-                    className="text-red-500 hover:text-red-700 p-1"
-                    title="Supprimer"
-                  >
-                    <FaTrash />
-                  </button>
-                
-                </div>
-              )}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-) : (
-  < >
-  </>
-)}
-                              
+                                    </td>
+                                  </tr>
+                                   ))}
+                                  {isAvispOpen && <Avis avisList={avisP}  loading={loading}  error={error} onClose={() => setIsAvispOpen(false)} />}
+                                  {isAvisfOpen && <AvisFormateur avisList={avisF}  loading={loading}  error={error} onClose={() => setIsAvisfOpen(false)} />}
+
+                                </tbody>
+                              </table></div>
+                            ) : (
+                              <p>Aucune session disponible.</p>
+                            )}
+                          </>
+                        )}
                       </div>
                     ))}
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
+              );
+            })
+          )}
+        </>
       )}
     </div>
   );
 };
-
 export default FormationsList;

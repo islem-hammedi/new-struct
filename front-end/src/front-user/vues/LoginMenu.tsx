@@ -61,7 +61,7 @@ const LoginMenu: React.FC<LoginMenuProps> = ({ onClose }) => {
       setError(null);
       const bodyData = { nom_complet: data.nom_complet, pwd: data.pwd };
       console.log("Sending login request with:", bodyData);
-      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/apiUser/login`, {
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/apiUser/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -79,6 +79,9 @@ const LoginMenu: React.FC<LoginMenuProps> = ({ onClose }) => {
         if (result.isFormateur) {
           navigate("/profil_formateur");
         } 
+        else if (!result.isFormateur && result.token) {
+          navigate("/profil_participant");
+        }
       } else {
         throw new Error("Le token est manquant dans la réponse.");
       }
@@ -103,7 +106,7 @@ const LoginMenu: React.FC<LoginMenuProps> = ({ onClose }) => {
 
     try {
       setError(null);
-      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/apiUser/register`, {
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/apiUser/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -129,7 +132,7 @@ const LoginMenu: React.FC<LoginMenuProps> = ({ onClose }) => {
         throw new Error("L'email fourni est invalide.");
       }
 
-      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/apiUser/request-password-reset`, {
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/apiUser/auth/request-password-reset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mail: data.mail }),
@@ -161,7 +164,7 @@ const LoginMenu: React.FC<LoginMenuProps> = ({ onClose }) => {
         throw new Error("Le mot de passe doit contenir 8 caractères avec majuscule, minuscule, chiffre et caractère spécial.");
       }
 
-      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/apiUser/reset-password`, {
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/apiUser/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

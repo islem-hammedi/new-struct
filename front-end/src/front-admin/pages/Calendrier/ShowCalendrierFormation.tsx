@@ -7,15 +7,12 @@ interface Domaine {
   domaine: string;
   sessions: Session[];   
 }
-
-
 interface Session {
   id_session: number;
   id_theme: number;
   createdAt: string;
   theme?: string; 
 }
-
 interface CalendarSession {
   id_session: number;
   id_theme: number;
@@ -35,6 +32,26 @@ interface MonthData {
   sessions: CalendarSession[];
   publishedSessions: CalendarSession[]; }
 
+  interface Participant {
+  id_participant: number;
+  badge?: string;
+  nom_complet: string;
+  mail: string;
+  telephone: string;
+  id_entreprise: number;
+}
+
+interface Participation {
+  id_session: number;
+  participant: Participant;
+  date: string; 
+}
+function isValidParticipation(dateString: string): boolean {
+  const now = new Date();
+  const participationDate = new Date(dateString);
+  const diffDays = (now.getTime() - participationDate.getTime()) / (1000 * 60 * 60 * 24);
+  return diffDays < 20;
+}
 const TrainingCalendar: React.FC = () => {
   const [domainesData, setDomainesData] = useState<Domaine[]>([]);
     const [calendarSessionData, setSessionCalendrierData] = useState<Domaine[]>([]);
@@ -42,7 +59,9 @@ const TrainingCalendar: React.FC = () => {
   const [calendarData, setCalendarData] = useState<Record<number, MonthData>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+const [participations, setParticipations] = useState<Participation[]>([]);
 
+  useEffect
  useEffect(() => {
   const fetchData = async () => {
     try {
@@ -52,14 +71,13 @@ const TrainingCalendar: React.FC = () => {
       
       console.log("Données reçues:", response.data);
       
-      // Transformation des données pour correspondre à la structure attendue
       const transformedData = response.data.map((domaine: any) => ({
         id_formation: domaine.id_formation,
         domaine: domaine.domaine,
         sessions: domaine.sessions.map((session: any) => ({
           id_session: session.id_session,
           createdAt: session.createdAt,
-          theme: session.theme || `Session ${session.id_session}` // Valeur par défaut si theme n'existe pas
+          theme: session.theme || `Session ${session.id_session}` 
         }))
       }));
       
@@ -74,12 +92,6 @@ const TrainingCalendar: React.FC = () => {
 
   fetchData();
 }, []);
-
-
-
-
-
-
 
 useEffect(() => {
   const fetchData = async () => {
@@ -96,7 +108,7 @@ useEffect(() => {
         domaine.sessions.forEach((session: any) => {
           if (session.date_debut) {
             const dateDebut = new Date(session.date_debut);
-            const month = dateDebut.getMonth() + 1; // +1 car les mois vont de 0 à 11
+            const month = dateDebut.getMonth() + 1;
             
             if (!sessionsByMonth[month]) {
               sessionsByMonth[month] = [];
@@ -117,7 +129,6 @@ useEffect(() => {
         });
       });
       
-      // Mettre à jour calendarData avec les sessions publiées
       setCalendarData(prev => {
         const newData = {...prev};
         Object.keys(sessionsByMonth).forEach(month => {
@@ -169,7 +180,6 @@ const handleDeletePublishedSession = async (sessionId: number) => {
     );
 
     if (response.data.success) {
-      // Mettre à jour l'état local pour refléter la suppression
       setCalendarData(prev => {
         const newData = {...prev};
         Object.keys(newData).forEach(month => {
@@ -277,12 +287,11 @@ const handleDeletePublishedSession = async (sessionId: number) => {
                 [field]: value
               };
               
-              // Recalculer la durée si les deux dates sont définies
               if (updatedSession.date_debut && updatedSession.date_fin) {
                 updatedSession.duree = differenceInDays(
                   new Date(updatedSession.date_fin),
                   new Date(updatedSession.date_debut)
-                ) + 1; // +1 pour inclure le dernier jour
+                ) + 1; 
               }
               
               return updatedSession;
@@ -296,7 +305,6 @@ const handleDeletePublishedSession = async (sessionId: number) => {
 
   const handleSave = async () => {
     try {
-      // 1. Préparer les données
       const sessionsToSave = Object.entries(calendarData).flatMap(([month, monthData]) =>
         monthData.sessions.map(session => ({
           id_session: session.id_session,
@@ -308,7 +316,6 @@ const handleDeletePublishedSession = async (sessionId: number) => {
 
       console.log("Données à envoyer:", sessionsToSave);
 
-      // 2. Envoyer directement le tableau (sans l'objet wrapper)
       const response = await axios.post(
         `${import.meta.env.VITE_APP_API_URL}/apiAdmin/sessions/save`,
         sessionsToSave,
@@ -318,8 +325,6 @@ const handleDeletePublishedSession = async (sessionId: number) => {
           }
         }
       );
-
-      // 3. Gérer la réponse
       if (response.data.success) {
         alert(response.data.message || "Sessions enregistrées avec succès !");
       } else {
@@ -338,6 +343,30 @@ const handleDeletePublishedSession = async (sessionId: number) => {
 
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
+const handleDeleteParticipant = (participationToDelete: Participation) => {
+  try {
+    // récupérer 
+    const participationsString = localStorage.getItem("participations");
+    const participations: Participation[] = participationsString ? JSON.parse(participationsString) : [];
+
+    // supprimer participation
+    const updatedParticipations = participations.filter(
+      (participation) => !(
+        participation.participant.id_participant === participationToDelete.participant.id_participant &&
+        participation.id_session === participationToDelete.id_session &&
+        participation.date === participationToDelete.date
+      )
+    );
+
+    // Sauvegarder modifications
+    localStorage.setItem("participations", JSON.stringify(updatedParticipations));
+    setParticipations(updatedParticipations);
+    
+  } catch (error) {
+    console.error("Erreur lors de la suppression:", error);
+    alert("Échec de la suppression de la participation");
+  }
+};
   if (loading) return <div className="p-6">Chargement...</div>;
   if (error) return <div className="p-6 text-red-500">{error}</div>;
 
@@ -354,27 +383,63 @@ const handleDeletePublishedSession = async (sessionId: number) => {
               {format(addMonths(startOfYear(new Date()), month - 1), "MMMM")}
             </h3>
 
-            {/* Afficher les sessions publiées */}
-          {monthData.publishedSessions && monthData.publishedSessions.length > 0 && (
+{monthData.publishedSessions && monthData.publishedSessions.length > 0 && (
   <div className="mb-4 space-y-2">
     <h4 className="text-sm font-semibold text-gray-600">Sessions programmées:</h4>
-    {monthData.publishedSessions.map((session) => (
-      <div key={`published-${session.id_session}`} className="bg-teal-50 p-2 rounded text-sm relative group">
-        <div className="font-medium text-teal-800">{session.theme}</div>
-        <div className="text-xs text-gray-600">
-          {session.date_debut && format(session.date_debut, "dd/MM/yyyy")} - {session.date_fin && format(session.date_fin, "dd/MM/yyyy")}
+    {monthData.publishedSessions.map((session) => {
+      const participations: Participation[] = JSON.parse(localStorage.getItem("participations") || "[]");
+    
+      const participantsSession = participations.filter(
+        (p) =>
+          p.id_session === session.id_session &&
+          isValidParticipation(p.date)
+      );
+      return (
+        <div key={`published-${session.id_session}`} className="bg-teal-50 p-2 rounded text-sm relative group border border-teal-400">
+          <div className="font-medium text-teal-800">{session.theme}</div>
+          <div className="text-xs text-gray-600">
+            {session.date_debut && format(session.date_debut, "dd/MM/yyyy")} - {session.date_fin && format(session.date_fin, "dd/MM/yyyy")}
+          </div>
+          <button
+            className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-xs bg-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm group-hover:opacity-100 transition-opacity"
+            onClick={() => handleDeletePublishedSession(session.id_session)}
+            title="Retirer du calendrier"
+          >
+            ×
+          </button>
+          <div className="mt-2 ml-2">
+            <span className="text-teal-600 font-medium">Participants :</span>
+            {participantsSession.length === 0 ? (
+              <div className="text-gray-400 text-xs">Aucun participant récent</div>
+            ) : (
+              <ul className="space-y-1 mt-1">
+                {participantsSession.map((p, idx) => (
+                  <li key={idx} className="text-xs text-gray-700 flex flex-col md:flex-row md:space-x-4">
+                    <button
+        className="text-red-500 hover:text-red-700 text-xs bg-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm "
+        onClick={() => handleDeleteParticipant(p)}
+        title="Supprimer le participant"
+      >
+        ×
+      </button>
+                    <span className="font-semibold">{p.participant.nom_complet}</span>
+                    <span>{p.participant.telephone}</span>
+                    <span>{p.participant.mail}</span>
+                    <span>{p.participant.id_entreprise}</span>
+                    
+                  </li>
+                  
+                ))}
+                
+              </ul>
+            )}
+          </div>
         </div>
-        <button
-          className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-xs bg-white rounded-full w-5 h-5 flex items-center justify-center shadow-sm group-hover:opacity-100 transition-opacity"
-          onClick={() => handleDeletePublishedSession(session.id_session)}
-          title="Retirer du calendrier"
-        >
-          ×
-        </button>
-      </div>
-    ))}
+      );
+    })}
   </div>
 )}
+
 
             <button
               className="mb-4 text-sm bg-teal-50 text-teal-600 px-2 py-1 rounded"

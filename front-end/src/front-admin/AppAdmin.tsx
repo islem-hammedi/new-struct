@@ -24,7 +24,7 @@ import DemandesDeFormation from './pages/formation/DemandesDeFormation ';
 import FeuillePresence from './pages/Fiches/FeuillePresence';
 import ShowCalendrierformation from './pages/Calendrier/ShowCalendrierFormation';
 import CatalogueListAdmin from './pages/catalogue/catalogue';
-
+import AddReferenceForm from './pages/addReference';
 const AppAdmin= () => {
   const { loading } = useAuth(); // Utiliser le hook useAuth pour récupérer l'utilisateur et l'état de connexion
 
@@ -224,6 +224,15 @@ const AppAdmin= () => {
                         //</>
                       }
                     />
+  <Route
+    path="/addreference"
+    element={
+    <>
+    <PageTitle title="Reference Dashboard | SacAdmin" />
+    <AddReferenceForm />
+    </>
+     }
+    />
                 <Route
                   path="/*"
                   element={

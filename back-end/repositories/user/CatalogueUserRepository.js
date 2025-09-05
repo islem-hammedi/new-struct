@@ -15,7 +15,7 @@ class CatalogueUserRepository {
             port: 587,
             secure: false,
             auth: {
-                user: process.env.EMAIL_USER || 'khadijabenabdelkader1206@gmail.com',
+                user: process.env.EMAIL_USER || 'isslem.hammedi@gmail.com',
                 pass: process.env.EMAIL_PASS || 'qqij aava gtxv hpdz'
             }
         });
@@ -28,7 +28,7 @@ class CatalogueUserRepository {
                     id_domaine INT AUTO_INCREMENT PRIMARY KEY,
                     domaine VARCHAR(255) NOT NULL UNIQUE
                 )`);
-            console.log('✅ Table domaine initialisée');
+            //console.log('✅ Table domaine initialisée');
 
             await db.query(`
                 CREATE TABLE IF NOT EXISTS theme (
@@ -38,7 +38,7 @@ class CatalogueUserRepository {
                     id_domaine INT,
                     FOREIGN KEY (id_domaine) REFERENCES domaine(id_domaine)
                 )`);
-            console.log('✅ Table theme initialisée');
+            //console.log('✅ Table theme initialisée');
 
             await db.query(`
                 CREATE TABLE IF NOT EXISTS formation (
@@ -47,7 +47,7 @@ class CatalogueUserRepository {
     FOREIGN KEY (id_domaine) REFERENCES domaine(id_domaine)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `);
-            console.log('✅ Table formations initialisée');
+            //console.log('✅ Table formations initialisée');
 
             await db.query(`
                 CREATE TABLE IF NOT EXISTS session (
@@ -70,7 +70,7 @@ class CatalogueUserRepository {
     FOREIGN KEY (id_theme) REFERENCES theme(id_theme)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `);
-            console.log('✅ Table session_formation  initialisée');
+            //console.log('✅ Table session_formation  initialisée');
 
             await db.query(`
                 CREATE TABLE IF NOT EXISTS seance_session (
@@ -83,7 +83,7 @@ class CatalogueUserRepository {
     FOREIGN KEY (id_session) REFERENCES session(id_session)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 `);
-            console.log('✅ Table seance initialisée');
+            //console.log('✅ Table seance initialisée');
 
             
         } catch (error) {

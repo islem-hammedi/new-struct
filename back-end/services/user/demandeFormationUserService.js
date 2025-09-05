@@ -6,23 +6,18 @@ class DemandeFormationUserService {
         this.repository = new DemandeFormationUserRepository();
     }
 
-    async createDemandeFormation(demandeData) {
-        try {
-            // Validation des champs obligatoires
-            if (!demandeData.domaine || !demandeData.theme ) {
-                throw new Error('Les champs domaine, theme sont obligatoires');
-            }
-
-            // Création de la demande
-            const nouvelleDemande = await this.repository.createDemandeFormation(demandeData);
-            
-            return nouvelleDemande;
-
-        } catch (error) {
-            console.error('Service Error - createDemandeFormation:', error);
-            throw error;
-        }
-    }
+   async createDemandeFormation(demandeData) {
+  const requiredFields = ['domaine','theme', 'niveau','nombreParticipants', 'mode'];
+  const missingFields = requiredFields.filter(field => !demandeData[field]);
+  
+  if (missingFields.length > 0) {
+    throw new Error(`Les champs suivants sont obligatoires: ${missingFields.join(', ')}`);
+  }
+  if (demandeData.nombreParticipants && isNaN(demandeData.nombreParticipants)) {
+    throw new Error('Le nombre de participants doit être un nombre valide');
+  }
+  return await this.repository.createDemandeFormation(demandeData);
+}
 }
 
 module.exports = DemandeFormationUserService;

@@ -9,7 +9,7 @@ class DemandeFormationUserRepository {
     async initializeTable() {
         try {
             const createTableQuery = `
-                CREATE TABLE IF NOT EXISTS demande_de_formation_personnalise (
+                CREATE TABLE IF NOT EXISTS demande_de_formation_personnalisee (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     domaine VARCHAR(255) NOT NULL,
                     theme VARCHAR(255) NOT NULL,
@@ -24,7 +24,7 @@ class DemandeFormationUserRepository {
                 )`;
             
             await db.query(createTableQuery);
-            console.log('Table demande_de_formation_personnalisee initialisée ou vérifiée');
+            //console.log('Table demande_de_formation_personnalisee initialisée ou vérifiée');
         } catch (err) {
             console.error('Erreur lors de l\'initialisation de la table:', err);
             throw err;
@@ -34,8 +34,8 @@ class DemandeFormationUserRepository {
     async createDemandeFormation(demandeData) {
         try {
             const query = `
-                INSERT INTO demande_de_formation_personnalise 
-                (domaine, theme, formateur, niveau, nombreParticipants, details, mode, id_participant)
+                INSERT INTO demande_de_formation_personnalisee 
+                (domaine, theme, formateur, niveau, nombreParticipants, description, mode, id_participant)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `;
             

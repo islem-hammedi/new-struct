@@ -20,7 +20,7 @@ const ResetPasswordPage = () => {
 
   const onSubmit = async (data: any) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/apiUser/reset-password`, {
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/apiUser/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)

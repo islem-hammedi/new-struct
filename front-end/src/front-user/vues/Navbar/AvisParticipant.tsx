@@ -4,7 +4,7 @@ type Session = {
     id_session: number;
     theme: string;
     code: string;
-    etat: string;
+
 };
 
 const AvisParticipant = () => {
@@ -50,17 +50,23 @@ const AvisParticipant = () => {
         try {
             const url = `${import.meta.env.VITE_APP_API_URL}/apiUser/sessions?id_participant=${idParticipant}`;
             const response = await axios.get(url);
-    
+                console.log("Réponse de l'API :", response.data);
+
             if (Array.isArray(response.data.sessions)) {
-                setSessions(response.data.sessions);
+                setSessions(response.data.sessions); 
+                console.log("Sessions récupérées :", response.data.sessions);         
+
             } else {
                 console.error("Données inattendues pour les sessions :", response.data);
                 setSessions([]);
             }
+
+
         } catch (error) {
             console.error("Erreur lors de la récupération des sessions :", error);
             setSessions([]);
         }
+        
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -97,28 +103,28 @@ const AvisParticipant = () => {
     
     
     return (
-        <form onSubmit={handleSubmit} className=" pt-30 p-6 bg-white shadow-lg rounded-lg max-w-3xl mx-auto">
-            <h2 className="text-2xl font-bold text-teal-500 mb-4 text-center">Fiche d'évaluation</h2>
+        <form onSubmit={handleSubmit} className=" pt-10 p-6 bg-gray-100 shadow-lg rounded-lg max-w-5xl mx-auto">
+            <h2 className="text-2xl font-bold text-teal-500 mb-4 text-center">Votre avis compte ^_^</h2>
 
             <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-1">Sélectionnez une session :</label>
+                <label className="block text-gray-700 font-semibold mb-1">Sélectionnez la formation :</label>
                 <select
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-teal-300"
                     value={idSession}
                     onChange={(e) => setIdSession(e.target.value)}
                     required
                 >
-                    <option value="">-- Choisir une session --</option>
+                    <option value="">-- Choisir la session --</option>
                     {sessions.map((session) => (
                         <option key={session.id_session} value={session.id_session}>
-                            {session.theme} ({session.code}) - {session.etat}
+                            {session.theme} ({session.code})
                         </option>
                     ))}
                 </select>
             </div>
 
             <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-1">Note globale :</label>
+                <label className="block text-gray-700 font-semibold mb-1">Note globale sur 10 :</label>
                 <input
                     type="number"
                     name="note"
@@ -132,7 +138,7 @@ const AvisParticipant = () => {
             </div>
 
             <div className="mb-4">
-                <label className="block text-gray-700 font-semibold mb-1">Commentaire :</label>
+                <label className="block text-gray-700 font-semibold mb-1">Exprimez vous :</label>
                 <textarea
                     name="commentaire"
                     value={formData.commentaire}
@@ -141,51 +147,62 @@ const AvisParticipant = () => {
                 ></textarea>
             </div>
 
-            <h3 className="text-lg font-semibold text-teal-500 mb-3">Aspect pédagogique</h3>
-            {[
-                "adaptation_programme_vie_pro",
-                "moyens_pedagogiques_utilises",
-                "convenance_horaires_formation",
-                "apports_niveau_professionnel",
-                "qualite_documentation_distribuee",
-                "maitrise_globale_sujets_presentes",
-                "traitement_exemples_travail",
-                "animations_seances",
-                "homogeneite_groupe",
-                "satisfaction_attentes"
-            ].map((item) => (
-                <div key={item} className="mb-4">
-                    <label className="block text-gray-700 font-medium mb-1 capitalize">{item.replace(/_/g, " ")}</label>
-                    <div className="flex gap-4">
-                        {["Insuffisant", "Peu satisfaisant", "Satisfaisant", "Très satisfaisant"].map((level, index) => (
-                            <label key={index} className="flex items-center gap-2">
-                                <input
-                                    type="radio"
-                                    name={item}
-                                    value={index + 1}
-                                    checked={formData[item as keyof typeof formData] === index + 1}
-                                    onChange={handleChange}
-                                    className="accent-blue-600"
-                                />
-                                {level}
-                            </label>
-                        ))}
-                    </div>
-                </div>
-            ))}
-
-            <h3 className="text-lg font-semibold text-teal-500 mb-3">Durée de la formation</h3>
-            <select
-                name="duree_formation"
-                value={formData.duree_formation}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg p-3 focus:ring focus:ring-teal-300 mb-4"
-            >
-                <option value="">Sélectionner</option>
-                <option value="Longue">Longue</option>
-                <option value="Courte">Courte</option>
-                <option value="Convenable">Convenable</option>
-            </select>
+          <h3 className="text-lg font-semibold text-center text-teal-500 mb-3">Aspects pédagogique</h3>
+<div className="space-y-4">
+  {[
+      "adaptation_programme_vie_pro",
+      "moyens_pedagogiques_utilises",
+      "convenance_horaires_formation",
+      "apports_niveau_professionnel",
+      "qualite_documentation_distribuee",
+      "maitrise_globale_sujets_presentes",
+      "traitement_exemples_travail",
+      "animations_seances",
+      "homogeneite_groupe",
+      "satisfaction_attentes"
+  ].map((item) => (
+      <div key={item} className="border border-teal-200 rounded-lg p-4 bg-gray-50 shadow-sm">
+          <div className="flex justify-between items-center">
+              <label className="text-gray-700 font-medium capitalize min-w-[250px]">
+                  {item.replace(/_/g, " ")}
+              </label>
+              <div className="flex gap-6">
+                  {["Insuffisant", "Peu satisfaisant", "Satisfaisant", "Très satisfaisant"].map((level, index) => (
+                      <label key={index} className="flex items-center gap-2">
+                          <input
+                              type="radio"
+                              name={item}
+                              value={index + 1}
+                              checked={formData[item as keyof typeof formData] === index + 1}
+                              onChange={handleChange}
+                              className="accent-teal-400 size-5"
+                          />
+                          <span>{level}</span>
+                      </label>
+                  ))}
+              </div>
+          </div>
+      </div>
+  ))}
+</div>
+<br/>
+<div className="border border-teal-200 rounded-lg p-4 bg-white shadow-sm max-w-2xl">
+  <div className="flex justify-between items-center">
+      <label className="text-gray-700 font-medium">Durée de la formation</label>
+      <select
+          name="duree_formation"
+          value={formData.duree_formation}
+          onChange={handleChange}
+          className="border border-gray-300 rounded-lg p-2 focus:ring focus:ring-teal-300 min-w-[200px]"
+      >
+          <option value="">Sélectionner</option>
+          <option value="Longue">Longue</option>
+          <option value="Courte">Courte</option>
+          <option value="Convenable">Convenable</option>
+      </select>
+  </div>
+</div><br/>
+       
 
             <button type="submit" className="w-full bg-teal-500 text-white font-semibold p-3 rounded-lg hover:bg-teal-700 transition duration-300">
                 Soumettre

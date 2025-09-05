@@ -9,10 +9,18 @@ const Chart: React.FC = () => {
     <>
       <Breadcrumb pageName="Chart" />
 
-      <div className="">
-        <ChartTwo />
-        <ChartOne />
-        <ChartThree />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+       
+        
+        <div className="col-span-1">
+          <ChartTwo />
+        </div>
+        <div className="col-span-1">
+          <ChartThree />
+        </div>
+         <div className="col-span-1 md:col-span-2">
+          <ChartOne />
+        </div>
       </div>
     </>
   );

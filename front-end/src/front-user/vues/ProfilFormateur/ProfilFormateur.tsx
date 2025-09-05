@@ -1,11 +1,75 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; // Si vous utilisez react-router pour la navigation
+import { useNavigate } from 'react-router-dom'; 
 import Calendrier from './Calendrier';
 import DemandeModification from './DemandeModification';
 import FormationARealise from './FormationARealise';
 import HistoriqueFormation from './HistoriqueFormation';
 import { useAuth } from '../Hooks/useAuthUser';
+
+type ProfilePicture = {
+  id: string;
+  url: string;
+  alt: string;
+};
+
+const defaultProfilePictures: ProfilePicture[] = [
+  { id: '1', url: '/profileFc.png', alt: 'Avatar 1' },
+  { id: '2', url: '/pro.png', alt: 'Avatar 2' },
+    { id: '3', url: '/proH.png', alt: 'Avatar 3' },
+  { id: '4', url: '/profileFh.png', alt: 'Avatar 4' },
+  { id: '5', url: '/me.png', alt: 'Avatar 5' },
+
+];
+
+const ProfilePictureSelector = ({
+  onSelect,
+  initialSelectedId,
+}: {
+  onSelect: (picture: ProfilePicture) => void;
+  initialSelectedId?: string;
+}) => {
+  const [selectedPicture, setSelectedPicture] = useState<string | null>(
+    initialSelectedId || null
+  );
+
+  const handleSelect = (picture: ProfilePicture) => {
+    setSelectedPicture(picture.id);
+    onSelect(picture);
+  };
+
+  const selectedPic = defaultProfilePictures.find(
+    (pic) => pic.id === selectedPicture
+  ) || defaultProfilePictures[0];
+
+  return (
+    <div className="mt-4">
+      <h3 className="text-lg font-semibold mb-3 text-center">Choisir une photo de profil</h3>
+      <div className="grid grid-cols-4 gap-2">
+        {defaultProfilePictures.map((picture) => (
+          <div
+            key={picture.id}
+            className={`w-16 h-16 rounded-full overflow-hidden cursor-pointer border-2 ${
+              selectedPicture === picture.id
+                ? 'border-teal-500'
+                : 'border-transparent hover:border-gray-300'
+            }`}
+            onClick={() => handleSelect(picture)}
+          >
+            <img
+              src={picture.url}
+              alt={picture.alt}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/prof.png';
+              }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 const ProfilFormateur: React.FC = () => {
   const [activeContent, setActiveContent] = useState<string>('');
   const [formateur, setFormateur] = useState<any>(null); 
@@ -14,12 +78,12 @@ const ProfilFormateur: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
-  const [isUpdating, setIsUpdating] = useState(false); // Ajoutez cet état
-
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isEditingPhoto, setIsEditingPhoto] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
   useEffect(() => {
     const checkAuthentication = () => {
       const token = localStorage.getItem('user'); 
-
       if (!token) {
         navigate('/'); 
         return;
@@ -34,14 +98,17 @@ const ProfilFormateur: React.FC = () => {
           console.error("❌ ID formateur ou token non trouvés !");
           return;
         }
-    
+         const savedPhoto = userData.photo_profil;
         const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiUser/formateur/details/${userData.id}`, { 
           headers: {
             Authorization: `Bearer ${userData.token}`,
           },
         });
     
-        setFormateur(response.data); 
+       setFormateur({
+        ...response.data,
+        photo_profil: savedPhoto || response.data.photo_profil || '/prof.png'
+      });
       } catch (error) {
         console.error("Erreur lors de la récupération des détails du formateur :", error);
       }
@@ -62,7 +129,6 @@ const ProfilFormateur: React.FC = () => {
   try {
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
     
-    // Validation améliorée
     if (!userData.id || !userData.token) {
       throw new Error("Session invalide - Veuillez vous reconnecter");
     }
@@ -82,7 +148,7 @@ const ProfilFormateur: React.FC = () => {
           Authorization: `Bearer ${userData.token}`,
           'Content-Type': 'application/json'
         },
-        timeout: 10000 // 10 secondes timeout
+        timeout: 10000 
       }
     );
 
@@ -115,41 +181,106 @@ const ProfilFormateur: React.FC = () => {
     return <div>Chargement...</div>; 
   }
 
+
+
+
+
+
+
+const handlePhotoSelect = (picture: ProfilePicture) => {
+  const newPhotoUrl = picture.url;
+  
+ setFormateur((prev: { photo_profil?: string } | null) => 
+    prev ? { ...prev, photo_profil: newPhotoUrl } : null
+  );  
+  
+  const storedUser = localStorage.getItem("user");
+  if (storedUser) {
+    const userData = JSON.parse(storedUser);
+    const updatedUser = {
+      ...userData,
+      photo_profil: newPhotoUrl
+    };
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+  }
+  setSuccess("Photo de profil mise à jour avec succès");
+  setIsEditingPhoto(false);
+};
+
+
+
   return (
     <div className="max-w-6xl mx-auto pt-5 p-6 bg-white shadow-lg rounded-lg">
+       <div className="flex flex-col items-center mb-6">
+        <div className="relative group">
+          <img
+            src={formateur?.photo_profil || '/prof.png'}
+            alt="Photo de profil"
+            className="w-32 h-32 rounded-full object-cover border-4 border-teal-100"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/prof.png';
+            }}
+          />
+          {!isEditingPhoto && (
+            <button
+              onClick={() => setIsEditingPhoto(true)}
+              className="absolute bottom-0 right-0 bg-teal-600 text-white p-2 rounded-full hover:bg-teal-700 transition-all"
+              title="Modifier la photo"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
+        </div>
+        
+        {isEditingPhoto && (
+          <div className="mt-4 text-center">
+            <ProfilePictureSelector 
+              onSelect={handlePhotoSelect} 
+              initialSelectedId={defaultProfilePictures.find(pic => pic.url === formateur?.photo_profil)?.id}
+            />
+            <button
+              onClick={() => setIsEditingPhoto(false)}
+              className="mt-4 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+            >
+              Annuler
+            </button>
+          </div>
+        )}
+      </div>
       <h1 className="text-3xl font-semibold text-center text-teal-500 mb-4">
          {formateur.nom_complet} 
-      </h1><br/>
+      </h1>
 
       <div className="space-y-4">
         <div className="text-1xl text-gray-600 font-semibold">
 
         <div className="mt-6 text-right">
-  <button
-    onClick={() => handleButtonClick('demandeModification')}
-    className="mt-0 px-6 py-3 bg-white text-teal-500 rounded hover:bg-teal-600 border border-teal-500 hover:text-white transition"
-  >
-    modifier mon profil ✏️
-  </button>
-  {activeContent === 'demandeModification' && (
-    <DemandeModification onClose={() => handleButtonClick('')} />
-  )}
-</div><br/>
-          {/*<h2 className="text-1xl font-semibold">Nom Complet : {formateur.nom_complet}</h2>*/}
+          <button
+            onClick={() => handleButtonClick('demandeModification')}
+            className="mt-0 px-6 py-3 bg-white text-teal-500 rounded hover:bg-teal-600 border border-teal-500 hover:text-white transition"
+          >
+            modifier mon profil ✏️
+          </button>
+          {activeContent === 'demandeModification' && (
+            <DemandeModification onClose={() => handleButtonClick('')} />
+          )}
+          </div><br/>
           <div className='flex space-x-4'>
           
-  <div className='backdrop-blur-sm bg-black/5 p-6 rounded-lg leading-relaxed flex-1'>
-    <p className="text-1xl font-semibold">Téléphone: {formateur.tel}</p>
-    <p>Email: {formateur.mail}</p>
-    <p>Adresse: {formateur.adr || ""}</p>
-  </div>
+          <div className='backdrop-blur-sm bg-black/5 p-6 rounded-lg leading-relaxed flex-1'>
+            <p className="text-1xl font-semibold">Téléphone: {formateur.tel}</p>
+            <p>Email: {formateur.mail}</p>
+            <p>Adresse: {formateur.adr || ""}</p>
+          </div>
 
-  <div className='backdrop-blur-sm bg-black/5 p-6 rounded-lg leading-relaxed flex-1'>
-    <p>Banque : {formateur.nom_banque || ""}</p>
-    <p>RIB : {formateur.RIB || ""}</p>
-  </div>
-</div>
-<br/>
+          <div className='backdrop-blur-sm bg-black/5 p-6 rounded-lg leading-relaxed flex-1'>
+            <p>Banque : {formateur.nom_banque || ""}</p>
+            <p>RIB : {formateur.RIB || ""}</p>
+          </div>
+        </div>
+        <br/>
           <div className='backdrop-blur-sm bg-black/5 p-6 rounded-lg leading-relaxed'>
 
           <p>Domaines de compétences: {formateur.domaine_de_competences || ""}</p>

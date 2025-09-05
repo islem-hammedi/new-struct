@@ -1,5 +1,5 @@
 const db = require('../../connect');
-
+/*
 // Fonction de conversion des évaluations textuelles en notes
 const convertEvaluationToNote = (evaluation) => {
   switch(evaluation) {
@@ -229,3 +229,4 @@ module.exports = {
   getSessionStats,
 
 };
+*/

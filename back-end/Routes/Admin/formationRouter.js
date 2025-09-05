@@ -5,7 +5,6 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 
-// Configuration du répertoire de stockage
 const uploadDir = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -34,10 +33,8 @@ const Upload = multer({
     { name: 'fiche_programme', maxCount: 1 },
     { name: 'cours_session', maxCount: 1 }
 ]);
-// Routes pour les formations
 router.get('/Form', formationAdminController.getFormations);
 
-// Ajout d'une formation avec sessions
 router.post('/Form', (req, res, next) => {
     Upload(req, res, (err) => {
         if (err) {
@@ -50,7 +47,6 @@ router.post('/Form', (req, res, next) => {
     });
 }, formationAdminController.addFormation);
 
-// Mise à jour d'une session
 router.put('/Form/:formationId/sessions/:sessionId', (req, res, next) => {
     Upload(req, res, (err) => {
         if (err) {
@@ -63,10 +59,8 @@ router.put('/Form/:formationId/sessions/:sessionId', (req, res, next) => {
     });
 }, formationAdminController.updateSession);
 
-// Suppression d'une session
-router.delete('/Form/:formationId/sessions/:sessionId', formationAdminController.deleteSession);
+router.delete('/:formationId/sessions/:sessionId', formationAdminController.deleteSession);
 
-// Middleware de gestion d'erreur global
 router.use((err, req, res, next) => {
     console.error('Erreur dans le router:', err);
     res.status(500).json({

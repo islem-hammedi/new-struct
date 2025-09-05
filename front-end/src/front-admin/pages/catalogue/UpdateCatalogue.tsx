@@ -22,6 +22,7 @@ interface Domaine {
 interface EditThemesProps {
   domaineId: number;
   themeId: number;
+  onFormationAdded: () => void;
   onClose: () => void;
   onUpdate: () => void;
   formation: Domaine;
@@ -32,6 +33,7 @@ const EditTheme: React.FC<EditThemesProps> = ({
   themeId,
   onClose,
   onUpdate,
+  onFormationAdded,
   formation,
 }) => {
   const [catalogueData, setCatalogueData] = useState<Domaine[]>([]);
@@ -155,7 +157,9 @@ const EditTheme: React.FC<EditThemesProps> = ({
       // Rafraîchissement et fermeture
       await onUpdate();
       alert("Les modifications ont été enregistrées avec succès");
+      onFormationAdded();
       onClose();
+
     } catch (error) {
       let errorMessage = "Échec de l'enregistrement";
 
@@ -284,11 +288,18 @@ const EditTheme: React.FC<EditThemesProps> = ({
       {selectedTheme && (
         <div className="flex justify-end">
           <button
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="px-4 mr-auto py-2 bg-teal-500 text-white rounded hover:bg-teal-600 "
             onClick={handleSaveChanges}
           >
             Enregistrer les modifications
           </button>
+           <button 
+              type="button" 
+              className="bg-gray-400 mr-auto  text-white px-4 py-2 rounded" 
+              onClick={onClose}
+            >
+              Annuler
+            </button>
         </div>
       )}
     </div>

@@ -7,7 +7,6 @@ class FormationAdminService {
         try {
             const results = await formationAdminRepository.getAllFormationsWithSessions();
             
-            // Structurer les résultats en regroupant les sessions sous leur formation
             const formationsMap = new Map();
             results.forEach((row) => {
                 if (!formationsMap.has(row.id_formation)) {
@@ -45,7 +44,6 @@ class FormationAdminService {
 
     async createFormationWithSessions(domaine, sessions, files) {
         try {
-            // Validation
             if (!domaine) {
                 throw new Error("Le domaine est obligatoire");
             }

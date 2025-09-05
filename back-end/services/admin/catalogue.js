@@ -111,9 +111,25 @@ class CatalogueService {
     return await CatalogueRepository.deleteTheme(id_domaine, id_theme);
   }
 
+
+
+
+
+
   static async updateTheme(id_theme, formateursToAdd, formateursToRemove) {
-    return await CatalogueRepository.updateTheme(id_theme, formateursToAdd, formateursToRemove);
+    // On ne fait que déléguer la logique au repository !
+    try {
+      // On attend le résultat de la méthode du repository qui gère tout
+      const result = await CatalogueRepository.updateTheme(id_theme, formateursToAdd, formateursToRemove);
+      return result;
+    } catch (error) {
+      // Gestion d'erreur pour le controller
+      throw error;
+    }
   }
 }
+
+
+
 
 module.exports = CatalogueService;

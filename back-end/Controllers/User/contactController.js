@@ -16,7 +16,7 @@ const sendMail = async (req, res) => {
     service: 'gmail',
     host: 'smtp.gmail.com',
     port: 587,
-    secure: false,  // Non sécurisé
+    secure: false, 
     auth: {
       user: 'khadijabenabdelkader1206@gmail.com',  // Ton email (doit être une variable d'environnement)
     pass: 'qqij aava gtxv hpdz',  // Votre mot de passe d'email ou application-specific password

@@ -1,5 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const demanderFormationController = require('../../Controllers/User/demanderFormationUserController');
-router.post('/',demanderFormationController.DemanderFormation);
+const DemandeFormationUserController = require('../../Controllers/User/demanderFormationUserController');
+
+const controller = new DemandeFormationUserController();
+
+router.post('/', (req, res) => controller.createDemandeFormation(req, res));
+
 module.exports = router;

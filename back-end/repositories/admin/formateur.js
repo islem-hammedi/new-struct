@@ -48,7 +48,7 @@ class FormateurRepository {
       });
     });
   }
-
+/*}
   async getFormateurById(id) {
     const query = 'SELECT cv FROM formateur WHERE id_formateur = ?';
     return new Promise((resolve, reject) => {
@@ -60,7 +60,7 @@ class FormateurRepository {
       });
     });
   }
-
+*/
   async updateFormateur(fields, values, id) {
     const query = `UPDATE formateur SET ${fields} WHERE id_formateur = ?;`;
     return new Promise((resolve, reject) => {

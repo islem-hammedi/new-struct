@@ -87,7 +87,6 @@ const db = require('../../connect');
 class DomainService {
   async addDomain({ domaineName, abbreviation, themes }) {
     try {
-      // Démarrer la transaction
       await new Promise((resolve, reject) => {
         db.beginTransaction(err => {
           if (err) return reject(err);

@@ -7,16 +7,15 @@ import axios from 'axios';
 
 const Calendrier: React.FC = () => {
   const [events, setEvents] = useState<any[]>([]);
-    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+  const userData = JSON.parse(localStorage.getItem("user") || "{}");
 
     useEffect(() => {
       fetchEvents();
     }, []);
-    const sendEventNotification = (newEvent: any) => {
-  // Récupérer les notifications existantes
+
+const sendEventNotification = (newEvent: any) => {
   const existingNotifications = JSON.parse(localStorage.getItem('eventNotifications') || '[]');
   
-  // Créer la nouvelle notification
   const notification = {
     id_event: newEvent.id,
     title: newEvent.title,
@@ -25,17 +24,13 @@ const Calendrier: React.FC = () => {
     isNew: true
   };
 
-  // Ajouter la nouvelle notification
   const updatedNotifications = [notification, ...existingNotifications];
   
-  // Sauvegarder dans localStorage
   localStorage.setItem('eventNotifications', JSON.stringify(updatedNotifications));
   
-  // Déclencher un événement pour notifier les autres onglets
-  window.dispatchEvent(new Event('storage'));
+  window.dispatchEvent(new Event('storage'));  
 };
 
-  // Récupérer les informations de l'utilisateur depuis le localStorage et les événements
   const fetchEvents = () => {
     const token = localStorage.getItem("token");
     axios.get(`${import.meta.env.VITE_APP_API_URL}/api/calendrier`, {
@@ -43,10 +38,12 @@ const Calendrier: React.FC = () => {
     })
     .then(response => {
       console.log("Données reçues de l'API :", response.data); 
+      console.log("userData :", userData);
+      console.log("token :", token);
       const formattedEvents = response.data.map((event: any) => ({
         id: event.id,
         title: event.title,
-        start: event.date,  // Assurez-vous que "date" est bien au format YYYY-MM-DD
+        start: event.date, 
         extendedProps: {
           created_by: event.created_by || event.nom_complet,
         },
@@ -58,11 +55,10 @@ const Calendrier: React.FC = () => {
     });
   };    
 
-  // Gérer la création d'un nouvel événement
   const handleDateClick = (info: any) => {
     const token = localStorage.getItem("token");
   
-    if (!token) {
+    if (!userData) {
       alert("Vous devez être connecté pour effectuer cette action.");
       return;
     }
@@ -89,14 +85,14 @@ const Calendrier: React.FC = () => {
         )
         .then((response) => {
           const newEvent = {
-            id: response.data.id,  // Utilise l'ID renvoyé par la réponse de l'API
+            id: response.data.id,  
             title,
             start: info.dateStr,
             extendedProps: {
               created_by: userData.nom_complet,
             },
           };
-          setEvents((prevEvents) => [...prevEvents, newEvent]);  // Ajoute l'événement à la liste existante
+          setEvents((prevEvents) => [...prevEvents, newEvent]);  
           sendEventNotification(newEvent);
         })
         .catch((error) => {
@@ -109,8 +105,8 @@ const Calendrier: React.FC = () => {
   
   const handleEventClick = (info: any) => {
     const token = localStorage.getItem('token');
-  
-    if (!token) {
+  console.log("token :", token);
+    if (!userData) {
       alert('Vous devez être connecté pour effectuer cette action.');
       return;
     }
@@ -126,7 +122,7 @@ const Calendrier: React.FC = () => {
           headers: { Authorization: `Bearer ${userData.token}` }
         })
         .then(() => {
-          fetchEvents();  // Récupérer la liste des événements mise à jour
+          fetchEvents();  
         })
         .catch((error) => {
           console.error('Erreur lors de la suppression de l\'événement :', error);

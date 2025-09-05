@@ -6,23 +6,20 @@ import LoginMenu from "../LoginMenu";
 import { Viewer, Worker } from "@react-pdf-viewer/core";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import generateUniqueCartId from "../Dropdowns/DropdownCart";
-//import FormateurTheme from "./FormateurTheme";
 import ThemeComments from "../Comments/ThemeComments"; 
 
 interface Theme {
   id_theme: number;
   theme: string;
   code: string;
+  id_domaine: number;
 }
-
-
 
 interface Formation {
   id_domaine: number;
   domaine: string;
   themes: Theme[];
 }
-
 
 const Catalogue: React.FC = () => {
   const [formations, setFormations] = useState<Formation[]>([]);
@@ -35,8 +32,8 @@ const Catalogue: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {user, isLoggedIn} = useAuth();
   const [showLoginMenu, setShowLoginMenu] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null); // État pour le thème sélectionné
-
+  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null); 
+const [filterType, setFilterType] = useState<'domaine, theme et code' | 'domaine' | 'code' | 'theme'>('domaine, theme et code');
   useEffect(() => {
     axios
       .get(`${import.meta.env.VITE_APP_API_URL}/apiUser/formations/Form`)
@@ -71,18 +68,31 @@ const Catalogue: React.FC = () => {
     }
   
     const filtered = formations.filter((formation) => {
-      const matchesDomaine = formation.domaine.toLowerCase().includes(query);
-      const matchesTheme = formation.themes.some((theme) =>
-        theme.theme.toLowerCase().includes(query) || theme.code.toLowerCase().includes(query)
-      );
-      return matchesDomaine || matchesTheme;
+       switch(filterType) {
+        case 'domaine':
+          return formation.domaine.toLowerCase().includes(query);
+        case 'code':
+          return formation.themes.some(theme => 
+            theme.code.toLowerCase().includes(query)
+          );
+        case 'theme':
+          return formation.themes.some(theme => 
+            theme.theme.toLowerCase().includes(query)
+          );
+        default: 
+          return (
+            formation.domaine.toLowerCase().includes(query) ||
+            formation.themes.some(theme => 
+              theme.theme.toLowerCase().includes(query) || 
+              theme.code.toLowerCase().includes(query)
+            ));}
     });
-  
     setFilteredFormations(filtered);
   };
+
   const handleAjout = (theme: Theme) => {
     if (isLoggedIn) {
-      const storedCart = localStorage.getItem(`cart_${user.id}`); // Utilisation de user.id
+      const storedCart = localStorage.getItem(`cart_${user.id}`); 
       const cart = storedCart ? JSON.parse(storedCart) : [];
       const storedCartId = localStorage.getItem("currentCartId");
       const cartId = storedCartId ? parseInt(storedCartId) : generateUniqueCartId();
@@ -92,7 +102,7 @@ const Catalogue: React.FC = () => {
         cartId,
         action: "demander_devis",
         participant: {
-          id_participant: user.id, // Utilisation de user.id au lieu de user.id_participant
+          id_participant: user.id, 
           nom_participant: user?.nom_admin || "",
           email_participant: user?.email || "",
         },
@@ -106,7 +116,7 @@ const Catalogue: React.FC = () => {
         cart.push(newCartItem);
       }
   
-      localStorage.setItem(`cart_${user.id}`, JSON.stringify(cart)); // Utilisation de user.id
+      localStorage.setItem(`cart_${user.id}`, JSON.stringify(cart)); 
       console.log("Panier mis à jour", cart);
     } else {
       setShowLoginMenu(true);
@@ -145,56 +155,76 @@ const Catalogue: React.FC = () => {
       </div>
       {showLoginMenu && !isLoggedIn && <LoginMenu onClose={() => setShowLoginMenu(false)} />}
 
-      {showSearchBar && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mb-5">
+       {showSearchBar && (
+      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mb-5 space-y-3">
+        <div className="flex space-x-3">
+          <select 
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value as 'domaine, theme et code' | 'domaine' | 'code' | 'theme')}
+            className="border border-black rounded-lg p-2 bg-gray-300 text-gray-700">
+            <option value="domaine, theme et code">Tous les filtres</option>
+            <option value="domaine">Domaine</option>
+            <option value="code">Code du thème</option>
+            <option value="theme">Thème</option>
+          </select>
+          
           <input
             type="text"
-            placeholder="Rechercher une formation ou un thème..."
+            placeholder={`Rechercher par ${filterType}...`}
             value={searchQuery}
             onChange={handleSearchChange}
             className="w-full h-10 p-2 border border-black rounded-lg bg-white text-[#82b89a]"
           />
-        </motion.div>
-      )}
+        </div>
+      </motion.div>
+    )}
 
       {domainesUniques.length === 0 ? (
         <p className="text-center text-gray-500 px-4 py-2">Aucune formation trouvée.</p>
       ) : (
         <div className="grid grid-cols-1 gap-2">
           {domainesUniques.map((domaine) => {
-            const formationsDuDomaine = filteredFormations.filter((f) => f.domaine === domaine);
+            const formationsDuDomaine = filteredFormations.filter((f) =>f.domaine === domaine);
+             if (formationsDuDomaine.length === 0) return null;
+
             return (
               <div key={domaine} className="bg-gray-100 text-black rounded-1xl p-6 shadow-lg transform hover:scale-10 hover:shadow-2xl transition-all cursor-pointer">
-                {/* ... (votre code existant pour l'en-tête de domaine) */}
-                
                 <div className="mt-4">
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="bg-gray-300/60 text-1l text-gray-500">
+                      <th className="p-3 font-semibold text-left">Domaine</th>
                         <th className="p-3 font-semibold text-left">Thèmes</th>
                         <th className="p-3 font-semibold text-left">Code</th>
                         <th className="p-3 font-semibold text-left">Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {formationsDuDomaine.flatMap((formation) =>
-                        formation.themes
-                          .filter((theme) =>
-                            theme.theme.toLowerCase().includes(sessionSearchQuery.toLowerCase())
-                          )
-                          .map((theme) => (
+                  
+                      {formationsDuDomaine.flatMap((formation) =>{
+                         const filteredThemes = formation.themes
+                          .filter((t) =>{
+                             const themeMatch = t.theme?.toLowerCase()?.includes(searchQuery.toLowerCase()) ?? false;
+                              const codeMatch = t.code?.toLowerCase()?.includes(searchQuery.toLowerCase()) ?? false;
+                              return themeMatch || codeMatch;
+                       });
+                           
+                          if (filteredThemes.length === 0) return null;
+                           return filteredThemes.map((theme,index) => (
                             <tr 
                               key={theme.id_theme} 
                               className="hover:bg-gray-100"
                               onClick={() => handleThemeClick(theme)}
                               style={{ cursor: 'pointer' }}
                             >
+                            {index === 0 && (
+                              <td className="p-2 border" rowSpan={filteredThemes.length}>{formation.domaine} </td> )}
                               <td className="p-2 border">{theme.theme}</td>
                               <td className="p-2 border">{theme.code}</td>
                               <td className="p-2 border text-right gap-3">
                                 <button
                                   onClick={(e) => {
-                                    e.stopPropagation(); // Empêche le déclenchement du click sur la ligne
+                                    e.stopPropagation();
                                     handleAjout(theme);
                                   }}
                                   className="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600"
@@ -204,8 +234,8 @@ const Catalogue: React.FC = () => {
                                 </button>
                               </td>
                             </tr>
-                          ))
-                      )}
+                          ));
+          })}
                     </tbody>
                   </table>
                 </div>

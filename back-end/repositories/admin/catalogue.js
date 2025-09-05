@@ -9,8 +9,7 @@ class CatalogueRepository {
       FROM domaine d
       LEFT JOIN theme t ON t.id_domaine = d.id_domaine
       LEFT JOIN formateur fm ON JSON_CONTAINS(JSON_KEYS(fm.themes_a_enseigner), JSON_QUOTE(t.theme), '$')
-      ORDER BY d.domaine;
-    `;
+      ORDER BY d.domaine; `
     return new Promise((resolve, reject) => {
       db.query(query, (err, results) => {
         if (err) {
@@ -167,7 +166,6 @@ class CatalogueRepository {
                       ...existingThemes,
                       ...themeEnseignement,
                     };
-
                     db.query(
                       `UPDATE formateur 
                        SET domaine_de_competences = ?,
@@ -253,71 +251,63 @@ class CatalogueRepository {
     });
   }
 
-  static async updateTheme(id_theme, formateursToAdd, formateursToRemove) {
+  static updateTheme(id_theme, formateursToAdd, formateursToRemove) {
     return new Promise((resolve, reject) => {
       // 1. Récupérer le nom du thème
       const themeQuery = 'SELECT theme FROM theme WHERE id_theme = ?';
-
-      db.query(themeQuery, [id_theme], async (themeErr, themeResults) => {
-        if (themeErr) {
-          console.error("Erreur lors de la récupération du thème:", themeErr);
+      db.query(themeQuery, [id_theme], async (err, result) => {
+        if (err) {
+          console.error("Erreur lors de la récupération du thème:", err);
           return reject(new Error("Erreur serveur"));
         }
-
-        if (!themeResults || themeResults.length === 0) {
+        if (!result || result.length === 0) {
           return reject(new Error("Thème non trouvé"));
         }
 
-        const themeName = themeResults.theme;
-        console.log('themeName',themeName);
+        const themeName = result[0].theme;
         try {
           // 2. Traitement des formateurs à supprimer
           for (const id_formateur of formateursToRemove) {
-            await new Promise((resolve, reject) => {
+            await new Promise((resolveFormateur, rejectFormateur) => {
               db.query(
                 'SELECT themes_a_enseigner FROM formateur WHERE id_formateur = ?',
                 [id_formateur],
-                async (formateurErr, formateurResults) => {
+                (formateurErr, formateurResults) => {
                   if (formateurErr) {
                     console.error("Erreur lors de la récupération du formateur:", formateurErr);
-                    return reject(formateurErr);
+                    return rejectFormateur(formateurErr);
                   }
 
                   if (formateurResults && formateurResults.length > 0) {
-                    const formateur = formateurResults;
+                    const formateur = formateurResults[0];
                     let themes = {};
-
                     try {
                       themes = formateur.themes_a_enseigner 
                         ? JSON.parse(formateur.themes_a_enseigner)
                         : {};
                     } catch (e) {
                       console.error("Erreur de parsing JSON:", e);
-                      return resolve();
+                      return resolveFormateur();
                     }
-
                     if (themes[themeName]) {
                       delete themes[themeName];
-
-                      // Mise à jour des domaines de compétences
                       const domaines = Object.keys(themes);
-
                       db.query(
                         'UPDATE formateur SET themes_a_enseigner = ?, domaine_de_competences = ? WHERE id_formateur = ?',
                         [JSON.stringify(themes), domaines.join(','), id_formateur],
                         (updateErr) => {
                           if (updateErr) {
                             console.error("Erreur lors de la mise à jour:", updateErr);
-                            return reject(updateErr);
+                            return rejectFormateur(updateErr);
                           }
-                          resolve();
+                          resolveFormateur();
                         }
                       );
                     } else {
-                      resolve();
+                      resolveFormateur();
                     }
                   } else {
-                    resolve();
+                    resolveFormateur();
                   }
                 }
               );
@@ -326,56 +316,51 @@ class CatalogueRepository {
 
           // 3. Traitement des formateurs à ajouter/modifier
           for (const { id_formateur, rang } of formateursToAdd) {
-            await new Promise((resolve, reject) => {
+            await new Promise((resolveFormateur, rejectFormateur) => {
               db.query(
                 'SELECT themes_a_enseigner FROM formateur WHERE id_formateur = ?',
                 [id_formateur],
-                async (formateurErr, formateurResults) => {
+                (formateurErr, formateurResults) => {
                   if (formateurErr) {
                     console.error("Erreur lors de la récupération du formateur:", formateurErr);
-                    return reject(formateurErr);
+                    return rejectFormateur(formateurErr);
                   }
 
                   if (formateurResults && formateurResults.length > 0) {
-                    const formateur = formateurResults;
+                    const formateur = formateurResults[0];
                     let themes = {};
-
                     try {
                       themes = formateur.themes_a_enseigner 
                         ? JSON.parse(formateur.themes_a_enseigner)
                         : {};
                     } catch (e) {
                       console.error("Erreur de parsing JSON:", e);
-                      return resolve();
+                      return resolveFormateur();
                     }
-
                     themes[themeName] = rang;
-                    console.log('domaine,themeName à inserer:',JSON.stringify(themes), domaines.join(','));
                     const domaines = Object.keys(themes);
-
                     db.query(
                       'UPDATE formateur SET themes_a_enseigner = ?, domaine_de_competences = ? WHERE id_formateur = ?',
                       [JSON.stringify(themes), domaines.join(','), id_formateur],
                       (updateErr) => {
                         if (updateErr) {
                           console.error("Erreur lors de la mise à jour:", updateErr);
-                          return reject(updateErr);
+                          return rejectFormateur(updateErr);
                         }
-                        resolve();
+                        resolveFormateur();
                       }
                     );
                   } else {
-                    resolve();
+                    resolveFormateur();
                   }
                 }
               );
             });
           }
 
-          resolve({
-            success: true,
-            message: "Mise à jour des formateurs réussie",
-          });
+          // Succès
+          resolve({ success: true, message: "Mise à jour des formateurs réussie" });
+
         } catch (error) {
           console.error("Erreur complète lors de la mise à jour:", error);
           reject(error);
@@ -383,6 +368,6 @@ class CatalogueRepository {
       });
     });
   }
-}
+  }
 
 module.exports = CatalogueRepository;

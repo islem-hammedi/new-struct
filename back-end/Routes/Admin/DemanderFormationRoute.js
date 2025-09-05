@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { DemanderFormation } = require('../../Controllers/Admin/DemanderFormationAdminController');
+const { getAllDemandesWithParticipants } = require('../../Controllers/Admin/DemanderFormationAdminController');
 
-router.get('/',DemanderFormation);
+router.get('/',getAllDemandesWithParticipants);
 module.exports = router;

@@ -16,7 +16,6 @@ const getSatisfactionLabel = (value: number): string => {
   }
 };
 
-// Fonction pour afficher la durée de la formation
 const getDureeLabel = (duree: number): string => {
   switch (duree) {
     case 1:

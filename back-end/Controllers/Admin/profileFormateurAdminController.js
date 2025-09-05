@@ -7,7 +7,7 @@ const getFormateurDetails = (req, res) => {
     const query = 'SELECT * FROM formateur WHERE id_formateur = ?';
     db.query(query, [id_formateur], (err, result) => {
       if (err) {
-        console.error("Error fetching formateur:", err);  // Log l'erreur pour aider au débogage
+        console.error("Error fetching formateur:", err); 
         return res.status(500).json({ error: err.message });
       }
       if (result.length === 0) {
@@ -15,7 +15,6 @@ const getFormateurDetails = (req, res) => {
       }
       const formateur = result[0];
   
-      // obtenir les fiches programme liées à ce formateur
       const fichePrgQuery = 'SELECT id_fichePrg, chemin  FROM fiche_prg WHERE id_formateur = ?';
       db.query(fichePrgQuery, [id_formateur], (err, ficheResults) => {
         if (err) {

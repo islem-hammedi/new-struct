@@ -42,17 +42,16 @@ router.get('/uploads/:filename', (req, res) => {
   });
 });
 
-router.get('/apiUser/formations-a-realiser/:id_formateur', (req, res) => controller.getUpcomingSessions(req, res));
+router.get('/formations-a-realiser/:id_formateur', (req, res) => controller.getUpcomingSessions(req, res));
 
-router.get('/apiUser/historique-formations/:id_formateur', (req, res) => controller.getHistoricalSessions(req, res));
+router.get('/historique-formations/:id_formateur', (req, res) => controller.getHistoricalSessions(req, res));
 
-router.get('/apiUser/formateur/details/:id_formateur', (req, res) => controller.getProfile(req, res));
-router.put('/apiUser/formateur/details/:id', (req, res) => controller.changePassword(req, res));
-router.post('/apiUser/modification', uploads, (req, res) => 
+router.get('/formateur/details/:id_formateur', (req, res) => controller.getProfile(req, res));
+router.put('/formateur/details/:id', (req, res) => controller.changePassword(req, res));
+router.post('/modification', uploads, (req, res) => 
   controller.sendModificationRequest(req, res));
-router.get('/apiUser/modification/response', (req, res) => controller.handleModificationResponse(req, res));
+router.get('/modification/response', (req, res) => controller.handleModificationResponse(req, res));
 
-// Middleware authenticateToken
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -65,13 +64,10 @@ const authenticateToken = (req, res, next) => {
       if (err) {
           return res.status(403).json({ error: 'Token invalide' });
       }
-
-      // Ajoutez toutes les informations utilisateur nécessaires
       req.user = {
           id: decoded.id,
           nom_complet: decoded.nom_complet,
           email: decoded.email
-          // Ajoutez d'autres champs si nécessaire
       };
       
       next();

@@ -26,10 +26,9 @@ const domaineAdminController = {
     const domaines = await domaineAdminService.getAllDomaines();
 
     if (domaines.length > 0) {
-      // Renvoie les données sous forme de JSON structuré
       res.status(200).json(domaines);
     } else {
-      res.status(200).json([]); // Renvoie un tableau vide si aucune donnée
+      res.status(200).json([]); 
     }
   } catch (error) {
     console.error('Erreur de récupération des données:', error);

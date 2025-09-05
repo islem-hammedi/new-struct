@@ -8,8 +8,7 @@ import ima from "/monatech.png";
 import imag from "/somalec.png";
 import image from "/n.png"
 import Footer from "../Footer";
-
-// Composant CountUp observable
+import WhatsAppPhoneFloating from "./whatsupp";
 const ObservableCountUp = ({ end, duration = 2, ...props }) => {
   const [ref, inView] = useInView({
     triggerOnce: true,
@@ -132,7 +131,7 @@ const Presentation: React.FC = () => {
               concurrentiel et soutenir votre croissance rentable à long terme.
             </p>
           </div>
-          
+          <div className="space-y-0">
           <div className="relative mt-8 ">
             <div className="rounded-xl overflow-hidden shadow-lg  w-screen relative left-1/2 right-1/2 mx-[-50vw]">
               <div className="bg-emerald-400/70 backdrop-blur-sm p-6 ">
@@ -156,39 +155,13 @@ const Presentation: React.FC = () => {
                 </div>
               </div>
 
-             {/*} <div className="bg-white/90 backdrop-blur-md p-8 border-t border-emerald-100  ">
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-8">
-                  {entreprises.map((entreprise) => (
-                    <div 
-                      key={entreprise.nom} 
-                      className="flex flex-col items-center"
-                    >
-                      <img 
-                        src={entreprise.logo} 
-                        alt={`Logo ${entreprise.nom}`}
-                        className="h-20 w-auto object-contain mb-2 transition-transform hover:scale-110"
-                      />
-                      <h3 className="text-lg font-semibold text-gray-700 text-center">
-                        {entreprise.nom}
-                      </h3>
-                      <a 
-                        href={entreprise.site} 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-emerald-600 hover:text-emerald-800 mt-1 hover:underline"
-                      >
-                        Visiter le site
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>*/}
+            
             </div>
           </div>
           
-          <div className="space-y-0">
+          
           <div className="bg-white/90 backdrop-blur-sm p-8 border-t border-emerald-100 mt-8 relative overflow-hidden w-screen relative left-1/2 right-1/2 mx-[-50vw]">
-            <div className="w-full h-64 mb-8 overflow-hidden rounded-t-lg">
+            <div className="w-full w-screen h-64 mb-8 overflow-hidden rounded-t-lg">
               <img 
                 src="/presUI.png" 
                 alt="Nos prestations" 
@@ -218,7 +191,7 @@ const Presentation: React.FC = () => {
           </div>
 
           <div className="bg-white/90 backdrop-blur-md p-8 border-t border-emerald-100 mt-8 w-screen relative left-1/2 right-1/2 mx-[-50vw] ">
-            <div className="w-full h-64 mb-8 overflow-hidden rounded-t-lg">
+            <div className="w-full w-screen h-64 mb-8 overflow-hidden rounded-t-lg">
               <img 
                 src="/ui2.jpg" 
                 alt="Nos prestations" 
@@ -323,6 +296,7 @@ const Presentation: React.FC = () => {
 </div>
           <br/><br/><br/>
           <ul className="mt-auto w-full w-screen relative left-1/2 right-1/2 mx-[-50vw]">
+            <WhatsAppPhoneFloating />
             <Footer/>
           </ul>
         </div> 

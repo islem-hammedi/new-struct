@@ -1,9 +1,8 @@
- const { Model } = require('sequelize');
+{/*const { Model } = require('sequelize');
 const db = require('../../connect');
 
    const calendrierFormation = async (req, res) => {
   try {
-    // Le corps de la requête est directement le tableau de sessions
     const sessions = Array.isArray(req.body) ? req.body : [];
 
     if (sessions.length === 0) {
@@ -13,7 +12,6 @@ const db = require('../../connect');
       });
     }
 
-    // Validation des sessions
     const invalidSessions = sessions.filter(session => 
       !session.id_session || !session.date_debut || !session.date_fin || !session.duree
     );
@@ -25,7 +23,6 @@ const db = require('../../connect');
       });
     }
 
-    // Exécution des requêtes
     const updatePromises = sessions.map(session => 
       db.query(
         "UPDATE session SET date_debut = ?, date_fin = ?, duree = ? WHERE id_session = ?",
@@ -180,13 +177,11 @@ const deletSessionFromCalendrier = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Vérifier d'abord si la session existe - version corrigée
     const sessionExists = await db.query(
       'SELECT id_session FROM session WHERE id_session = ?', 
       [id]
     );
 
-    // Adaptez cette ligne selon le format de retour de votre driver de base de données
     if (!sessionExists || sessionExists.length === 0) {
       return res.status(404).json({
         success: false,
@@ -194,7 +189,6 @@ const deletSessionFromCalendrier = async (req, res) => {
       });
     }
 
-    // Mettre à jour les dates à null - version corrigée
     const updateResult = await db.query(
       `UPDATE session 
        SET date_debut = NULL, date_fin = NULL, duree = NULL
@@ -202,7 +196,6 @@ const deletSessionFromCalendrier = async (req, res) => {
       [id]
     );
 
-    // Adaptez cette vérification selon votre driver de base de données
     const affectedRows = updateResult.affectedRows || updateResult.rowCount || 0;
     
     if (affectedRows > 0) {
@@ -222,7 +215,7 @@ const deletSessionFromCalendrier = async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Erreur serveur lors de la suppression',
-      details: error.message // Ajout du message d'erreur pour le débogage
+      details: error.message 
     });
   }
 };
@@ -232,81 +225,80 @@ const deletSessionFromCalendrier = async (req, res) => {
 module.exports = {
   calendrierFormation,getDomainesWithSessions,getCalendarSessions,
   deletSessionFromCalendrier
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-{/*}
-const calendrierFormationService = require('../../services/admin/calendrierFormation');
-
-const calendrierFormation = async (req, res) => {
-  try {
-    const sessions = Array.isArray(req.body) ? req.body : [];
-    const message = await calendrierFormationService.updateCalendrierFormation(sessions);
-
-    res.json({
-      success: true,
-      message,
-      updatedCount: sessions.length,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
-const getDomainesWithSessions = async (req, res) => {
-  try {
-    const domaines = await calendrierFormationService.fetchDomainesWithSessions();
-    res.json(domaines);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-const getCalendarSessions = async (req, res) => {
-  try {
-    const domaines = await calendrierFormationService.fetchCalendarSessions();
-    res.json(domaines);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-const deletSessionFromCalendrier = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const message = await calendrierFormationService.removeSessionFromCalendrier(id);
-
-    res.json({
-      success: true,
-      message,
-    });
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message,
-    });
-  }
-};
-
-module.exports = {
-  calendrierFormation,
-  getDomainesWithSessions,
-  getCalendarSessions,
-  deletSessionFromCalendrier,
 };*/}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const CalendrierFormationService = require('../../services/admin/calendrierFormation');
+
+class CalendrierFormationController {
+ 
+
+  async calendrierFormation(req, res) {
+    try {
+      const updatedCount = await CalendrierFormationService.updateSessions(req.body);
+      res.json({
+        success: true,
+        message: `${updatedCount} sessions mises à jour avec succès.`,
+        updatedCount
+      });
+    } catch (error) {
+      console.error("Erreur serveur:", error);
+      res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  async getDomainesWithSessions(req, res) {
+    try {
+      const data = await CalendrierFormationService.getDomainesWithSessions();
+      res.json(data);
+    } catch (error) {
+      console.error("Erreur serveur:", error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getCalendarSessions(req, res) {
+  try {
+    const sessions = await CalendrierFormationService.getCalendarSessions();
+    res.json(sessions);
+   // res.status(200).json(sessions);
+  } catch (error) {
+    console.error("Error in getCalendarSessions:", error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+  async deletSessionFromCalendrier(req, res) {
+    try {
+      const { id } = req.params;
+      const success = await CalendrierFormationService.deleteSession(id);
+      res.json({
+        success: true,
+        message: 'Session retirée du calendrier avec succès'
+      });
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      res.status(error.message === "Session non trouvée" ? 404 : 500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+}
+
+module.exports =new CalendrierFormationController();

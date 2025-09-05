@@ -673,10 +673,11 @@ const deleteTheme= (req, res) => {
   module.exports = {
     getCatalogue,updateTheme,getFormateursBySession,addThemeToDomain,deleteDomain
   ,deleteTheme};
-
 */}
 
-  const db = require('../../connect');
+
+
+const db = require('../../connect');
 const CatalogueService = require('../../services/admin/catalogue');
 
 const getCatalogue = async (req, res) => {
@@ -739,7 +740,9 @@ const deleteTheme = async (req, res) => {
   }
 };
 
-const updateTheme = async (req, res) => {
+
+
+{/*const updateTheme = async (req, res) => {
   const { id_theme } = req.params;
   const { formateursToAdd, formateursToRemove } = req.body;
 
@@ -748,7 +751,6 @@ const updateTheme = async (req, res) => {
   }
 
   try {
-    // 1. Récupérer le nom du thème
     const themeQuery = 'SELECT theme FROM theme WHERE id_theme = ?';
     db.query(themeQuery, [id_theme], async (themeErr, themeResults) => {
       if (themeErr) {
@@ -762,7 +764,6 @@ const updateTheme = async (req, res) => {
 
       const themeName = themeResults[0].theme;
 
-      // 2. Traitement des formateurs à supprimer
       for (const id_formateur of formateursToRemove) {
         await new Promise((resolve, reject) => {
           db.query(
@@ -790,7 +791,6 @@ const updateTheme = async (req, res) => {
                 if (themes[themeName]) {
                   delete themes[themeName];
                   
-                  // Mise à jour des domaines de compétences
                   const domaines = Object.keys(themes);
                   
                   db.query(
@@ -875,8 +875,26 @@ const updateTheme = async (req, res) => {
       error: error.message || "Erreur serveur lors de la mise à jour" 
     });
   }
-};
+};*/}
 
+
+
+
+const updateTheme = async (req, res) => {
+  try {
+    const { id_theme } = req.params;
+    const { formateursToAdd, formateursToRemove } = req.body;
+
+    const result = await CatalogueService.updateTheme(id_theme, formateursToAdd, formateursToRemove);
+    res.json(result);
+  } catch (error) {
+    console.error("Erreur backend complète:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "Erreur serveur lors de la mise à jour"
+    });
+  }
+};
 
 module.exports = {
   getCatalogue,

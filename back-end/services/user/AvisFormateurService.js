@@ -1,92 +1,59 @@
 const AvisFormateurRepository = require('../../repositories/user/AvisFormateurRepository');
 
 class AvisFormateurService {
-
-  constructor() {
-    this.AvisFormateurRepository = new AvisFormateurRepository();
-}
-
-   async getThemesByFormateur(idFormateur) {
+  async getThemesByFormateur(formateurId) {
     try {
-      if (!idFormateur) {
-        throw new Error('ID formateur requis');
-      }
-      return await this.AvisFormateurRepository.getThemesByFormateur(idFormateur);
+      if (!formateurId) throw new Error('ID formateur requis');
+      return await AvisFormateurRepository.getThemesByFormateur(formateurId);
     } catch (error) {
+      console.error('Erreur dans getThemesByFormateur:', error);
       throw error;
     }
   }
 
-   async getFeuillePresence(id_presence) {
+  async submitEvaluation(evaluations, id_presence, id_formateur, id_participant) {
     try {
-      const results = await this.AvisFormateurRepository.getFeuillePresence(id_presence);
-      
-      if (results.length === 0) {
-        throw new Error('Aucune donnée trouvée pour cette présence');
+      if (!id_presence || !id_formateur || !evaluations || !id_participant) {
+        throw new Error('Données manquantes pour l\'évaluation');
       }
 
-      const presenceInfo = {
-        id_presence: results[0].id_presence,
-        entreprise_beneficiaire: results[0].entreprise_beneficiaire,
-        date_debut: results[0].date_debut,
-        date_fin: results[0].date_fin,
-        id_calendrier: results[0].id_calendrier,
-        participants: results
-          .filter(row => row.id_participant)
-          .map(row => ({
-            id_participant: row.id_participant,
-            nom_complet: row.nom_complet
-          })),
-      };
+      // Validation des évaluations
+      const requiredFields = [
+        'connaissances_professionnelles',
+        'connaissances_equipements',
+          'comprehension_competences',
+          'aptitude_appliquer_infos',
+          'rapidite_execution',
+          'qualite_travaux',
+          'clarte_pertinence_resultats',
+          'perfectionnement_connaissances',
+          'respect_consignes_constructeur',
+          'respect_normes_securite',
+          'autonomie_travail',
+          'participation',
+          'assiduite_ponctualite',
+          'initiative',
+          'esprit_groupe',
+          'observation',
+      ];
 
-      return presenceInfo;
-    } catch (error) {
-      throw error;
-    }
-  }
-
-   async getParticipantsByPresence(id_presence) {
-    try {
-      if (!id_presence) {
-        throw new Error('ID de présence requis');
-      }
-      return await this.AvisFormateurRepository.getParticipantsByPresence(id_presence);
-    } catch (error) {
-      throw error;
-    }
-  }
-
-   async submitEvaluation(evaluations, id_presence, id_formateur, organisme_formation) {
-    try {
-      if (!id_presence || !id_formateur  || !evaluations) {
-        throw new Error('Données manquantes');
+      for (const field of requiredFields) {
+        if (!evaluations[field]) {
+          throw new Error(`Le critère ${field} est requis`);
+        }
       }
 
-      // Insertion dans avis_formateur
-      const avisResult = await this.AvisFormateurRepository.insertAvisFormateur(
-        id_formateur, 
-        id_presence, 
-        organisme_formation
+      return await AvisFormateurRepository.insertAvisFormateur(
+        id_formateur,
+        id_presence,
+        id_participant,
+        evaluations
       );
-
-      const id_avis = avisResult.insertId;
-      const participantIds = Object.keys(evaluations).map(Number);
-
-      // Préparation des détails d'évaluation
-      const avisDetails = participantIds.map(id => ({
-        id_avis,
-        id_participant: id,
-        ...evaluations[id]
-      }));
-
-      // Insertion des détails (en une seule opération)
-      await this.AvisFormateurRepository.insertAvisDetails(avisDetails);
-
-      return { success: true, message: 'Évaluation enregistrée avec succès' };
     } catch (error) {
-      console.error('Erreur dans AvisFormateurService:', error);
+      console.error('Erreur dans submitEvaluation:', error);
       throw error;
     }
   }
 }
-module.exports = AvisFormateurService;
+
+module.exports = new AvisFormateurService();

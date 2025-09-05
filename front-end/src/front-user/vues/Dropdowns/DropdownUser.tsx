@@ -16,7 +16,7 @@ const DropdownUser = ({ dropdownOpen, toggleDropdown }: any) => {
   };
 
   const handleLogout = () => {
-    logout(); // Déconnexion
+    logout();
     toggleDropdown(false);
     navigate("/");
   };

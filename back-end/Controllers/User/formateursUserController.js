@@ -23,13 +23,10 @@ const getFormateurById = (req, res) => {
 
 
 const updateFormateur = (req, res) => {
-  // Récupérer l'ID du formateur depuis les paramètres de l'URL
   const id = req.params.id;
 
-  // Extraire les données du corps de la requête
   const { nom_complet, mail, adr, competences, themes_a_enseigner, tarif_journalier, nb_formations, tel } = req.body;
 
-  // Vérifiez si l'ID et les données nécessaires sont présents
   if (!id || !nom_complet || !mail || !adr || !competences || !themes_a_enseigner || !tarif_journalier || !nb_formations || !tel) {
     return res.status(400).json({ error: 'Tous les champs doivent être remplis' });
   }

@@ -7,10 +7,7 @@ const {
 } = require('../../Controllers/Admin/accesAdminController');
 
 
-router.get('/apiAdmin/acces', getAllAccess);
-// Route pour obtenir les accès d'un administrateur
-router.get('/apiAdmin/admin/:id_admin/acces', getAccesByAdmin);
-
-// Route pour mettre à jour les accès d'un administrateur
-router.put('/apiAdmin/admin/:id_admin/acces', updateAccesByAdmin);
+router.get('/acces', getAllAccess);
+router.get('/admin/:id_admin/acces', getAccesByAdmin);
+router.put('/admin/:id_admin/acces', updateAccesByAdmin);
 module.exports = router;

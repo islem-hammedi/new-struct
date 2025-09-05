@@ -17,6 +17,7 @@ import Contact from "./vues/Footer.tsx";
 import { AuthProvider } from "./vues/Context/AuthProviderUser";
 import ResetPasswordPage from "./vues/ResetPasswordPage.tsx";
 import References from "./vues/Navbar/references.tsx";
+import FormateurCandidatureForm from "./vues/Navbar/Candidature.tsx"
 const AppUser = () => {
   
   return (
@@ -48,6 +49,7 @@ const AppUser = () => {
             <Route path="/Contact" element={<Contact />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/references" element={<References />} />
+            <Route path="/formateur-candidature" element={<FormateurCandidatureForm />} />
           </Routes>
           <hr />
           <Footer />

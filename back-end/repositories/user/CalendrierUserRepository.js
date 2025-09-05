@@ -30,10 +30,8 @@ class CalendrierUserRepository {
                 AND s.date_fin IS NOT NULL
                 ORDER BY s.date_debut
             `;
-            // Exécution de la requête sans destructuration
             const queryResult = await db.query(query);
             
-            // Debug: affiche la structure complète du résultat
             console.log('Query result structure:', {
                 type: typeof queryResult,
                 isArray: Array.isArray(queryResult),
@@ -47,13 +45,13 @@ class CalendrierUserRepository {
             } else if (queryResult && Array.isArray(queryResult.rows)) {
                 results = queryResult.rows;
             } else if (queryResult && typeof queryResult === 'object') {
-                results = [queryResult]; // Convertit un objet unique en tableau
+                results = [queryResult]; 
             } else {
-                results = []; // Fallback sécurisé
+                results = [];
             }
 
             if (!results || results.length === 0) {
-                return []; // Retourne un tableau vide si aucun résultat
+                return []; 
             }
 
             // Conversion des résultats en instances de Session
@@ -69,7 +67,6 @@ class CalendrierUserRepository {
                         id_theme: row.id_theme,
                         type_session: row.type_session,
                         etat: row.etat,
-                        // Champs supplémentaires pour l'affichage
                         _formateur: row.formateur,
                         _domaine: row.domaine,
                         _mois: row.mois,
@@ -129,7 +126,9 @@ class CalendrierUserRepository {
             if (results.length === 0) {
                 throw new Error('Session non trouvée');
             }
-
+console.log('Raw query result:', queryResult);
+            console.log('Processed results:', results);
+            
             const row = results[0];
             return new Session({
                 id_session: row.id_session,
@@ -142,7 +141,6 @@ class CalendrierUserRepository {
                 fiche_prg: row.fiche_prg,
                 type_session: row.type_session,
                 etat: row.etat,
-                // Informations complémentaires
                 _theme: row.nom_theme,
                 _code: row.code,
                 _formateur: row.nom_complet,

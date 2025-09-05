@@ -3,8 +3,6 @@ import axios from "axios";
 import { useAuth } from "../../hooks/useAuthAdmin";
 import { useForm, useFieldArray } from "react-hook-form";
 
-// ... (vos interfaces restent les mêmes)
-
 interface Session {
   id_session: number;
   theme: string;
@@ -61,13 +59,11 @@ const UpdateFormation: React.FC<UpdateFormationProps> = ({ formation, onUpdate, 
   });
 
   useEffect(() => {
-    // Charger les formateurs
     axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formateurs`)
       .then(response => setFormateurs(response.data))
       .catch(error => console.error("Erreur formateurs:", error));
 
-    // Initialiser les valeurs des sessions
-    if (formation.sessions && formation.sessions.length > 0) {
+      if (formation.sessions && formation.sessions.length > 0) {
       formation.sessions.forEach((session, index) => {
         setValue(`sessions.${index}.theme`, session.theme);
         setValue(`sessions.${index}.etat`, session.etat);
@@ -98,7 +94,6 @@ const UpdateFormation: React.FC<UpdateFormationProps> = ({ formation, onUpdate, 
       const formData = new FormData();
       const session = data.sessions[0];
 
-      // Ajouter tous les champs nécessaires
       Object.entries(session).forEach(([key, value]) => {
         if (value !== undefined && value !== null) {
           formData.append(key, value.toString());
@@ -130,11 +125,16 @@ const UpdateFormation: React.FC<UpdateFormationProps> = ({ formation, onUpdate, 
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold text-teal-800 mb-6">Modifier la Formation</h2>
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 p-4 z-50 overflow-y-auto">
+    <div className="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+    
+      <div className="flex justify-between items-center p-4 border-b sticky top-0 bg-white z-10">
+       
+      <h2 className=" text-2xl font-bold text-teal-800 mb-6">Modifier la Formation</h2>
       
-      <form onSubmit={handleSubmit(onSubmit)} encType="multipart/form-data">
+      <form id="hook-form" onSubmit={handleSubmit(onSubmit)} encType="multipart/form-data">
         <div className="mb-6">
+          <br/><br/>
           <label className="block text-gray-700 font-medium mb-2">Domaine</label>
           <input 
             type="text"
@@ -292,7 +292,7 @@ const UpdateFormation: React.FC<UpdateFormationProps> = ({ formation, onUpdate, 
           </button>
         </div>
       </form>
-    </div>
+    </div></div></div>
   );
 };
 

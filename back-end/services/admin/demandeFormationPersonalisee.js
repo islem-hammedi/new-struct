@@ -1,4 +1,4 @@
-const demandeFormationRepository = require('../../repositories/admin/demandeFormationRepository');
+{/*const demandeFormationRepository = require('../../repositories/admin/demandeFormationAdminRepository');
 
 class DemandeFormationService {
   async getAllDemandes() {
@@ -12,4 +12,18 @@ class DemandeFormationService {
 }
 
 // Exportez bien une instance
-module.exports = new DemandeFormationService();
+module.exports = new DemandeFormationService();*/}
+
+
+
+
+
+const DemanderFormationAdminRepository = require('../../repositories/admin/demandeFormationAdminRepository');
+
+const getAllDemandesWithParticipants = async () => {
+    return await DemanderFormationAdminRepository.getAllDemandesWithParticipants();
+};
+
+module.exports = {
+    getAllDemandesWithParticipants
+};

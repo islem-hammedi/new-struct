@@ -54,7 +54,7 @@ class AvisRepository {
           avis.maitrise_globale_sujets_presentes, avis.traitement_exemples_travail,
           avis.animations_seances, avis.homogeneite_groupe,
           avis.satisfaction_attentes, avis.duree_formation,
-          participant.nom_complet, participant.nature_participant, participant.nom_entreprise
+          participant.nom_complet, participant.badge
         FROM avis
         JOIN participant ON avis.id_participant = participant.id_participant
         WHERE avis.id_session = ?`;

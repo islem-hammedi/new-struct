@@ -2,12 +2,12 @@ const db = require('../../connect');
 
 const getClientsPersonnes = () => {
   const query = `
-    SELECT p.*, participation.id_session, t.theme, t.code
+    SELECT p.*, feuille_presence_participants.id_session, t.theme, t.code
     FROM participant p
-    JOIN participation 
-      ON p.id_participant = participation.id_participant
+    JOIN feuille_presence_participants 
+      ON p.id_participant = feuille_presence_participants.id_participant
     JOIN session s 
-      ON participation.id_session = s.id_session
+      ON feuille_presence_participants.id_session = s.id_session
     LEFT JOIN theme t 
       ON t.id_theme = s.id_theme
     WHERE id_entreprise IS NULL;
@@ -22,12 +22,12 @@ const getClientsPersonnes = () => {
 
 const getClientsEntreprises = () => {
   const query = `
-    SELECT p.*, participation.id_session, t.theme, t.code, e.*
+    SELECT p.*, feuille_presence_participants.id_session, t.theme, t.code, e.*
     FROM participant p
-    JOIN participation 
-      ON p.id_participant = participation.id_participant
+    JOIN feuille_presence_participants 
+      ON p.id_participant = feuille_presence_participants.id_participant
     JOIN session s 
-      ON participation.id_session = s.id_session
+      ON feuille_presence_participants.id_session = s.id_session
     LEFT JOIN theme t 
       ON t.id_theme = s.id_theme
     JOIN entreprise e 
@@ -44,12 +44,12 @@ const getClientsEntreprises = () => {
 
 const getParticipantsByEntreprise = (entrepriseName) => {
   const query = `
-    SELECT p.*, participation.id_session, t.theme, t.code, e.*
+    SELECT p.*, feuille_presence_participants.id_session, t.theme, t.code, e.*
     FROM participant p
-    JOIN participation 
-      ON p.id_participant = participation.id_participant
+    JOIN feuille_presence_participants 
+      ON p.id_participant = feuille_presence_participants.id_participant
     JOIN session s 
-      ON participation.id_session = s.id_session
+      ON feuille_presence_participants.id_session = s.id_session
     LEFT JOIN theme t 
       ON t.id_theme = s.id_theme
     JOIN entreprise e 

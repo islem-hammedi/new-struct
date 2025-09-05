@@ -55,19 +55,23 @@ const getSessions = (req, res) => {
     }
 
     const sql = `
-        SELECT s.id_session, s.theme, s.code, s.etat, s.id_formation, s.id_formateur
-        FROM session s
-        JOIN participant p ON FIND_IN_SET(s.id_session, p.id_session) > 0
-        WHERE p.id_participant = ?;
-    `;
+       SELECT s.id_session, t.theme, t.code
+FROM feuille_presence_participants s
+JOIN participant p ON s.id_participant = p.id_participant
+JOIN session se ON s.id_session = se.id_session
+JOIN theme t ON se.id_theme = t.id_theme
+WHERE p.id_participant = ?;`;
 
     db.query(sql, [id_participant], (err, results) => {
         if (err) {
-            console.error("Erreur MySQL :", err); // Debug erreur SQL
+            console.error("Erreur MySQL :", err); 
             return res.status(500).json({ message: "Erreur serveur" });
         }
+        console.log("Résultats de la requête :", results); 
+
         res.json({ sessions: results });
     });
+    
 };
 
 

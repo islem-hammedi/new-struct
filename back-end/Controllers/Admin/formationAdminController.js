@@ -1,8 +1,5 @@
 const formationAdminService = require('../../services/admin/formationService');
 
-// Ensure uploads directory exists
-
-
 const formationAdminController = {
    getFormations: async (req, res) => {
         try {
@@ -16,27 +13,21 @@ const formationAdminController = {
 
     async addFormation(req, res) {
       try {
-          // Vérifier que les fichiers sont bien reçus
           if (!req.files) {
               return res.status(400).json({
                   success: false,
                   message: "Aucun fichier reçu"
               });
           }
-
-          // Extraire les données
           const { domaine, sessions } = req.body;
           const parsedSessions = typeof sessions === 'string' ? JSON.parse(sessions) : sessions;
 
-          // Valider les données
           if (!domaine || !parsedSessions || !Array.isArray(parsedSessions)) {
               return res.status(400).json({
                   success: false,
                   message: "Données invalides"
               });
           }
-
-          // Appeler le service
           const result = await formationAdminService.createFormationWithSessions(
               domaine,
               parsedSessions,
@@ -128,8 +119,8 @@ async updateSession(req, res) {
     }
 
     const file = {
-      fiche_programme: req.files['fiche_programme']?.[0], // Correction ici
-      cours_session: req.files['cours_session']?.[0] // Correction ici
+      fiche_programme: req.files['fiche_programme']?.[0], 
+      cours_session: req.files['cours_session']?.[0] 
     };
 
     console.log("Fichiers traités:", file);

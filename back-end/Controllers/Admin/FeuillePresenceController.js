@@ -1,111 +1,84 @@
-
-
-
 const FeuillePresenceService = require('../../services/admin/FeuillePresenceService');
-const { validationResult } = require('express-validator'); // Import manquant
 
 class FeuillePresenceController {
-    async getSessionDetails(req, res) {
-        try {
-            const { idSession } = req.params;
-            const data = await FeuillePresenceService.getSessionDetails(idSession);
-            
-            res.json({
-                success: true,
-                data
-            });
-        } catch (error) {
-            res.status(500).json({
-                success: false,
-                message: error.message
-            });
-        }
-    }
-    async getAllSessions(req, res) {
-      try {
-          const sessions = await FeuillePresenceService.getAllSessions();
-          
-          console.log('Controller sending sessions:', sessions);
-          
-          if (!sessions.length) {
-              return res.status(200).json({
-                  success: true,
-                  data: [],
-                  message: 'Aucune session trouvée'
-              });
-          }
-          
-          res.json({
-              success: true,
-              data: sessions,
-              message: 'Sessions récupérées avec succès'
-          });
-          
-      } catch (error) {
-          console.error('Controller Error:', error);
-          res.status(500).json({
-              success: false,
-              message: 'Erreur lors de la récupération des sessions',
-              error: process.env.NODE_ENV === 'development' ? error.message : undefined
-          });
-      }
-  }
-
-async addParticipantAndInsertPresence(req, res) {
+  
+  // Sauvegarder une feuille de présence
+  async saveFeuillePresence(req, res) {
     try {
-        if (!req.body) {
-            return res.status(400).json({ 
-                success: false,
-                error: "Données manquantes" 
-            });
-        }
+      console.log('📝 Données reçues:', JSON.stringify(req.body, null, 2));
+      
+      const {
+        id_session,
+        participants,
+        creditImpôt,
+        droitTirage,
+        modeFormation,
+        coOrganisateurs,
+        horaire_debut,
+        horaire_fin,
+        pause_debut,
+        pause_fin,
+        entreprise_beneficiaire
+      } = req.body;
 
-        const { 
-            participants = [], 
-            creditImpôt = false,
-            droitTirage = '',
-            modeFormation = '',
-            coOrganisateurs = '',
-            entreprise_beneficiaire = '',
-            id_session
-        } = req.body;
-
-       
-        if (!Array.isArray(participants) || participants.length === 0) {
-            return res.status(400).json({ 
-                success: false,
-                error: "Participants invalides" 
-            });
-        }
-
-        const result = await FeuillePresenceService.createFeuillePresenceWithParticipants({
-            participants,
-            creditImpôt,
-            droitTirage,
-            modeFormation,
-            coOrganisateurs,
-            entreprise_beneficiaire,
-            id_session
+      // Validation des données requises
+      if (!id_session) {
+        return res.status(400).json({
+          success: false,
+          error: "L'ID de session est requis"
         });
+      }
 
-        return res.status(201).json({
-            success: true,
-            data: {
-                id_feuille_presence: result.id_feuille_presence,
-                results: result.results, 
-                message: result.message
-            }
+      if (!participants || !Array.isArray(participants) || participants.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Les participants sont requis"
         });
+      }
+
+      // Validation des participants
+      for (let i = 0; i < participants.length; i++) {
+        const participant = participants[i];
+        if (!participant.CIN || !participant.nomComplet) {
+          return res.status(400).json({
+            success: false,
+            error: `Le participant ${i + 1} doit avoir un CIN et un nom complet`
+          });
+        }
+      }
+
+      const result = await FeuillePresenceService.saveFeuillePresence({
+        id_session,
+        participants,
+        credit_impot: creditImpôt || false,
+        droit_tirage: droitTirage || '',
+        mode_formation: modeFormation || '',
+        co_organisateurs: coOrganisateurs || '',
+        horaire_debut: horaire_debut || '08:30',
+        horaire_fin: horaire_fin || '17:00',
+        pause_debut: pause_debut || '12:00',
+        pause_fin: pause_fin || '13:30',
+        entreprise_beneficiaire: entreprise_beneficiaire || ''
+      });
+
+      return res.status(201).json({
+        success: true,
+        data: {
+          message: "Feuille de présence enregistrée avec succès",
+          feuillePresenceId: result.feuillePresenceId,
+          results: result.participantResults
+        }
+      });
 
     } catch (error) {
-        console.error('Erreur:', error);
-        return res.status(500).json({
-            success: false,
-            error: 'Erreur serveur',
-            message: error.message
-        });
+      console.error('❌ Erreur dans saveFeuillePresence:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || "Erreur interne du serveur",
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      });
     }
-}
+  }
 }
 
 module.exports = new FeuillePresenceController();

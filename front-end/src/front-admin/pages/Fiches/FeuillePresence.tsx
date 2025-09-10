@@ -7,8 +7,8 @@ import { FiEdit2, FiTrash2, FiPlus, FiSave, FiPrinter, FiDownload, FiCalendar, F
 
 interface Theme {
   id_session: number;
-  theme_nom: string;
-  formateur_nom: string;
+  theme: string;
+  formateur: string;
   date_debut: string;
   date_fin: string;
   lieu: string;
@@ -18,8 +18,13 @@ interface Theme {
   emargement?: string | null;
   droit_triage?: string | null;
   nb_participant?: number;
+  etat?: string;
 }
-
+interface Formation{
+  id_formation: number;
+  domaine: string;
+  sessions:Theme[];
+}
 interface Participant {
   id: number;
   nomPrenom: string;
@@ -27,6 +32,8 @@ interface Participant {
   emargements: Record<string, string>;
   mail?: string;
   telephone?: string;
+  directionService?: string;
+  entreprise?: string;
 
 }
 
@@ -56,6 +63,7 @@ interface FormData {
 const FeuillePresence = () => {
   const [filteredThemes, setFilteredThemes] = useState<Theme[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
+const [formations, setFormations] = useState<Formation[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [formData, setFormData] = useState<FormData>({
     creditImpôt: false,
@@ -84,22 +92,19 @@ const FeuillePresence = () => {
 
   const generatePDF = async () => {
     try {
-      // Sélectionner l'élément à convertir en PDF
       const element = document.getElementById("feuille-presence");
       
       if (!element) {
         throw new Error("Élément introuvable pour la génération du PDF");
       }
   
-      // Utiliser html2canvas pour capturer le contenu
       const canvas = await html2canvas(element, {
-        scale: 2, // Améliore la qualité
+        scale: 2, 
         logging: false,
         useCORS: true,
         allowTaint: true,
       });
   
-      // Calculer les dimensions du PDF
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({
         orientation: "portrait",
@@ -121,9 +126,7 @@ const FeuillePresence = () => {
         pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
-  
-      // Télécharger le PDF
-      const fileName = `Feuille_Presence_${selectedTheme?.theme_nom.replace(/\s+/g, '_') || 'formation'}.pdf`;
+      const fileName = `Feuille_Presence_${selectedTheme?.theme.replace(/\s+/g, '_') || 'formation'}.pdf`;
       pdf.save(fileName);
   
     } catch (error) {
@@ -145,7 +148,7 @@ const FeuillePresence = () => {
     const themeInfo = new Paragraph({
       children: [
         new TextRun({
-          text: `Thème de formation: ${selectedTheme.theme_nom}`,
+          text: `Thème de formation: ${selectedTheme.theme}`,
           bold: true,
         }),
       ],
@@ -235,14 +238,12 @@ const FeuillePresence = () => {
     return doc;
   };
   
-  // Fonction utilitaire pour formater la date
   const formatDateForDisplay = (dateString: string) => {
     const date = parseCustomDate(dateString);
     if (!date) return '';
     return date.toLocaleDateString('fr-FR');
   };
   
-  // Fonction pour générer les en-têtes d'émargement
   const generateEmargementHeaders = () => {
     if (!selectedTheme) return [];
     
@@ -267,7 +268,6 @@ const FeuillePresence = () => {
     return headers;
   };
   
-  // Fonction pour générer les cellules d'émargement
   const generateEmargementCells = (participant: Participant) => {
     if (!selectedTheme) return [];
     
@@ -299,8 +299,8 @@ const FeuillePresence = () => {
       
       setSelectedTheme({
         id_session: session.id_session,
-        theme_nom: session.theme_nom,
-        formateur_nom: session.formateur_nom,
+        theme: session.theme,
+        formateur: session.formateur,
         date_debut: session.date_debut,
         date_fin: session.date_fin,
         duree: session.duree,
@@ -351,15 +351,29 @@ const FeuillePresence = () => {
   useEffect(() => {
     const loadThemes = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/sessions`);
-        console.log('Réponse API:', response.data); // Debug
+        const response = await axios
+    .get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formations/Form`);
+        console.log('Réponse API:', response.data); 
+         
+        const allFormations: Formation[] = response.data.data || response.data;
+        setFormations(allFormations);
         
-        const themesData = response.data.data || response.data;
-        setFilteredThemes(themesData);
+        const allThemes: Theme[] = allFormations.flatMap((formation: Formation) => 
+          formation.sessions || []
+        );
+        
+        console.log('Tous les thèmes:', allThemes);
+        const realisedThemes = allThemes.filter((theme: Theme) => 
+          theme.etat && theme.etat.includes('déjà réalisée')
+        );
+        
+        console.log('Thèmes réalisés:', realisedThemes);
+        setFilteredThemes(realisedThemes);
       } catch (error) {
         console.error("Erreur lors du chargement des thèmes:", error);
       }
     };
+    
     loadThemes();
   }, []);
   const parseCustomDate = (dateString: string): Date | null => {
@@ -389,7 +403,7 @@ const FeuillePresence = () => {
       periodeAu: theme?.date_fin ? theme.date_fin.split('T')[0] : '',
       formateur: {
         ...prev.formateur,
-        nomPrenom: theme?.formateur_nom || ''
+        nomPrenom: theme?.formateur|| ''
       }
     }));
   };
@@ -515,10 +529,6 @@ const addParticipant = () => {
 
         alert(response.data.data?.message || "Enregistrement réussi");
 
-    
-    
-    
-    
         const doc = generateWordDocument();
         if (!doc) {
           throw new Error("Erreur lors de la génération du document Word");
@@ -530,7 +540,7 @@ const addParticipant = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Feuille_Presence_${selectedTheme.theme_nom.replace(/\s+/g, '_')}.docx`;
+    a.download = `Feuille_Presence_${selectedTheme.theme.replace(/\s+/g, '_')}.docx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -547,11 +557,7 @@ const addParticipant = () => {
           errorResponseData = (error as any).response.data;
         }
       }
-
-      console.error('Erreur complète:', {
-          message: errorMessage,
-          response: errorResponseData
-      });
+     
 
       if (errorResponseData?.error) {
           errorMessage = errorResponseData.error;
@@ -658,15 +664,12 @@ const addParticipant = () => {
    return (
     <div id="feuille-presence" className="container mx-auto p-4 font-sans bg-gray-50 min-h-screen">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <h1 className="text-3xl font-bold text-gray-800 text-center mb-2">Feuille de Présence</h1>
           <p className="text-gray-600 text-center">Gestion des présences pour les sessions de formation</p>
         </div>
 
-        {/* Configuration Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          {/* Left Column - Options */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
               <FiCheckSquare className="mr-2 text-teal-500" />
@@ -748,7 +751,6 @@ const addParticipant = () => {
             </div>
           </div>
 
-          {/* Middle Column - Session Info */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
               <FiCalendar className="mr-2 text-teal-500" />
@@ -767,7 +769,7 @@ const addParticipant = () => {
                   <option value="">Sélectionner un thème</option>
                   {filteredThemes.map(theme => (
                     <option key={theme.id_session} value={theme.id_session}>
-                      {theme.theme_nom} (Formateur: {theme.formateur_nom || 'Non spécifié'})
+                      {theme.theme ||'??'} |Formateur: {theme.formateur || '??'}|début: {formatDateForInput(theme.date_debut )|| '??'}|Fin: {formatDateForInput(theme.date_fin) || '??'}
                     </option>
                   ))}
                 </select>
@@ -809,7 +811,6 @@ const addParticipant = () => {
             </div>
           </div>
 
-          {/* Right Column - Schedule */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
               <FiClock className="mr-2 text-teal-500" />
@@ -871,7 +872,6 @@ const addParticipant = () => {
           </div>
         </div>
 
-        {/* Participants Section */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center mb-4 md:mb-0">
@@ -978,9 +978,7 @@ const addParticipant = () => {
           </div>
         </div>
 
-        {/* Formateur et Entreprise Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Formateur */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
               <FiBriefcase className="mr-2 text-teal-500" />
@@ -1012,7 +1010,6 @@ const addParticipant = () => {
             </div>
           </div>
 
-          {/* Entreprise bénéficiaire */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
               <FiHome className="mr-2 text-teal-500" />

@@ -2,7 +2,6 @@ import axios from "axios";
 import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useInView } from "react-intersection-observer";
 
-// Définition du composant AnimatedText qui manquait
 interface AnimatedTextProps {
   children: React.ReactNode;
   delay?: number;
@@ -44,7 +43,6 @@ interface FormData {
 }
 
 const SoumettreCandidature: React.FC = () => {
-  // État pour le formulaire de formateur
   const [formData, setFormData] = useState<FormData>({
     nom: '',
     telephone: '',
@@ -56,6 +54,8 @@ const SoumettreCandidature: React.FC = () => {
     certificats: null
   });
 
+  const [loading, setLoading] = useState(false);
+
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, files } = e.target as HTMLInputElement;
     setFormData(prev => ({
@@ -66,64 +66,60 @@ const SoumettreCandidature: React.FC = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     
     try {
-        // Vérification des champs
-        if (!formData.nom || !formData.telephone || !formData.email || 
-            !formData.domaine || !formData.themes || !formData.motivation || !formData.cv) {
-            alert('Veuillez remplir tous les champs obligatoires');
-            return;
+      if (!formData.nom || !formData.telephone || !formData.email || 
+          !formData.domaine || !formData.themes || !formData.motivation || !formData.cv) {
+        alert('Veuillez remplir tous les champs obligatoires');
+        setLoading(false);
+        return;
+      }
+
+      const formDataToSend = new FormData();
+      formDataToSend.append('nom', formData.nom);
+      formDataToSend.append('telephone', formData.telephone);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('domaine', formData.domaine);
+      formDataToSend.append('themes', formData.themes);
+      formDataToSend.append('motivation', formData.motivation);
+      formDataToSend.append('cv', formData.cv);
+      
+      if (formData.certificats) {
+        formDataToSend.append('certificats', formData.certificats);
+      }
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_APP_API_URL}/api/formateur-candidatures`,
+        formDataToSend,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         }
+      );
 
-        const formDataToSend = new FormData();
-        formDataToSend.append('nom', formData.nom);
-        formDataToSend.append('telephone', formData.telephone);
-        formDataToSend.append('email', formData.email);
-        formDataToSend.append('domaine', formData.domaine);
-        formDataToSend.append('themes', formData.themes);
-        formDataToSend.append('motivation', formData.motivation);
-        formDataToSend.append('cv', formData.cv);
-        
-        if (formData.certificats) {
-            formDataToSend.append('certificats', formData.certificats);
-        }
+      setFormData({
+        nom: '',
+        telephone: '',
+        email: '',
+        domaine: '',
+        themes: '',
+        motivation: '',
+        cv: null,
+        certificats: null
+      });
 
-        // Correction de l'appel Axios
-        const response = await axios.post(
-            `${import.meta.env.VITE_APP_API_URL}/apiUser/formateur-candidatures`,
-            formDataToSend,
-            {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            }
-        );
+      alert('Candidature soumise avec succès!');
 
-        // Réinitialisation et feedback
-        setFormData({
-            nom: '',
-            telephone: '',
-            email: '',
-            domaine: '',
-            themes: '',
-            motivation: '',
-            cv: null,
-            certificats: null
-        });
-
-        alert('Candidature soumise avec succès!');
-
-    } catch (error) {
-        console.error('Erreur:', error);
-        if (axios.isAxiosError(error)) {
-            // Gestion spécifique des erreurs Axios
-            const errorMessage = error.response?.data?.message || error.message;
-            alert(`Erreur: ${errorMessage}`);
-        } else {
-            alert(`Erreur: ${typeof error === 'object' && error !== null && 'message' in error ? (error as { message: string }).message : 'Une erreur inconnue est survenue.'}`);
-        }
+    } catch (error: any) {
+      console.error('Erreur:', error);
+      const errorMessage = error.response?.data?.message || error.message;
+      alert(`Erreur: ${errorMessage}`);
+    } finally {
+      setLoading(false);
     }
-};
+  };
 
   return (
     <div className="bg-white/90 backdrop-blur-md p-8 border-t border-emerald-100 w-screen relative left-1/2 right-1/2 mx-[-50vw]">
@@ -256,7 +252,6 @@ const SoumettreCandidature: React.FC = () => {
                     name="certificats"
                     onChange={handleChange}
                     accept=".pdf"
-                    multiple
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
                   />
                 </div>
@@ -264,9 +259,10 @@ const SoumettreCandidature: React.FC = () => {
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200"
+                    disabled={loading}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Soumettre ma candidature
+                    {loading ? 'Envoi en cours...' : 'Soumettre ma candidature'}
                   </button>
                 </div>
               </form>

@@ -10,12 +10,10 @@ const Calendrier: React.FC = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState<any[]>([]);
 
-  // Récupérer les événements au chargement du composant
   useEffect(() => {
     fetchEvents();
   }, []);
 
-  // Function to fetch events from API
   const fetchEvents = () => {
     axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/calendrierEvent/get`)
       .then(response => {
@@ -33,7 +31,6 @@ const Calendrier: React.FC = () => {
       .catch(error => console.error('Erreur lors de la récupération des événements :', error));
   };
 
-  // Gérer la création d'un nouvel événement
   const handleDateClick = (info: any) => {
     const title = prompt("Entrez le titre de l'événement :");
     if (title) {
@@ -47,7 +44,6 @@ const Calendrier: React.FC = () => {
     }
   };
 
-  // Gérer la suppression d'un événement
   const handleEventClick = (info: any) => {
     const token = localStorage.getItem('token');
   
@@ -79,9 +75,45 @@ const Calendrier: React.FC = () => {
     }
   };
 
+  const getEventColor = (eventId: string): string => {
+    if (!isNaN(Number(eventId))) {
+      const colorIndex = parseInt(eventId) % 3;
+      
+      switch (colorIndex) {
+        case 0:
+          return 'bg-violet-200';
+        case 1:
+          return 'bg-yellow-200';
+        case 2:
+          return 'bg-pink-100';
+        default:
+          return 'bg-violet-200';
+      }
+    } else {
+      let hash = 0;
+      for (let i = 0; i < eventId.length; i++) {
+        hash = eventId.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      const colorIndex = Math.abs(hash) % 3;
+      
+      switch (colorIndex) {
+        case 0:
+          return 'bg-violet-200';
+        case 1:
+          return 'bg-yellow-200';
+        case 2:
+          return 'bg-pink-100';
+        default:
+          return 'bg-violet-200';
+      }
+    }
+  };
+
   const renderEventContent = (eventInfo: any) => {
+    const colorClass = getEventColor(eventInfo.event.id);
+    
     return (
-      <div>
+      <div className={`${colorClass} p-1 rounded w-full`}>
         <b>{eventInfo.event.title}</b>
         <br />
         <i>Créateur: {eventInfo.event.extendedProps.created_by}</i>
@@ -90,16 +122,56 @@ const Calendrier: React.FC = () => {
   };
   
   return (
-    <div className="App">
-      <h1 className="text-2xl text-left text-gray-500 font-semibold mb-4">Marquez vos événements... </h1>
+    <div className="App p-4">
+      <h1 className="text-1xl text-left text-gray-500 font-semibold mb-4">Marquez vos événements...</h1>
+      
+      <style>
+        {`
+          .fc-header-toolbar {
+            margin-bottom: 1em;
+          }
+          .fc-toolbar-chunk {
+            display: flex;
+            align-items: center;
+          }
+          .fc-toolbar-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #6D28D9;
+          }
+          .fc-button {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            background-color: #993bd0ff;
+            border: none;
+          }
+          .fc-button:hover {
+            background-color: #5B21B6;
+          }
+          .fc-button:active, .fc-button:focus {
+            outline: none;
+            box-shadow: none;
+          }
+          .fc-prev-button, .fc-next-button {
+            margin-left: 0.5rem;
+          }
+          .fc-today-button {
+            background-color: #8B5CF6;
+          }
+          .fc-today-button:hover {
+            background-color: #7C3AED;
+          }
+        `}
+      </style>
+      
       <FullCalendar
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         locale={frLocale}
         headerToolbar={{
-          left: 'prev,next today',
+          left: '',
           center: 'title',
-          right: 'dayGridMonth'
+          right: 'prev,next today'
         }}
         events={events}
         dateClick={handleDateClick}
@@ -107,6 +179,7 @@ const Calendrier: React.FC = () => {
         editable
         selectable
         eventContent={renderEventContent}
+        height="auto"
       />
     </div>
   );

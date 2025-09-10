@@ -261,10 +261,26 @@ const handleParticiper = async () => {
     
  
 
-    <div className="p-2 pt-10 bg-white min-h-screen">
+    <div className="p-2 pt-4 bg-white min-h-screen">
       <div className="max-w-7xl mx-auto">
+        <div className="mt-2 flex justify-end">
+          <button
+            onClick={downloadPDF}
+            className="px-4 py-2 border border-teal-500 text-teal-500 rounded-lg hover:bg-teal-500 hover:text-white transition-colors flex items-center text-sm"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            Télécharger le calendrier
+          </button>
+        </div>
+
         <h1 className="text-2xl font-bold text-teal-700 text-center mb-8">Calendrier des Formations</h1>
          <div className="flex flex-wrap justify-center items-center gap-4 p-6">
+  
+  
+  
+   
   
   
   <div className="flex items-center">
@@ -280,11 +296,7 @@ const handleParticiper = async () => {
       </div>
     </div>
 
-    <div className="mx-1 text-teal-600">
-      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M5 12h14M12 5l7 7-7 7"/>
-      </svg>
-    </div>
+   
   </div>
 
  
@@ -300,11 +312,7 @@ const handleParticiper = async () => {
     </div>
 
    
-    <div className="mx-2 text-blue-300">
-      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M5 12h14M12 5l7 7-7 7"/>
-      </svg>
-    </div>
+    
   </div>
 
   <div className="flex items-center">
@@ -319,11 +327,7 @@ const handleParticiper = async () => {
       </div>
     </div>
 
-    <div className="mx-2 text-violet-400">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M5 12h14M12 5l7 7-7 7"/>
-      </svg>
-    </div>
+  
   </div>
 
   <div className="flex items-center">
@@ -336,11 +340,7 @@ const handleParticiper = async () => {
       </div>
     </div>
 
-    <div className="mx-2 text-teal-600">
-      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M5 12h14M12 5l7 7-7 7"/>
-      </svg>
-    </div>
+  
   </div>
 
   <div className="flex flex-col items-center">
@@ -450,17 +450,7 @@ const handleParticiper = async () => {
           </table>
         </div>
 
-        <div className="mt-6 flex justify-center">
-          <button
-            onClick={downloadPDF}
-            className="px-6 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition-colors flex items-center"
-          >
-            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-            </svg>
-            Télécharger le calendrier
-          </button>
-        </div>
+       
 
      {selectedSession && (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">

@@ -12,9 +12,7 @@ interface FormateurDemande {
   themes: string;
   motivation: string;
   cv_path: string;
-  certificats_path: string | null;
   created_at: string;
-  status: 'pending' | 'accepted' | 'rejected';
 }
 
 const CandidatureFormateur: React.FC = () => {
@@ -22,35 +20,31 @@ const CandidatureFormateur: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selectedDemande, setSelectedDemande] = useState<FormateurDemande | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [actionType, setActionType] = useState<'accept' | 'reject'>('accept');
   const [messageApi, contextHolder] = message.useMessage();
-  const [showAccepted, setShowAccepted] = useState(false); // Nouvel état
+  const [candidatures, setCandidatures] = useState<FormateurDemande[]>([]);
 
   useEffect(() => {
     fetchDemandes();
-  }, [showAccepted]);
+  }, []);
 
 
-  const handleAction = (demande: FormateurDemande, type: 'accept' | 'reject') => {
-    setSelectedDemande(demande);
-    setActionType(type);
-    setModalVisible(true);
-  };
-
-  const fetchDemandes = async () => {
+   const fetchDemandes = async () => {
     try {
       setLoading(true);
-      const endpoint = showAccepted 
-      ? '/apiUser/formateur-candidatures/accepted' 
-      : '/apiUser/formateur-candidatures';
-    
-    const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}${endpoint}`);      
-      if (response.data && Array.isArray(response.data)) {
-        setDemandes(response.data);
+      const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/apiUser/formateur-candidatures`);
+      
+      console.log('API Response:', response.data);
+      
+      // Adapter la réponse au format attendu
+      if (response.data && response.data.success) {
+        // Extraire le tableau de données de la réponse
+        const candidatureData = Array.isArray(response.data.data) ? response.data.data : [];
+        setDemandes(candidatureData);
       } else {
-        throw new Error('Format de données inattendu');
+        throw new Error('Format de données inattendu de l\'API');
       }
     } catch (error) {
+      console.error('Erreur détaillée:', error);
       if (axios.isAxiosError(error)) {
         console.error('Erreur API:', {
           status: error.response?.status,
@@ -59,40 +53,18 @@ const CandidatureFormateur: React.FC = () => {
         });
         messageApi.error(`Erreur ${error.response?.status || ''} - ${error.message}`);
       } else {
-        console.error('Erreur inattendue:', error);
         messageApi.error('Erreur lors du chargement des demandes');
       }
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchDemandes();
+  }, []);
   
-  const confirmAction = async () => {
-    if (!selectedDemande) return;
-  
-    try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_APP_API_URL}/apiUser/formateur-candidatures/${selectedDemande.id}/traiter`, 
-        { action: actionType }
-      );
-  
-      if (actionType === 'accept') {
-        messageApi.success('Candidature acceptée avec succès');
-      } else {
-        messageApi.success('Candidature refusée et supprimée');
-      }
-      
-      fetchDemandes();
-    } catch (error) {
-      let errorMessage = 'Erreur lors du traitement';
-      if (axios.isAxiosError(error)) {
-        errorMessage = error.response?.data?.error || error.message;
-      }
-      messageApi.error(errorMessage);
-    } finally {
-      setModalVisible(false);
-    }
-  };
+
   const getColumns = () => {
     const baseColumns: ColumnsType<FormateurDemande> = [    {
       title: 'Nom',
@@ -132,45 +104,8 @@ const CandidatureFormateur: React.FC = () => {
         </a>
       ),
     },
-    {
-      title: 'Certificats',
-      key: 'certificats',
-      render: (_, record) => (
-        record.certificats_path ? (
-          <a 
-            href={`${import.meta.env.VITE_APP_API_URL}/uploads/${record.certificats_path}`} 
-            target="_blank" 
-            rel="noopener noreferrer"
-          >
-            Voir certificats
-          </a>
-        ) : 'Aucun'
-      ),}
+   
     ]
-    if (!showAccepted) {
-        baseColumns.push({
-          title: 'Actions',
-          key: 'actions',
-          render: (_, record) => (
-            <div className="flex gap-2">
-              <Button 
-                type="primary" 
-                onClick={() => handleAction(record, 'accept')}
-                className="bg-green-500 hover:bg-green-600"
-              >
-                Accepter
-              </Button>
-              <Button 
-                danger 
-                onClick={() => handleAction(record, 'reject')}
-              >
-                Refuser
-              </Button>
-            </div>
-          ),
-        });
-      }
-    
       return baseColumns;
     };
 
@@ -180,15 +115,8 @@ const CandidatureFormateur: React.FC = () => {
       <h2 className="text-xl text-teal-500 font-semibold mb-4 text-center">Candidature Formateurs</h2>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl text-teal-500 font-semibold text-center">
-          {showAccepted ? 'Formateurs Acceptés' : 'Demandes de Formateurs'}
-        </h2>w
-        <Button 
-          type="primary" 
-          onClick={() => setShowAccepted(!showAccepted)}
-          className={showAccepted ? "bg-teal-500" : "bg-teal-600"}
-        >
-          {showAccepted ? 'Voir toutes les demandes' : 'Voir formateurs acceptés'}
-        </Button>
+        </h2>
+        
       </div>
 
       <Table 
@@ -199,31 +127,7 @@ const CandidatureFormateur: React.FC = () => {
         scroll={{ x: 1300 }}
       />
 
-      <Modal
-        title={`${actionType === 'accept' ? 'Accepter' : 'Refuser'} la demande`}
-        open={modalVisible}
-        onOk={confirmAction}
-        onCancel={() => setModalVisible(false)}
-        okText={actionType === 'accept' ? 'Accepter' : 'Refuser'}
-        okButtonProps={{
-          danger: actionType === 'reject',
-          type: actionType === 'accept' ? 'primary' : 'default'
-        }}
-      >
-        <p>
-          Êtes-vous sûr de vouloir {actionType === 'accept' ? 'accepter' : 'refuser'} la demande de{' '}
-          <strong>{selectedDemande?.nom}</strong> ({selectedDemande?.email}) ?
-        </p>
-        {actionType === 'accept' ? (
-          <p className="mt-2 text-teal-500">
-            Un email de confirmation sera envoyé au formateur.
-          </p>
-        ) : (
-          <p className="mt-2 text-red-600">
-            Un email de refus sera envoyé au candidat.
-          </p>
-        )}
-      </Modal>
+    
     </div>
   );
 };

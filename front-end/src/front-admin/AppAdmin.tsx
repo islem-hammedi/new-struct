@@ -217,12 +217,12 @@ const AppAdmin= () => {
                     />
                     <Route
                       path="/FeuillePresence"
-                      element={
-                      //  <>
-                        //  <PageTitle title="Calendrier | SacAdmin" />
-                          <FeuillePresence/>
-                        //</>
-                      }
+                     element={
+                        <>
+                       <PageTitle title="Calendrier | SacAdmin" />
+                        <FeuillePresence/>
+                       </>
+                    }
                     />
   <Route
     path="/addreference"

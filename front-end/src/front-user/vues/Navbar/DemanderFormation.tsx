@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Description } from "@headlessui/react";
@@ -20,22 +19,23 @@ const DemanderFormation = () => {
     nom_complet: '',
     mail: '',
     telephone: '',
-    id_participant: 0
+    token: '',
+    id: 0
   });
 
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
     setUserInfo({
-      nom_complet: userData.nom_complet || '',
-      mail: userData.mail || '',
-      telephone: userData.telephone || '',
-      id_participant: userData.id 
+      nom_complet: userInfo.nom_complet || '',
+      mail: userInfo.mail || '',
+      telephone: userInfo.telephone || '',
+      token: userInfo.token || '',
+      id: userInfo.id 
       
     });
     console.log("userInfo:", userInfo);
-    console.log("userData:", userData);
 
   }, []);
 
@@ -76,14 +76,17 @@ const DemanderFormation = () => {
   }
 
   try {
-    const userData = JSON.parse(localStorage.getItem('user') || '{}');
-    
+    const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!userInfo.token) {
+        setError('Token manquant. Veuillez vous reconnecter.');
+        return;
+      }
     const dataToSend = {
       ...formData,
-      id_participant: userData.id_participant, 
-      nom_complet: userData.nom_complet || null,
-      mail: userData.mail || null,
-      telephone: userData.telephone || null,
+      id: userInfo.id, 
+      nom_complet: userInfo.nom_complet || null,
+      mail: userInfo.mail || null,
+      telephone: userInfo.telephone || null,
       formateur: formData.formateur || null,
       details: formData.description || null
     };
@@ -92,7 +95,7 @@ const DemanderFormation = () => {
       `${import.meta.env.VITE_APP_API_URL}/apiUser/demanderFormation`,dataToSend,
       {
         headers: {
-          Authorization: `Bearer ${userData.token}`
+          Authorization: `Bearer ${userInfo.token}`
         }
       }
     );
@@ -202,26 +205,25 @@ const DemanderFormation = () => {
       onChange={handleChange}
       className="mt-1 p-4 border border-gray-300 rounded-md w-full"
     >
-      <option value="débutant">Normale</option>
-      <option value="avancé">Professionel</option>
+      <option value="normale">Normale</option>
+      <option value="professionel">Professionel</option>
     </select>
   </div>
   <div>
-    <label className="block text-sm font-medium text-gray-700" htmlFor="niveau">
+    <label className="block text-sm font-medium text-gray-700" htmlFor="mode">
       Mode de formation *
     </label>
     <select
-      id="niveau"
-      name="niveau"
+      id="mode"
+      name="mode"
       value={formData.mode}
       onChange={handleChange}
       className="mt-1 p-4 border border-gray-300 rounded-md w-full"
     >
-      <option value="débutant">Présentiel</option>
-      <option value="avancé">En ligne</option>
+      <option value="présentiel">Présentiel</option>
+      <option value="en ligne">En ligne</option>
     </select>
   </div>
- {/* Genre formation */}
  <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700" htmlFor="genreFormation">
        Genre formation *

@@ -1,4 +1,4 @@
-{/*import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { BellIcon } from "@heroicons/react/24/outline";
 import { Trash2 } from "lucide-react";
@@ -169,11 +169,12 @@ const DropdownNotification = () => {
 
                   </div>
 
-                  {cart.sessions.map((session) => (
-                    <div key={session.id_session} className="p-3">
-                      <p className="text-sm">{session.theme || "Thème non disponible"}</p>
-                    </div>
-                  ))}
+                  {cart.themes?.map((theme) => (
+  <div key={theme.id_theme} className="p-3">
+    <p className="text-sm">{theme.theme || "Thème non disponible"}</p>
+    <p className="text-xs text-gray-500">{theme.code}</p>
+  </div>
+))}
 
                   {cart.action === "commander" && (
                     <div className="flex gap-2 mt-2">
@@ -215,11 +216,11 @@ const DropdownNotification = () => {
 };
 
 export default DropdownNotification;
-*/}
 
 
 
 
+{/*
 import React, { useState, useEffect } from "react";
 import { Menu, Transition } from "@headlessui/react";
 import { BellIcon } from "@heroicons/react/24/outline";
@@ -403,7 +404,6 @@ const DropdownNotification = () => {
         <Menu.Items className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg flex flex-col shadow-lg z-50 max-h-80 overflow-y-auto">
           <div className="p-3">
             <h3 className="text-lg font-semibold mb-2">Notifications</h3>
-             {/* Section des événements */}
             {eventNotifications.length > 0 && (
               <div className="mb-4">
                 <h4 className="font-medium text-sm text-gray-500 mb-1">Nouveaux événements</h4>
@@ -489,3 +489,4 @@ const DropdownNotification = () => {
 };
 
 export default DropdownNotification;
+*/}

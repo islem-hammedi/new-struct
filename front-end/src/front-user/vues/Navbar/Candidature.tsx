@@ -1,5 +1,3 @@
-
-
 import axios from "axios";
 import React, { useState, ChangeEvent, FormEvent } from "react";
 import { useInView } from "react-intersection-observer";
@@ -41,7 +39,6 @@ interface FormData {
   themes: string;
   motivation: string;
   cv: File | null;
-  certificats: File | null;
 }
 
 const SoumettreCandidature: React.FC = () => {
@@ -52,9 +49,9 @@ const SoumettreCandidature: React.FC = () => {
     domaine: '',
     themes: '',
     motivation: '',
-    cv: null,
-    certificats: null
-  });
+    cv: null  });
+
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, files } = e.target as HTMLInputElement;
@@ -64,64 +61,76 @@ const SoumettreCandidature: React.FC = () => {
     }));
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    
-    try {
-        if (!formData.nom || !formData.telephone || !formData.email || 
-            !formData.domaine || !formData.themes || !formData.motivation || !formData.cv) {
-            alert('Veuillez remplir tous les champs obligatoires');
-            return;
-        }
 
-        const formDataToSend = new FormData();
-        formDataToSend.append('nom', formData.nom);
-        formDataToSend.append('telephone', formData.telephone);
-        formDataToSend.append('email', formData.email);
-        formDataToSend.append('domaine', formData.domaine);
-        formDataToSend.append('themes', formData.themes);
-        formDataToSend.append('motivation', formData.motivation);
-        formDataToSend.append('cv', formData.cv);
-        
-        if (formData.certificats) {
-            formDataToSend.append('certificats', formData.certificats);
-        }
-
-        const response = await axios.post(
-            `${import.meta.env.VITE_APP_API_URL}/apiUser/formateur-candidatures`,
-            formDataToSend,
-            {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            }
-        );
-        setFormData({
-            nom: '',
-            telephone: '',
-            email: '',
-            domaine: '',
-            themes: '',
-            motivation: '',
-            cv: null,
-            certificats: null
-        });
-
-        alert('Candidature soumise avec succès!');
-
-    } catch (error) {
-        console.error('Erreur:', error);
-        if (axios.isAxiosError(error)) {
-            const errorMessage = error.response?.data?.message || error.message;
-            alert(`Erreur: ${errorMessage}`);
-        } else {
-            if (error instanceof Error) {
-                alert(`Erreur: ${error.message}`);
-            } else {
-                alert('Une erreur inconnue est survenue.');
-            }
-        }
+const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  
+  try {
+    if (!formData.nom || !formData.telephone || !formData.email || 
+        !formData.domaine || !formData.themes || !formData.motivation || !formData.cv) {
+      alert('Veuillez remplir tous les champs obligatoires');
+      setLoading(false);
+      return;
     }
+
+    const formDataToSend = new FormData();
+    formDataToSend.append('nom', formData.nom);
+    formDataToSend.append('telephone', formData.telephone);
+    formDataToSend.append('email', formData.email);
+    formDataToSend.append('domaine', formData.domaine);
+    formDataToSend.append('themes', formData.themes);
+    formDataToSend.append('motivation', formData.motivation);
+    formDataToSend.append('cv', formData.cv);
+    
+    // CORRECTION: Utiliser la bonne route (avec tiret au lieu de tiret bas)
+    const response = await axios.post(
+      `${import.meta.env.VITE_APP_API_URL}/apiUser/formateur-candidatures`,
+      formDataToSend,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
+    );
+
+    if (response.data.success) {
+      setFormData({
+        nom: '',
+        telephone: '',
+        email: '',
+        domaine: '',
+        themes: '',
+        motivation: '',
+        cv: null
+      });
+
+      // Réinitialiser l'input file
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
+
+      alert('Candidature soumise avec succès!');
+    } else {
+      alert(`Erreur: ${response.data.message}`);
+    }
+
+  } catch (error: any) {
+    console.error('Erreur:', error);
+    
+    let errorMessage = 'Une erreur est survenue';
+    
+    if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    alert(`Erreur: ${errorMessage}`);
+  } finally {
+    setLoading(false);
+  }
 };
 
   return (
@@ -132,6 +141,7 @@ const SoumettreCandidature: React.FC = () => {
         </h2>
         
         <div className="flex flex-col md:flex-row gap-8">
+          {/* Description à gauche */}
           <div className="md:w-1/2">
             <AnimatedText delay={0}>
               <div className="bg-emerald-50/50 p-6 rounded-lg">
@@ -157,6 +167,7 @@ const SoumettreCandidature: React.FC = () => {
             </AnimatedText>
           </div>
           
+          {/* Formulaire à droite */}
           <div className="md:w-1/2">
             <AnimatedText delay={0.5}>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -246,24 +257,15 @@ const SoumettreCandidature: React.FC = () => {
                   />
                 </div>
                 
-                <div>
-                  <label className="block text-gray-700 mb-1">Certificats (PDF, optionnel)</label>
-                  <input
-                    type="file"
-                    name="certificats"
-                    onChange={handleChange}
-                    accept=".pdf"
-                    multiple
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-                  />
-                </div>
+             
                 
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200"
+                    disabled={loading}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Soumettre ma candidature
+                    {loading ? 'Envoi en cours...' : 'Soumettre ma candidature'}
                   </button>
                 </div>
               </form>

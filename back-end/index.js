@@ -69,12 +69,10 @@ const referenceRoute = require('./Routes/User/referenceUserRoutes');
 
 app.use('/apiUser', referenceRoute);
 
-// Ajoutez ceci APRÈS le logging mais AVANT app.use('/apiAdmin/...')
 app.get('/apiUser/getReferences', (req, res) => {
   console.log('✅ Route test appelée directement');
   res.json([{ id: 1, nom: 'Test', logo: 'test.png', secteur: 'test' }]);
 });
-// Routes admin
 
 app.use('/apiAdmin/catalogue',catalogueR);
 app.use('/apiAdmin', formateurARoutes);
@@ -96,6 +94,8 @@ app.use('/apiAdmin',reference);
 //app.use('/apiAdmin', chartRoutes);
 
 // Routes utilisateur
+app.use('/apiUser/formateur-candidatures', formateurCandidatureRoutes);
+
 app.use('/apiUser/formateurs', formateurRoute);
 app.use('/apiUser/formations',catalogueRoute);
 app.use('/apiUser', contactRoute);
@@ -106,7 +106,6 @@ app.use('/apiUser', AvisParticipantRoute);
 app.use('/apiUser', AvisFormateurRoute);
 app.use('/apiUser/demanderFormation',demanderFormationRoute);
 app.use('/apiUser/calendrierFormation',CalendrierFormationRoute);
-app.use('/apiUser/formateur-candidatures', formateurCandidatureRoutes);
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);
 });

@@ -70,14 +70,14 @@ interface AvisFormateur {
   rapidite_execution: number; 
   qualite_travaux: number;
   clarte_pertinence_resultats: number; 
-  perfectionnement_connaissances: number; // Note pour le perfectionnement des connaissances
-  respect_consignes_constructeur: number; // Note pour le respect des consignes du constructeur
-  respect_normes_securite: number; // Note pour le respect des normes de sécurité
-  autonomie_travail: number; // Note pour l'autonomie dans le travail
-  participation: number; // Note pour la participation
-  assiduite_ponctualite: number; // Note pour l'assiduité et ponctualité
-  initiative: number; // Note pour l'initiative
-  esprit_groupe: number; // Note pour l'esprit de groupe
+  perfectionnement_connaissances: number;
+  respect_consignes_constructeur: number;
+  respect_normes_securite: number;
+  autonomie_travail: number; 
+  participation: number;
+  assiduite_ponctualite: number; 
+  initiative: number;
+  esprit_groupe: number; 
 }
 
 const FormationsList: React.FC = () => {
@@ -99,9 +99,7 @@ const FormationsList: React.FC = () => {
   const [sessionSearchQuery, setSessionSearchQuery] = useState("");
   const [showSessionSearch, setShowSessionSearch] = useState<{ [key: string]: boolean }>({});
   const [filteredFormations, setFilteredFormations] = useState<Formation[]>([]);
-  //const [avisList, setAvisList] = useState<Avis[]>([]);
-  //const [avisListf, setAvisListf] = useState<AvisFormateur[]>([]);
-
+  
   const [isAvispOpen, setIsAvispOpen] = useState(false);
   const [isAvisfOpen, setIsAvisfOpen] = useState(false);
 

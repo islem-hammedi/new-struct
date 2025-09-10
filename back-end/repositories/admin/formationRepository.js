@@ -43,12 +43,10 @@ class FormationAdminRepository {
     async addFormationWithSessions(domaine, sessions, files) {
         return new Promise(async (resolve, reject) => {
             try {
-                // 1. Vérifier que les données nécessaires sont présentes
                 if (!domaine || !sessions || !Array.isArray(sessions)) {
                     throw new Error("Données de formation invalides");
                 }
     
-                // 2. Obtenir l'ID du domaine
                 const domainQuery = 'SELECT id_domaine FROM domaine WHERE domaine = ? LIMIT 1';
                 const domainResult = await this.query(domainQuery, [domaine]);
                 
@@ -235,7 +233,6 @@ class FormationAdminRepository {
                 }
             }
     
-            // 3. Exécution de la mise à jour
             const updateQuery = `
                 UPDATE session SET ?
                 WHERE id_session = ? AND id_formation = ?
@@ -262,65 +259,4 @@ class FormationAdminRepository {
         }
     }
 } 
-    /*
-   async addSessionToFormation(id_formation, sessionData, file) {
-        try {
-            // Validation des champs obligatoires
-            if (!sessionData.theme || !sessionData.id_formateur) {
-                throw new Error("Tous les champs obligatoires doivent être remplis");
-            }
-
-            const fileName = file ? file.filename : null;
-            
-            const result = await new Promise((resolve, reject) => {
-                db.query(
-                    `INSERT INTO session 
-                    (id_theme, nb_participant, etat, type_session, lieu, id_formation, id_formateur, fiche_prg) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [
-                        sessionData.id_theme,
-                        sessionData.nb_participants || null,
-                        sessionData.etat || 'A Réaliser',
-                        sessionData.type_session || null,
-                        sessionData.lieu || null,
-                        id_formation,
-                        sessionData.id_formateur,
-                        fileName
-                    ],
-                    (err, result) => {
-                        if (err) reject(err);
-                        else resolve(result);
-                    }
-                );
-            });
-
-            return result;
-        } catch (error) {
-            // Nettoyage des fichiers en cas d'erreur
-            if (file && file.path) {
-                try {
-                    const filePath = path.join(__dirname, '../../uploads', file.filename);
-                    if (fs.existsSync(filePath)) {
-                        fs.unlinkSync(filePath);
-                    }
-                } catch (cleanupError) {
-                    console.error('Erreur lors du nettoyage:', cleanupError);
-                }
-            }
-            throw error;
-        }}*/
-
-    /* getSessionsByFormation(id_formation) {
-        return new Promise((resolve, reject) => {
-            db.query(
-                'SELECT * FROM session WHERE id_formation = ?',
-                [id_formation],
-                (err, results) => {
-                    if (err) reject(err);
-                    else resolve(results);
-                }
-            );
-        });}
-     
-*/
 module.exports = new FormationAdminRepository();

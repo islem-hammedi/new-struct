@@ -46,9 +46,9 @@ const stockerAvis = (req, res) => {
     });
 };
 
+
 const getSessions = (req, res) => {
     const { id_participant } = req.query;
-
 
     if (!id_participant) {
         return res.status(400).json({ message: "ID participant requis" });
@@ -56,26 +56,24 @@ const getSessions = (req, res) => {
 
     const sql = `
        SELECT s.id_session, t.theme, t.code
-FROM feuille_presence_participants s
-JOIN participant p ON s.id_participant = p.id_participant
-JOIN session se ON s.id_session = se.id_session
-JOIN theme t ON se.id_theme = t.id_theme
-WHERE p.id_participant = ?;`;
+       FROM feuille_presence_participants s
+       JOIN participant p ON s.id_participant = p.id_participant
+       JOIN session se ON s.id_session = se.id_session
+       JOIN theme t ON se.id_theme = t.id_theme
+       WHERE p.id_participant = ?`;
 
+    // Correction ici - bon usage de db.query
     db.query(sql, [id_participant], (err, results) => {
         if (err) {
-            console.error("Erreur MySQL :", err); 
+            console.error("Erreur MySQL :", err);
             return res.status(500).json({ message: "Erreur serveur" });
         }
-        console.log("Résultats de la requête :", results); 
-
+        
+        console.log("Résultats de la requête :", results);
+        // Renvoyer un objet avec propriété sessions pour cohérence
         res.json({ sessions: results });
     });
-    
 };
-
-
-
 module.exports = { 
     stockerAvis,
     getSessions,

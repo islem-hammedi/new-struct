@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 type Session = {
     id_session: number;
@@ -31,7 +31,7 @@ const AvisParticipant = () => {
         const storedUserData = localStorage.getItem("user");
         if (storedUserData) {
             const userData = JSON.parse(storedUserData);
-            setIdParticipant(userData.id_participant);
+            setIdParticipant(userData.id);
         }
     }, []);
 
@@ -41,38 +41,102 @@ const AvisParticipant = () => {
         }
     }, [idParticipant]);
 
-    const fetchSessions = async () => {
+   const [loading, setLoading] = useState(false);
+const [error, setError] = useState("");
+
+useEffect(() => {
+        console.log("🔄 Sessions state changed:", sessions);
+    }, [sessions]);
+
+    useEffect(() => {
+        console.log("🔄 Loading state changed:", loading);
+    }, [loading]);
+
+    useEffect(() => {
+        console.log("🔄 Error state changed:", error);
+    }, [error]);
+
+    const fetchSessions = useCallback(async () => {
         if (!idParticipant) {
-            console.error("ID du participant manquant");
+            console.log("❌ fetchSessions called without idParticipant");
             return;
         }
-    
+        
+        console.log("🚀 Starting fetchSessions for participant:", idParticipant);
+        setLoading(true);
+        setError("");
+        
         try {
             const url = `${import.meta.env.VITE_APP_API_URL}/apiUser/sessions?id_participant=${idParticipant}`;
+            console.log("📡 Calling API:", url);
+            
             const response = await axios.get(url);
-                console.log("Réponse de l'API :", response.data);
-
-            if (Array.isArray(response.data.sessions)) {
-                setSessions(response.data.sessions); 
-                console.log("Sessions récupérées :", response.data.sessions);         
-
+            console.log("✅ API Response received:", response.data);
+            
+            const sessionsData = response.data?.sessions;
+            console.log("📋 Raw sessions data:", sessionsData);
+            console.log("🔍 Type of sessionsData:", typeof sessionsData);
+            console.log("🔍 Is array?", Array.isArray(sessionsData));
+            
+            if (Array.isArray(sessionsData) && sessionsData.length > 0) {
+                console.log("🎯 Setting sessions:", sessionsData);
+                setSessions(sessionsData);
             } else {
-                console.error("Données inattendues pour les sessions :", response.data);
+                console.log("⚠️ No sessions found or invalid format");
+                setError("Aucune session trouvée");
                 setSessions([]);
             }
-
-
+            
         } catch (error) {
-            console.error("Erreur lors de la récupération des sessions :", error);
+            console.error("❌ API Error:", error);
+            if (axios.isAxiosError(error)) {
+                console.error("🔴 Error response:", error.response?.data);
+            }
+            setError("Erreur lors du chargement des sessions");
             setSessions([]);
+        } finally {
+            setLoading(false);
+            console.log("🏁 fetchSessions completed");
         }
-        
-    };
+    }, [idParticipant]);
+
+    useEffect(() => {
+        console.log("🔍 useEffect - Checking localStorage");
+        const storedUserData = localStorage.getItem("user");
+        if (storedUserData) {
+            try {
+                const userData = JSON.parse(storedUserData);
+                console.log("👤 User data found:", userData);
+                if (userData.id) {
+                    console.log("🎯 Setting idParticipant:", userData.id);
+                    setIdParticipant(userData.id);
+                } else {
+                    console.log("❌ No id_participant in user data");
+                }
+            } catch (e) {
+                console.error("❌ Error parsing user data:", e);
+            }
+        } else {
+            console.log("❌ No user data in localStorage");
+        }
+    }, []);
+
+    useEffect(() => {
+        console.log("🔍 useEffect - idParticipant changed:", idParticipant);
+        if (idParticipant) {
+            console.log("🎯 idParticipant available, fetching sessions");
+            fetchSessions();
+        }
+    }, [idParticipant, fetchSessions]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
-        setFormData({ ...formData, [name]: type === "radio" ? Number(value) : value });
+        setFormData(prev => ({
+            ...prev,
+            [name]: type === "radio" ? Number(value) : value
+        }));
     };
+
     
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -101,18 +165,25 @@ const AvisParticipant = () => {
         }
     };
     
-    
+     console.log("Rendu - Sessions:", sessions);
+    console.log(" Rendu - Loading:", loading);
+    console.log(" Rendu - Error:", error);
     return (
         <form onSubmit={handleSubmit} className=" pt-10 p-6 bg-gray-100 shadow-lg rounded-lg max-w-5xl mx-auto">
-            <h2 className="text-2xl font-bold text-teal-500 mb-4 text-center">Votre avis compte ^_^</h2>
+            
+            <h2 className="text-2xl font-bold text-teal-500 mb-4 text-center">Votre avis compte !</h2>
 
             <div className="mb-4">
                 <label className="block text-gray-700 font-semibold mb-1">Sélectionnez la formation :</label>
+                 {loading && <p className="text-blue-500">Chargement des sessions...</p>}
+                 {error && <p className="text-red-500">{error}</p>}
                 <select
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-teal-300"
                     value={idSession}
                     onChange={(e) => setIdSession(e.target.value)}
                     required
+                    
+
                 >
                     <option value="">-- Choisir la session --</option>
                     {sessions.map((session) => (
@@ -121,6 +192,11 @@ const AvisParticipant = () => {
                         </option>
                     ))}
                 </select>
+                {sessions.length > 0 && (
+                    <p className="text-green-500 mt-2">
+                        {sessions.length} session(s) chargée(s) avec succès
+                    </p>
+                )}
             </div>
 
             <div className="mb-4">

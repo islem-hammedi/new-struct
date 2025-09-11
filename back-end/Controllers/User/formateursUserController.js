@@ -60,7 +60,7 @@ const updateFormateur = (req, res) => {
 
 
 const deleteFormateur = (req, res) => {
-  const formateurId = req.params.id;  // Récupère l'ID depuis les paramètres d'URL
+  const formateurId = req.params.id; 
   const query = 'DELETE FROM formateur WHERE id_formateur = ?';
   
   db.query(query, [formateurId], (err, results) => {
@@ -68,7 +68,6 @@ const deleteFormateur = (req, res) => {
       return res.status(500).json({ error: err.message });
     }
 
-    // Vérifie si un formateur a été supprimé
     if (results.affectedRows === 0) {
       return res.status(404).json({ message: 'Formateur non trouvé' });
     }

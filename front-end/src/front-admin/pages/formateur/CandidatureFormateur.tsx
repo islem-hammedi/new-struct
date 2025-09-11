@@ -35,9 +35,7 @@ const CandidatureFormateur: React.FC = () => {
       
       console.log('API Response:', response.data);
       
-      // Adapter la réponse au format attendu
       if (response.data && response.data.success) {
-        // Extraire le tableau de données de la réponse
         const candidatureData = Array.isArray(response.data.data) ? response.data.data : [];
         setDemandes(candidatureData);
       } else {

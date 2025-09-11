@@ -4,7 +4,6 @@ class FeuillePresenceService {
 
   async saveFeuillePresence(data) {
     try {
-      // Étape 1: Créer la feuille de présence principale
       const feuillePresenceId = await FeuillePresenceRepository.createFeuillePresence({
         id_session: data.id_session,
         credit_impot: data.credit_impot,
@@ -18,14 +17,12 @@ class FeuillePresenceService {
         entreprise_beneficiaire: data.entreprise_beneficiaire
       });
 
-      console.log('✅ Feuille de présence créée avec ID:', feuillePresenceId);
+      console.log('Feuille de présence créée avec ID:', feuillePresenceId);
 
       const participantResults = [];
 
-      // Étape 2: Traiter chaque participant
       for (const participant of data.participants) {
         try {
-          // Créer ou récupérer le participant par email
           let participantId = await FeuillePresenceRepository.findOrCreateParticipant({
             CIN: participant.CIN,
             nomComplet: participant.nomComplet,
@@ -34,7 +31,6 @@ class FeuillePresenceService {
             direction_service: participant.directionService || null
           });
 
-          // Créer la liaison dans la table de jointure
           await FeuillePresenceRepository.createFeuillePresenceParticipant({
             id_presence: feuillePresenceId,
             id_participant: participantId,

@@ -34,7 +34,7 @@ getThemesByDomaine: async (req, res) => {
       
       res.json({
           success: true,
-          themes: themes // Assurez-vous que c'est bien un tableau
+          themes: themes 
       });
       
   } catch (error) {

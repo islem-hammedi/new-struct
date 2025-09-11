@@ -1,6 +1,6 @@
 import React from "react";
 
-const WHATSAPP_NUMBER = "216 23 443 748"; 
+const WHATSAPP_NUMBER = "216 57 035 022"; 
 const WhatsAppPhoneFloating: React.FC = () => {
   const handleClick = () => {
     const appUrl = `whatsapp://send?phone=${WHATSAPP_NUMBER}`;

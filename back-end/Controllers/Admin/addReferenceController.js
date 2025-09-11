@@ -38,7 +38,7 @@ class AddReferenceController {
             });
 
         } catch (error) {
-            console.error('❌ Error in addReferenceController:', error);
+            console.error(' Error in addReferenceController:', error);
             if (error.message.includes('obligatoires')) {
                 return res.status(400).json({
                     success: false,

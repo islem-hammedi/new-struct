@@ -62,7 +62,6 @@ const getSessions = (req, res) => {
        JOIN theme t ON se.id_theme = t.id_theme
        WHERE p.id_participant = ?`;
 
-    // Correction ici - bon usage de db.query
     db.query(sql, [id_participant], (err, results) => {
         if (err) {
             console.error("Erreur MySQL :", err);
@@ -70,7 +69,6 @@ const getSessions = (req, res) => {
         }
         
         console.log("Résultats de la requête :", results);
-        // Renvoyer un objet avec propriété sessions pour cohérence
         res.json({ sessions: results });
     });
 };

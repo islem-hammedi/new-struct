@@ -47,7 +47,6 @@ class ProfilFormateurUserController {
               const { id } = req.params;
               const { oldPassword, newPassword } = req.body;
           
-              // Validation des entrées
               if (!oldPassword || !newPassword) {
                 return res.status(400).json({ 
                   error: 'Ancien et nouveau mot de passe requis' 
@@ -112,11 +111,9 @@ class ProfilFormateurUserController {
             }
           }
         
-         // Controller
-// Controller
+         
 async deleteEvent(req, res) {
   try {
-    // Extraction CORRECTE de id_event
     const id_event = req.params.id_event;
 
     if (!id_event) {

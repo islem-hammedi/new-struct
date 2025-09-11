@@ -10,7 +10,6 @@ class FormateurCandidatureController {
         try {
             const { body, files } = req;
             
-            // Vérifier si le fichier CV est présent
             if (!files || !files.cv || !files.cv[0]) {
                 return res.status(400).json({
                     success: false,
@@ -64,7 +63,6 @@ class FormateurCandidatureController {
         try {
             console.log('Début de getDemandes');
             
-            // CORRECTION: Utiliser l'instance du service (this.service) au lieu de la classe
             const demandes = await this.service.getAllCandidatures();
             console.log('Demandes récupérées:', demandes);
             

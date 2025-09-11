@@ -34,7 +34,6 @@ const getFormateurDetails = (req, res) => {
   };
   
   
-// Récupérer les formations à réaliser
 const getFormationsARealiser = (req, res) => {
     const { id_formateur } = req.params;
 
@@ -121,20 +120,18 @@ const getHistoriqueFormations = (req, res) => {
         session.fiche_prg = session.fiche_prg ? `${process.env.BASE_URL}/uploads/${session.fiche_prg}` : null;
         session.avis_pdf = session.avis_pdf ? `${process.env.BASE_URL}/uploads/${session.avis_pdf}` : null;
       });
-      res.status(200).json(results); // Renvoie les formations avec les liens des fichiers
+      res.status(200).json(results); 
     });
 };
 
 const updatePassword = (req, res) => {
     const { id_formateur } = req.params;
-    const { old_password, new_password } = req.body; // Le mot de passe actuel et le nouveau mot de passe
+    const { old_password, new_password } = req.body;
 
-    // Vérification que les champs sont fournis
     if (!old_password || !new_password) {
         return res.status(400).json({ error: 'Les champs mot de passe actuel et nouveau mot de passe sont requis.' });
     }
 
-    // Requête pour récupérer le mot de passe actuel du formateur
     const query = 'SELECT mdp_formateur FROM formateur WHERE id_formateur = ?';
     
     db.query(query, [id_formateur], (error, results) => {
@@ -149,7 +146,6 @@ const updatePassword = (req, res) => {
 
         const storedPassword = results[0].mdp_formateur;
 
-        // Vérification du mot de passe actuel en le comparant avec le haché stocké
         bcrypt.compare(old_password, storedPassword, (err, isMatch) => {
             if (err) {
                 console.error('Erreur lors de la vérification du mot de passe :', err);
@@ -160,14 +156,12 @@ const updatePassword = (req, res) => {
                 return res.status(400).json({ error: 'Le mot de passe actuel est incorrect.' });
             }
 
-            // Hachage du nouveau mot de passe avant de le sauvegarder
             bcrypt.hash(new_password, 10, (hashError, hashedPassword) => {
                 if (hashError) {
                     console.error('Erreur lors du hachage du mot de passe :', hashError);
                     return res.status(500).json({ error: 'Erreur serveur lors du hachage du mot de passe.' });
                 }
 
-                // Mise à jour du mot de passe avec le mot de passe haché
                 const updateQuery = 'UPDATE formateur SET mdp_formateur = ? WHERE id_formateur = ?';
                 
                 db.query(updateQuery, [hashedPassword, id_formateur], (updateError, updateResults) => {
@@ -182,9 +176,8 @@ const updatePassword = (req, res) => {
         });
     });   
 };
-// Route pour récupérer les événements du formateur connecté
 const getEvents = (req, res) => {
-  const { nom_complet } = req.user; // Assure-toi que le middleware d'authentification ajoute l'utilisateur dans req.user
+  const { nom_complet } = req.user; 
   console.log(nom_complet);
   db.query(
       'SELECT id, title, date, created_by FROM calendrier WHERE created_by = ?',
@@ -200,7 +193,6 @@ const getEvents = (req, res) => {
 };
 
   
-  // Créer un nouvel événement pour un formateur
   const createEvent = (req, res) => {
     const { title, date, created_by } = req.body;
   
@@ -223,11 +215,10 @@ const getEvents = (req, res) => {
       res.status(201).json(newEvent);
     });
   };
-  // Supprimer un événement (seulement par son créateur)
   const deleteEvent = (req, res) => {
 
     const { id } = req.params;
-    const createdBy = req.user.nom_complet; // Assure-toi que c'est bien le champ stocké en DB
+    const createdBy = req.user.nom_complet; 
   
     db.query('DELETE FROM calendrier WHERE id = ? AND created_by = ?', [id, createdBy], (err, results) => {
         if (err) {

@@ -83,9 +83,9 @@ const Calendrier: React.FC = () => {
         case 0:
           return 'bg-violet-200';
         case 1:
-          return 'bg-yellow-200';
+          return 'bg-yellow-100';
         case 2:
-          return 'bg-pink-100';
+          return 'bg-blue-100';
         default:
           return 'bg-violet-200';
       }

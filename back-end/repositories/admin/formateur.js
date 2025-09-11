@@ -73,17 +73,56 @@ class FormateurRepository {
     });
   }
 
-  async deleteFormateur(id) {
-    const query = 'DELETE FROM formateur WHERE id_formateur = ?';
-    return new Promise((resolve, reject) => {
-      db.query(query, [id], (err, results) => {
+async deleteFormateur(id) {
+  return new Promise((resolve, reject) => {
+    db.beginTransaction((err) => {
+      if (err) {
+        return reject(err);
+      }
+
+      console.log('🔄 Début de la suppression en cascade du formateur:', id);
+
+      const updateSessionsQuery = 'UPDATE session SET id_formateur = NULL WHERE id_formateur = ?';
+      
+      db.query(updateSessionsQuery, [id], (err, updateResults) => {
         if (err) {
-          return reject(err);
+          console.error('❌ Erreur mise à jour sessions:', err);
+          return db.rollback(() => {
+            reject(err);
+          });
         }
-        resolve(results);
+
+        console.log('Sessions mises à jour:', updateResults.affectedRows, 'lignes');
+
+        const deleteFormateurQuery = 'DELETE FROM formateur WHERE id_formateur = ?';
+        
+        db.query(deleteFormateurQuery, [id], (err, deleteResults) => {
+          if (err) {
+            console.error('Erreur suppression formateur:', err);
+            return db.rollback(() => {
+              reject(err);
+            });
+          }
+
+          console.log('Formateur supprimé avec succès');
+
+          db.commit((err) => {
+            if (err) {
+              console.error('❌ Erreur commit transaction:', err);
+              return db.rollback(() => {
+                reject(err);
+              });
+            }
+            resolve({
+              ...deleteResults,
+              sessionsUpdated: updateResults.affectedRows
+            });
+          });
+        });
       });
     });
-  }
+  });
+}
 
   async addFormateur(data) {
     const query = `

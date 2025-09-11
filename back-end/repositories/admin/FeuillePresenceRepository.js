@@ -240,64 +240,10 @@ class FeuillePresenceRepository {
     });
   }
 
-  // Méthodes utilitaires pour récupérer les données
-  async getFeuillePresenceById(id) {
-    return new Promise((resolve, reject) => {
-      const query = `
-        SELECT fp.*, s.theme as session_theme 
-        FROM feuille_presence fp
-        LEFT JOIN sessions s ON fp.id_session = s.id_session
-        WHERE fp.id_presence = ?
-      `;
-      
-      db.query(query, [id], (error, results) => {
-        if (error) {
-          console.error('❌ Erreur getFeuillePresenceById:', error);
-          return reject(error);
-        }
-        resolve(results[0] || null);
-      });
-    });
-  }
+  
 
-  async getParticipantsByFeuillePresence(id_presence) {
-    return new Promise((resolve, reject) => {
-      const query = `
-        SELECT p.*, fpp.emargement 
-        FROM participant p
-        INNER JOIN feuille_presence_participants fpp ON p.id_participant = fpp.id_participant
-        WHERE fpp.id_presence = ?
-        ORDER BY p.nom_complet
-      `;
-      
-      db.query(query, [id_presence], (error, results) => {
-        if (error) {
-          console.error('❌ Erreur getParticipantsByFeuillePresence:', error);
-          return reject(error);
-        }
-        resolve(results);
-      });
-    });
-  }
+  
 
-  async getAllFeuillesPresence() {
-    return new Promise((resolve, reject) => {
-      const query = `
-        SELECT fp.*, s.theme as session_theme, s.formateur, s.date_debut, s.date_fin
-        FROM feuille_presence fp
-        LEFT JOIN sessions s ON fp.id_session = s.id_session
-        ORDER BY fp.created_at DESC
-      `;
-      
-      db.query(query, [], (error, results) => {
-        if (error) {
-          console.error('❌ Erreur getAllFeuillesPresence:', error);
-          return reject(error);
-        }
-        resolve(results);
-      });
-    });
-  }
 }
 
 module.exports = new FeuillePresenceRepository();

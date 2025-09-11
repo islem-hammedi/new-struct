@@ -95,7 +95,7 @@ app.use('/apiAdmin',reference);
 
 // Routes utilisateur
 app.use('/apiUser/formateur-candidatures', formateurCandidatureRoutes);
-
+app.use('/apiUser/demanderFormation',demanderFormationRoute);
 app.use('/apiUser/formateurs', formateurRoute);
 app.use('/apiUser/formations',catalogueRoute);
 app.use('/apiUser', contactRoute);
@@ -104,7 +104,6 @@ app.use("/apiUser/participants", profilParticipantRoute);
 app.use('/apiUser/auth',authRoute);
 app.use('/apiUser', AvisParticipantRoute);
 app.use('/apiUser', AvisFormateurRoute);
-app.use('/apiUser/demanderFormation',demanderFormationRoute);
 app.use('/apiUser/calendrierFormation',CalendrierFormationRoute);
 app.listen(PORT, () => {
   console.log(`Serveur démarré sur http://localhost:${PORT}`);

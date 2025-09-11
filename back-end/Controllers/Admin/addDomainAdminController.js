@@ -6,7 +6,6 @@
         try {
           const { domaineName, abbreviation, themes } = req.body;
           
-          // Validation des données
           if (!domaineName || !themes || !Array.isArray(themes)) {
             return res.status(400).json({ 
               error: 'Données invalides: domaineName et themes (array) sont obligatoires' 

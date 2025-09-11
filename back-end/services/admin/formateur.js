@@ -1,4 +1,6 @@
 const FormateurRepository = require('../../repositories/admin/formateur');
+const path = require('path');
+const fs = require('fs');
 
 class FormateurService {
   async getAllFormateurs() {
@@ -32,20 +34,17 @@ class FormateurService {
   }
 
   async updateFormateur(id, updates, cv) {
-    // Récupérer le formateur actuel pour vérifier l'existence et le CV actuel
     const currentFormateur = await FormateurRepository.getFormateurById(id);
     if (currentFormateur.length === 0) {
       throw new Error('Formateur non trouvé');
     }
 
-    // Si aucun CV n'est fourni lors de la mise à jour, garder l'ancien CV
     if (!cv) {
       cv = currentFormateur[0].cv;
     } else {
-      updates.cv = cv; // Ajoute le nouveau CV si présent
+      updates.cv = cv; 
     }
 
-    // Liste des seuls champs valides pour la table `formateur`
     const validFields = [
       'nom_complet', 'mail', 'adr', 'domaine_de_competences',
       'themes_a_enseigner', 'tarif_journalier', 'nb_formations',
@@ -75,22 +74,30 @@ class FormateurService {
     return { message: 'Formateur mis à jour avec succès' };
   }
 
-  async deleteFormateur(id) {
-    const formateur = await FormateurRepository.getFormateurById(id);
-    if (formateur.length === 0) {
-      throw new Error('Formateur non trouvé');
-    }
-
-    if (formateur[0].cv) {
-      const cvPath = path.join(__dirname, '../..', 'uploads', formateur[0].cv);
+async deleteFormateur(id) {
+  const formateur = await FormateurRepository.getFormateurById(id);
+  if (!formateur || formateur.length === 0) {
+    throw new Error('Formateur non trouvé');
+  }
+  
+  const formateurData = formateur[0];
+  
+  // ✅ CORRECTION: Vérifier que cv existe et n'est pas vide
+  if (formateurData.cv && formateurData.cv.trim() !== '') {
+    const cvPath = path.join(__dirname, '../..', 'uploads', formateurData.cv);
+    
+    // Vérifier si le fichier existe avant de le supprimer
+    if (fs.existsSync(cvPath)) {
       fs.unlink(cvPath, (err) => {
         if (err) console.error("Erreur de suppression du CV:", err);
+        else console.log("CV supprimé:", cvPath);
       });
     }
-
-    await FormateurRepository.deleteFormateur(id);
-    return { message: 'Formateur et fichiers associés supprimés avec succès' };
   }
+  
+  await FormateurRepository.deleteFormateur(id);
+  return { message: 'Formateur et fichiers associés supprimés avec succès' };
+}
 
   async addFormateur(data, cv, hashedPassword) {
     const insertData = [

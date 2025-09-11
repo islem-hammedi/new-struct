@@ -1,7 +1,6 @@
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 
-// Fonction pour envoyer un email
 const sendMail = async (req, res) => {
   const { nom, email, message } = req.body;
   console.log("Données reçues : ", req.body); 

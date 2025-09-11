@@ -2,10 +2,9 @@ const FeuillePresenceService = require('../../services/admin/FeuillePresenceServ
 
 class FeuillePresenceController {
   
-  // Sauvegarder une feuille de présence
   async saveFeuillePresence(req, res) {
     try {
-      console.log('📝 Données reçues:', JSON.stringify(req.body, null, 2));
+      console.log(' Données reçues:', JSON.stringify(req.body, null, 2));
       
       const {
         id_session,
@@ -21,7 +20,6 @@ class FeuillePresenceController {
         entreprise_beneficiaire
       } = req.body;
 
-      // Validation des données requises
       if (!id_session) {
         return res.status(400).json({
           success: false,
@@ -36,7 +34,6 @@ class FeuillePresenceController {
         });
       }
 
-      // Validation des participants
       for (let i = 0; i < participants.length; i++) {
         const participant = participants[i];
         if (!participant.CIN || !participant.nomComplet) {
@@ -71,7 +68,7 @@ class FeuillePresenceController {
       });
 
     } catch (error) {
-      console.error('❌ Erreur dans saveFeuillePresence:', error);
+      console.error(' Erreur dans saveFeuillePresence:', error);
       return res.status(500).json({
         success: false,
         error: error.message || "Erreur interne du serveur",

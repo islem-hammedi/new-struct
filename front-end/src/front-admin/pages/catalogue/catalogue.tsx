@@ -594,7 +594,7 @@ const CatalogueListAdmin: React.FC = () => {
         ]);
         const formattedData = catalogueResponse.data.map((domaine: any) => ({
           ...domaine,
-          sessions: domaine.sessions || [] // Ensure sessions exists
+          sessions: domaine.sessions || [] 
         }));
         setFilteredFormations(catalogueResponse.data);
         console.log("catalogueResponse",catalogueResponse)
@@ -615,7 +615,7 @@ const CatalogueListAdmin: React.FC = () => {
   }, []);
 
    useEffect(() => {
-    if (!user) return; // Vérifie si l'utilisateur est connecté
+    if (!user) return; 
 
     axios
       .get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formateurs`)

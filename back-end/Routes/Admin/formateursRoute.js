@@ -14,7 +14,6 @@ const {
 
 const router = express.Router();
 
-// Configuration de multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, path.join(__dirname, '../..', 'uploads'));  },
@@ -25,9 +24,9 @@ const storage = multer.diskStorage({
 
 const uploads = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // Limite de 10MB par fichier
+  limits: { fileSize: 30 * 1024 * 1024 }, 
 }).fields([
-  { name: "cv", maxCount: 1 },         // 1 seul CV
+  { name: "cv", maxCount: 1 },        
   { name: "fiche_programme", maxCount: 10 }, 
   { name: "cours_session", maxCount: 10 }
 ]);

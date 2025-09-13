@@ -361,7 +361,6 @@ const AddFormateur: React.FC = () => {
 
     const formDataToSend = new FormData();
     
-    // Préparation des données avec conversion des tableaux en JSON
     const formDataForApi = {
       ...formData,
       domaine_de_competences: JSON.stringify(formData.domaine_de_competences),
@@ -373,8 +372,8 @@ const AddFormateur: React.FC = () => {
     });
 
     if (cv) formDataToSend.append('cv', cv);
-    fichePrg.forEach(file => formDataToSend.append('fichePrg', file));
-    coursSession.forEach(file => formDataToSend.append('coursSession', file));
+    fichePrg.forEach(file => formDataToSend.append('fiche_programme', file));
+    coursSession.forEach(file => formDataToSend.append('cours_session', file));
 
     try {
       await axios.post(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/formateurs`, formDataToSend, {
@@ -395,7 +394,6 @@ const AddFormateur: React.FC = () => {
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-2 gap-4">
-          {/* Champs de base */}
           <div className="mb-4">
             <label className="block text-gray-700">Nom complet *</label>
             <input
@@ -515,11 +513,11 @@ const AddFormateur: React.FC = () => {
       </div>
       <div className="mb-4">
         <label className="block text-gray-700">fiche programme :</label>
-        <input type="file" name="fichePrg" accept=".pdf" onChange={handleFileChange} className="mt-2" multiple />
+        <input type="file" name="fiche_programme" accept=".pdf" onChange={handleFileChange} className="mt-2" multiple />
       </div>
       <div className="mb-4">
         <label className="block text-gray-700">Cours des sessions :</label>
-        <input type="file" name="coursSession" accept=".pdf" onChange={handleFileChange} className="mt-2" multiple />
+        <input type="file" name="cours_session" accept=".pdf" onChange={handleFileChange} className="mt-2" multiple />
       </div>
       
       <div className="mb-4 col-span-2">

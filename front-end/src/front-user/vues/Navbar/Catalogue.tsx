@@ -34,8 +34,8 @@ const Catalogue: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {user, isLoggedIn} = useAuth();
   const [showLoginMenu, setShowLoginMenu] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null); // État pour le thème sélectionné
-
+  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null); 
+const [filterType, setFilterType] = useState<string>('all');
   useEffect(() => {
     axios
       .get(`${import.meta.env.VITE_APP_API_URL}/apiUser/formations/Form`)
@@ -61,27 +61,53 @@ const Catalogue: React.FC = () => {
 
   const handleSearchToggle = () => setShowSearchBar(!showSearchBar);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value.toLowerCase();
-    setSearchQuery(query);
-    if (query === "") {
-      setFilteredFormations(formations);
-      return;
+const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const query = e.target.value.toLowerCase();
+  setSearchQuery(query);
+  
+  if (query === "") {
+    setFilteredFormations(formations);
+    return;
+  }
+
+  const filtered = formations.filter((formation) => {
+    switch (filterType) {
+      case 'domaine':
+        return formation.domaine.toLowerCase().includes(query);
+      
+      case 'theme':
+        return formation.themes.some((theme) =>
+          theme.theme.toLowerCase().includes(query)
+        );
+      
+      case 'code':
+        return formation.themes.some((theme) =>
+          theme.code.toLowerCase().includes(query)
+        );
+      
+      case 'all':
+      default:
+        const matchesDomaine = formation.domaine.toLowerCase().includes(query);
+        const matchesTheme = formation.themes.some((theme) =>
+          theme.theme.toLowerCase().includes(query) || theme.code.toLowerCase().includes(query)
+        );
+        return matchesDomaine || matchesTheme;
     }
-  
-    const filtered = formations.filter((formation) => {
-      const matchesDomaine = formation.domaine.toLowerCase().includes(query);
-      const matchesTheme = formation.themes.some((theme) =>
-        theme.theme.toLowerCase().includes(query) || theme.code.toLowerCase().includes(query)
-      );
-      return matchesDomaine || matchesTheme;
-    });
-  
-    setFilteredFormations(filtered);
-  };
+  });
+
+  setFilteredFormations(filtered);
+};
+
+const handleFilterTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  setFilterType(e.target.value);
+  // Réappliquer le filtre avec le nouveau type
+  if (searchQuery) {
+    handleSearchChange({ target: { value: searchQuery } } as React.ChangeEvent<HTMLInputElement>);
+  }
+};
   const handleAjout = (theme: Theme) => {
     if (isLoggedIn) {
-      const storedCart = localStorage.getItem(`cart_${user.id}`); // Utilisation de user.id
+      const storedCart = localStorage.getItem(`cart_${user.id}`); 
       const cart = storedCart ? JSON.parse(storedCart) : [];
       const storedCartId = localStorage.getItem("currentCartId");
       const cartId = storedCartId ? parseInt(storedCartId) : generateUniqueCartId();
@@ -91,7 +117,7 @@ const Catalogue: React.FC = () => {
         cartId,
         action: "demander_devis",
         participant: {
-          id_participant: user.id, // Utilisation de user.id au lieu de user.id_participant
+          id_participant: user.id, 
           nom_participant: user?.nom_admin || "",
           email_participant: user?.email || "",
         },
@@ -105,7 +131,7 @@ const Catalogue: React.FC = () => {
         cart.push(newCartItem);
       }
   
-      localStorage.setItem(`cart_${user.id}`, JSON.stringify(cart)); // Utilisation de user.id
+      localStorage.setItem(`cart_${user.id}`, JSON.stringify(cart));
       console.log("Panier mis à jour", cart);
     } else {
       setShowLoginMenu(true);
@@ -117,7 +143,6 @@ const Catalogue: React.FC = () => {
   const handleSessionSearchChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setSessionSearchQuery(e.target.value);
 
-  // Extraire les domaines uniques des formations filtrées
   const domainesUniques = Array.from(new Set(filteredFormations.map((f) => f.domaine)));
 
   if (selectedTheme) {
@@ -144,18 +169,29 @@ const Catalogue: React.FC = () => {
       </div>
       {showLoginMenu && !isLoggedIn && <LoginMenu onClose={() => setShowLoginMenu(false)} />}
 
-      {showSearchBar && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mb-5">
-          <input
-            type="text"
-            placeholder="Rechercher une formation ou un thème..."
-            value={searchQuery}
-            onChange={handleSearchChange}
-            className="w-full h-10 p-2 border border-black rounded-lg bg-white text-[#82b89a]"
-          />
-        </motion.div>
-      )}
-
+       {showSearchBar && (
+      <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+        <input
+          type="text"
+          placeholder={`Rechercher par ${filterType === 'all' ? 'domaine, thème ou code' : filterType}...`}
+          value={searchQuery}
+          onChange={handleSearchChange}
+          className="flex-1 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+        />
+        
+        <select
+          value={filterType}
+          onChange={handleFilterTypeChange}
+          className="p-3 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+        >
+          <option value="all">Tous les filtres</option>
+          <option value="domaine">Domaine</option>
+          <option value="theme">Thème</option>
+          <option value="code">Code</option>
+        </select>
+      </div>
+    )}
+  
       {domainesUniques.length === 0 ? (
         <p className="text-center text-gray-500 px-4 py-2">Aucune formation trouvée.</p>
       ) : (
@@ -164,12 +200,14 @@ const Catalogue: React.FC = () => {
             const formationsDuDomaine = filteredFormations.filter((f) => f.domaine === domaine);
             return (
               <div key={domaine} className="bg-gray-100 text-black rounded-1xl p-6 shadow-lg transform hover:scale-10 hover:shadow-2xl transition-all cursor-pointer">
-                {/* ... (votre code existant pour l'en-tête de domaine) */}
                 
                 <div className="mt-4">
                   <table className="w-full border-collapse">
                     <thead>
                       <tr className="bg-gray-300/60 text-1l text-gray-500">
+                      <th className="p-3 font-semibold text-left" colSpan={3}>Domaine: {domaine}</th>
+                      </tr>
+                      <tr className="bg-gray-200/60 text-gray-500">
                         <th className="p-3 font-semibold text-left">Thèmes</th>
                         <th className="p-3 font-semibold text-left">Code</th>
                         <th className="p-3 font-semibold text-left">Action</th>

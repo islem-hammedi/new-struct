@@ -1,7 +1,7 @@
 
 
 
-
+const bcrypt = require('bcrypt');
 const FormateurService = require('../../services/admin/formateur');
 
 const getFormateurs = async (req, res) => {

@@ -15,7 +15,6 @@ const ChartTwo: React.FC = () => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Fetch admin stats only
     axios.get(`${import.meta.env.VITE_APP_API_URL}/apiAdmin/stats/admins`)
       .then(response => {
         setAdminStats(response.data.data);
@@ -28,7 +27,6 @@ const ChartTwo: React.FC = () => {
       });
   }, []);
 
-  // Data for admin pie chart
   const adminChartData = [
     { name: 'Admins', value: adminStats.admins },
     { name: 'Super Admins', value: adminStats.super_admins }

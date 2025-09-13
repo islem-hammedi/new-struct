@@ -669,9 +669,7 @@ const CatalogueListAdmin: React.FC = () => {
       const matchesSession = formation.sessions.some((session) => {
         return (
           (session.theme?session.theme.toLowerCase().includes(query):false) ||
-          (session.code?session.code.toLowerCase().includes(query):false) ||
-          (session.formateurs ? session.formateurs.some(formateur => formateur.nom_complet.toLowerCase().includes(query)) : false) 
-
+          (session.code?session.code.toLowerCase().includes(query):false) 
          );
       });
       return matchesDomaine || matchesSession;

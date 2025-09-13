@@ -34,7 +34,9 @@ const Catalogue: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {user, isLoggedIn} = useAuth();
   const [showLoginMenu, setShowLoginMenu] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null); 
+  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
+  const [themeSearchQuery, setThemeSearchQuery] = useState('');
+ 
 const [filterType, setFilterType] = useState<string>('all');
   useEffect(() => {
     axios
@@ -64,43 +66,11 @@ const [filterType, setFilterType] = useState<string>('all');
 const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const query = e.target.value.toLowerCase();
   setSearchQuery(query);
-  
-  if (query === "") {
-    setFilteredFormations(formations);
-    return;
-  }
-
-  const filtered = formations.filter((formation) => {
-    switch (filterType) {
-      case 'domaine':
-        return formation.domaine.toLowerCase().includes(query);
-      
-      case 'theme':
-        return formation.themes.some((theme) =>
-          theme.theme.toLowerCase().includes(query)
-        );
-      
-      case 'code':
-        return formation.themes.some((theme) =>
-          theme.code.toLowerCase().includes(query)
-        );
-      
-      case 'all':
-      default:
-        const matchesDomaine = formation.domaine.toLowerCase().includes(query);
-        const matchesTheme = formation.themes.some((theme) =>
-          theme.theme.toLowerCase().includes(query) || theme.code.toLowerCase().includes(query)
-        );
-        return matchesDomaine || matchesTheme;
-    }
-  });
-
-  setFilteredFormations(filtered);
+  setThemeSearchQuery(query); // Nouveau state pour filtrer les thèmes
 };
 
 const handleFilterTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
   setFilterType(e.target.value);
-  // Réappliquer le filtre avec le nouveau type
   if (searchQuery) {
     handleSearchChange({ target: { value: searchQuery } } as React.ChangeEvent<HTMLInputElement>);
   }
@@ -198,6 +168,40 @@ const handleFilterTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         <div className="grid grid-cols-1 gap-2">
           {domainesUniques.map((domaine) => {
             const formationsDuDomaine = filteredFormations.filter((f) => f.domaine === domaine);
+            
+            // Filtrer les thèmes selon les critères de recherche
+            const themesFiltered = formationsDuDomaine.flatMap((formation) =>
+              formation.themes
+                .filter((theme) => {
+                  if (!themeSearchQuery) return true;
+                  
+                  switch (filterType) {
+                    case 'domaine':
+                      return formation.domaine.toLowerCase().includes(themeSearchQuery);
+                    
+                    case 'theme':
+                      return theme.theme?.toLowerCase().includes(themeSearchQuery);
+                    
+                    case 'code':
+                      return theme.code?.toLowerCase().includes(themeSearchQuery);
+                    
+                    case 'all':
+                    default:
+                      return (
+                        formation.domaine.toLowerCase().includes(themeSearchQuery) ||
+                        theme.theme?.toLowerCase().includes(themeSearchQuery) ||
+                        theme.code?.toLowerCase().includes(themeSearchQuery)
+                      );
+                  }
+                })
+                .map((theme) => ({ ...theme, formation }))
+            );
+            
+            // Ne pas afficher le domaine s'il n'y a aucun thème filtré
+            if (themesFiltered.length === 0) {
+              return null;
+            }
+           
             return (
               <div key={domaine} className="bg-gray-100 text-black rounded-1xl p-6 shadow-lg transform hover:scale-10 hover:shadow-2xl transition-all cursor-pointer">
                 
@@ -214,41 +218,35 @@ const handleFilterTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {formationsDuDomaine.flatMap((formation) =>
-                        formation.themes
-                          .filter((theme) =>
-                            theme.theme.toLowerCase().includes(sessionSearchQuery.toLowerCase())
-                          )
-                          .map((theme) => (
-                            <tr 
-                              key={theme.id_theme} 
-                              className="hover:bg-gray-100"
-                              onClick={() => handleThemeClick(theme)}
-                              style={{ cursor: 'pointer' }}
+                      {themesFiltered.map((theme) => (
+                        <tr 
+                          key={theme.id_theme} 
+                          className="hover:bg-gray-100"
+                          onClick={() => handleThemeClick(theme)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <td className="p-2 border">{theme.theme}</td>
+                          <td className="p-2 border">{theme.code}</td>
+                          <td className="p-2 border text-right gap-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation(); 
+                                handleAjout(theme);
+                              }}
+                              className="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600"
+                              disabled={isSubmitting}
                             >
-                              <td className="p-2 border">{theme.theme}</td>
-                              <td className="p-2 border">{theme.code}</td>
-                              <td className="p-2 border text-right gap-3">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation(); // Empêche le déclenchement du click sur la ligne
-                                    handleAjout(theme);
-                                  }}
-                                  className="bg-teal-500 text-white py-1 px-3 rounded-md hover:bg-teal-600"
-                                  disabled={isSubmitting}
-                                >
-                                  {isSubmitting ? "En cours..." : "Ajouter au panier"}
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                      )}
+                              {isSubmitting ? "En cours..." : "Ajouter au panier"}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
               </div>
             );
-          })}
+          }).filter(Boolean)} 
         </div>
       )}
     </div>

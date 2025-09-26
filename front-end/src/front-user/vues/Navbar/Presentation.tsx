@@ -27,7 +27,6 @@ const ObservableCountUp = ({ end, duration = 2, ...props }) => {
   );
 };
 
-// Composant pour l'animation de texte
 const AnimatedText = ({ children, delay = 0 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [ref, inView] = useInView({

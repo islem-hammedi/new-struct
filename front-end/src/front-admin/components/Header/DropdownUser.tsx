@@ -22,18 +22,12 @@ const DropdownUser = () => {
       console.log('Dropdown Open:', !dropdownOpen);
    };
 
-   // Définir handleLogout ici
    const handleLogout = () => {
-      // Supprimer le token du cookie en définissant une date d'expiration passée
       document.cookie = 'token=; Max-Age=-99999999; Path=/; Secure; HttpOnly; SameSite=Strict';
 
-      // Supprimer l'utilisateur du localStorage
       localStorage.removeItem('user');
-
-      // Appeler la fonction de logout du context
       logout();
 
-      // Rediriger l'utilisateur vers la page de connexion ou une autre page appropriée
       navigate('/Admin/signin');
    };
 
@@ -77,18 +71,17 @@ const DropdownUser = () => {
                         className="flex items-center gap-3.5 text-sm font-medium duration-300 ease-in-out hover:text-primary lg:text-base"
                      >
                         <svg className="fill-current" width="22" height="22" viewBox="0 0 22 22">
-                           {/* Settings icon paths */}
                         </svg>
                         Paramètres
                      </Link>
                   </li>
                   <li>
                      <button
-                        onClick={handleLogout} // Appel de la fonction handleLogout
+                        onClick={handleLogout} 
                         className="flex items-center gap-3.5 text-sm font-medium text-red-500 duration-300 ease-in-out hover:text-red-700"
                      >
                         <svg className="fill-current" width="22" height="22" viewBox="0 0 22 22">
-                           {/* Logout icon */}
+                         
                         </svg>
                         Se déconnecter
                      </button>

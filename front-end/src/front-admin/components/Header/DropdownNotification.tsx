@@ -80,35 +80,7 @@ const DropdownNotification = () => {
     }
   }, []);
 
-  const handleAction = async (cartId: number, action: "confirm" | "refuse") => {
-    try {
-      const cart = requests.find((cart) => cart.cartId === cartId);
-      if (!cart) {
-        console.error("Cart introuvable");
-        return;
-      }
 
-      const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/apiUser/formations/send-email`, {
-        subject: action === "confirm" ? "Confirmation de la session" : "Refus de la session",
-        body: action === "confirm" 
-          ? "Votre demande a été confirmée. Merci de votre inscription." 
-          : "Désolé, votre demande a été refusée.",
-        email: cart.participant.email_participant,
-      });
-
-      if (response.status === 200) {
-        console.log("Email envoyé avec succès");
-        const updatedRequests = requests.filter((cart) => cart.cartId !== cartId);
-        setRequests(updatedRequests);
-        localStorage.setItem("globalCart", JSON.stringify(updatedRequests));
-        console.log("Données mises à jour dans localStorage:", updatedRequests);
-      } else {
-        console.error("Erreur lors de l'envoi de l'email:", response);
-      }
-    } catch (error) {
-      console.error("Erreur lors de la gestion de l'action :", error);
-    }
-  };
 
   const handleRemoveItem = (cartId: number) => {
     const cart = requests.find((cart) => cart.cartId === cartId);
@@ -144,7 +116,7 @@ const DropdownNotification = () => {
       </Menu.Button>
 
       <Transition
-        enter="transition ease-out duration-200"
+        enter="transition ease-out duration-900"
         enterFrom="transform opacity-0 scale-95"
         enterTo="transform opacity-100 scale-100"
         leave="transition ease-in duration-150"
@@ -159,10 +131,10 @@ const DropdownNotification = () => {
             ) : (
               uniqueRequests.map((cart) => (
                 <div key={cart.cartId} className="border-b py-2">
-                  <div className="text-sm font-semibold mb-2">
-                    {cart.participant.nom_participant || "Inconnu"} (Email:{" "}
-                    {cart.participant.email_participant || "Inconnu"})(Telephone:{" "}
-                    {cart.participant.tel_participant || "Inconnu"})
+                  <div className="text-sm text-gray-700 mb-2">
+                    {cart.participant.nom_participant || "Inconnu"} 
+                    , Email: {" "} {cart.participant.email_participant || "Inconnu"} ,   
+                    Telephone: {" "} {cart.participant.tel_participant || "Inconnu"}
 
                   </div>
 
@@ -174,7 +146,7 @@ const DropdownNotification = () => {
 ))}
 
                   {cart.action === "commander" && (
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex gap-2 mt-2"> Commande de thème
                   
                       <button
                         onClick={() => handleRemoveItem(cart.cartId)}
@@ -186,8 +158,8 @@ const DropdownNotification = () => {
                   )}
 
                   {cart.action === "demander_devis" && (
-                    <div className="flex items-center justify-between mt-2">
-                   
+                    <div className="flex items-center justify-between mt-2 text-violet-600">
+                   demande de devis
                       <button
                         onClick={() => handleRemoveItem(cart.cartId)}
                         className="right-2 text-red-500 hover:text-red-700"
